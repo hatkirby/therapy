@@ -21,9 +21,9 @@ Map::Map()
   add_collision(GAME_WIDTH+6, 0, GAME_WIDTH, right, 1);
   
   FILE* f = fopen("../maps/bigmap.txt", "r");
-  char* mapbuf = (char*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(char));
+  char* mapbuf = (char*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(char));
   
-  for (int i=0; i<MAP_HEIGHT; i++)
+  for (int i=0; i<MAP_HEIGHT-1; i++)
   {
     fread(mapbuf + i*MAP_WIDTH, sizeof(char), MAP_WIDTH, f);
     fgetc(f);
@@ -35,7 +35,7 @@ Map::Map()
   bg = createTexture(GAME_WIDTH, GAME_HEIGHT);
   fillTexture(bg, NULL, 0, 0, 0);
   
-  for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
+  for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;
@@ -78,6 +78,17 @@ Map::Map()
     }
   }
   
+  Texture* font = loadTextureFromBMP("../res/font.bmp");
+  const char* map_name = "Everything Is Embarassing";
+  int start_x = (40/2) - (strlen(map_name)/2);
+  for (int i=0; i<strlen(map_name); i++)
+  {
+    Rectangle srcRect(map_name[i] % 16 * 8, map_name[i] / 16 * 8, 8, 8);
+    Rectangle dstRect((start_x + i)*8, 24*8, 8, 8);
+    blitTexture(font, bg, &srcRect, &dstRect);
+  }
+  
+  destroyTexture(font);
   //destroyTexture(tiles);
 }
 

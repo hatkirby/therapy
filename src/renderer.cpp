@@ -345,6 +345,36 @@ Texture* loadTextureFromBMP(char* filename)
   return tex;
 }
 
+void saveTextureToBMP(Texture* tex, char* filename)
+{
+  if (!rendererInitialized)
+  {
+    fprintf(stderr, "Renderer not initialized\n");
+    exit(-1);
+  }
+  
+  int size = 54 + 3*tex->width*tex->height;
+  
+  char* buf = (char*) calloc(size, sizeof(char));
+  buf[0x00] = 'B';
+  buf[0x01] = 'M';
+  *(int*)&(buf[0x0A]) = 54;
+  *(int*)&(buf[0x12]) = tex->width;
+  *(int*)&(buf[0x16]) = tex->height;
+  *(int*)&(buf[0x1C]) = 24;
+  *(int*)&(buf[0x1E]) = 0;
+  *(int*)&(buf[0x22]) = size;
+  
+  glBindTexture(GL_TEXTURE_2D, tex->texID);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, buf + 54);
+  
+  FILE* f = fopen(filename, "wb");
+  fwrite(buf, sizeof(char), size, f);
+  fclose(f);
+  
+  free(buf);
+}
+
 void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
 {
   if (!rendererInitialized)
@@ -478,15 +508,17 @@ void renderScreen(Texture* tex)
     exit(-1);
   }
   
-  // Set up framebuffer
+  // First we're going to composite our frame with the previous frame
+  // We start by setting up the framebuffer
   glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexBufs[curBuf], 0);
   
-  // Set up renderer
+  // Set up the shaer
   glViewport(0,0,GAME_WIDTH,GAME_HEIGHT);
   glClear(GL_COLOR_BUFFER_BIT);
   glUseProgram(ntscShader);
   
+  // Use the current frame texture, nearest neighbor and clamped to edge
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex->texID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -495,6 +527,7 @@ void renderScreen(Texture* tex)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glUniform1i(glGetUniformLocation(ntscShader, "curFrameSampler"), 0);
   
+  // Use the previous frame composite texture, nearest neighbor and clamped to edge
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, renderedTexBufs[(curBuf + 1) % 2]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -503,12 +536,13 @@ void renderScreen(Texture* tex)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glUniform1i(glGetUniformLocation(ntscShader, "prevFrameSampler"), 1);
   
+  // Load the NTSC artifact texture
   glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D, artifactsTex);
   glUniform1i(glGetUniformLocation(ntscShader, "NTSCArtifactSampler"), 2);
-  
   glUniform1f(glGetUniformLocation(ntscShader, "NTSCLerp"), curBuf * 1.0);
   
+  // Load the vertices of a flat surface
   GLfloat g_quad_vertex_buffer_data[] = { 
 		-1.0f, -1.0f, 0.0f,
 		 1.0f, -1.0f, 0.0f,
@@ -523,11 +557,13 @@ void renderScreen(Texture* tex)
   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
   
+  // Render our composition
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glDisableVertexAttribArray(0);
-  
+
+  // Load the normal vertices of a flat surface
   GLfloat g_norms_data[] = {
     0.0f, 0.0f, 1.0f,
     0.0f, 0.0f, 1.0f,
@@ -542,10 +578,13 @@ void renderScreen(Texture* tex)
   glBindBuffer(GL_ARRAY_BUFFER, g_norms);
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_norms_data), g_norms_data, GL_STATIC_DRAW);
   
+  // We're going to output to the window now
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0,0,1024,768);
   glClear(GL_COLOR_BUFFER_BIT);
   glUseProgram(finalShader);
+  
+  // Use the composited frame texture, linearly filtered and filling in black for the border
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, renderedTexBufs[curBuf]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -557,9 +596,19 @@ void renderScreen(Texture* tex)
 	glGenerateMipmap(GL_TEXTURE_2D);
   glUniform1i(glGetUniformLocation(finalShader, "rendertex"), 0);
   
+  // Use the scanlines texture
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, scanlinesTex);
   glUniform1i(glGetUniformLocation(finalShader, "scanlinestex"), 1);
+  
+  // Initialize the MVP matrices
+  mat4 p_matrix = perspective(90.0f, 4.0f / 4.0f, 0.1f, 100.0f);
+  mat4 v_matrix = lookAt(vec3(0,0,1), vec3(0,0,0), vec3(0,1,0));
+  mat4 m_matrix = mat4(1.0f);
+  mat4 mvp_matrix = p_matrix * v_matrix * m_matrix;
+  
+  glUniformMatrix4fv(glGetUniformLocation(finalShader, "MVP"), 1, GL_FALSE, &mvp_matrix[0][0]);
+  glUniformMatrix4fv(glGetUniformLocation(finalShader, "worldMat"), 1, GL_FALSE, &m_matrix[0][0]);
   
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
