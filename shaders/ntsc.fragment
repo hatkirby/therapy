@@ -1,0 +1,64 @@
+#version 330 core
+
+in vec2 UV;
+
+out vec3 color;
+
+uniform sampler2D curFrameSampler;
+uniform sampler2D NTSCArtifactSampler;
+uniform sampler2D prevFrameSampler;
+
+const float Tuning_Sharp = 0.8;
+const vec4 Tuning_Persistence = vec4(0.7,0.7,0.7,0.7);
+const float Tuning_Bleed = 0.5;
+const float Tuning_NTSC = 0.35;
+uniform float NTSCLerp;
+
+const vec2 RcpScrWidth = vec2(1.0f / 320.f, 0.0f);
+const vec2 RcpScrHeight = vec2(0.0f, 1.0f / 200.0f);
+
+float Brightness(vec4 InVal)
+{
+  return dot(InVal, vec4(0.299, 0.587, 0.114, 0.0));
+}
+
+const float SharpWeight[3] = float[3](1.0, -0.3162277, 0.1);
+
+void main()
+{
+  vec4 NTSCArtifact1 = texture(NTSCArtifactSampler, UV);
+  vec4 NTSCArtifact2 = texture(NTSCArtifactSampler, UV + RcpScrHeight);
+  vec4 NTSCArtifact = mix(NTSCArtifact1, NTSCArtifact2, NTSCLerp);
+  
+  vec2 LeftUV = UV - RcpScrWidth;
+  vec2 RightUV = UV + RcpScrWidth;
+  
+  vec4 Cur_Left = texture(curFrameSampler, LeftUV);
+  vec4 Cur_Local = texture(curFrameSampler, UV);
+  vec4 Cur_Right = texture(curFrameSampler, RightUV);
+  
+  vec4 Prev_Left = texture(prevFrameSampler, LeftUV);
+  vec4 Prev_Local = texture(prevFrameSampler, UV);
+  vec4 Prev_Right = texture(prevFrameSampler, RightUV);
+  
+  Cur_Local = clamp(Cur_Local + (((Cur_Left - Cur_Local) + (Cur_Right - Cur_Local)) * Tuning_NTSC), vec4(0,0,0,0), vec4(1,1,1,1));
+  
+  float curBrt = Brightness(Cur_Local);
+  float offset = 0;
+  
+  for (int i=0; i<3; ++i)
+  {
+    vec2 StepSize = (RcpScrWidth * float(i+1));
+    vec4 neighborleft = texture(curFrameSampler, UV - StepSize);
+    vec4 neighborright = texture(curFrameSampler, UV + StepSize);
+    
+    float NBrtL = Brightness(neighborleft);
+    float NBrtR = Brightness(neighborright);
+    offset += ((curBrt - NBrtL) + (curBrt - NBrtR)) * SharpWeight[i];
+  }
+  
+  Cur_Local = clamp(Cur_Local + (offset * Tuning_Sharp * mix(vec4(1,1,1,1), NTSCArtifact, Tuning_NTSC)), vec4(0,0,0,0), vec4(1,1,1,1));
+  Cur_Local = clamp(max(Cur_Local, Tuning_Persistence * (1.0 / (1.0 + (2.0 * Tuning_Bleed))) * (Prev_Local + ((Prev_Left + Prev_Right) * Tuning_Bleed))), vec4(0,0,0,0), vec4(1,1,1,1));
+  
+  color = Cur_Local.xyz;
+}

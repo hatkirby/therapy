@@ -1,0 +1,56 @@
+#version 330 core
+
+in vec2 UV;
+in vec3 norm;
+
+out vec3 color;
+
+uniform sampler2D rendertex;
+uniform sampler2D scanlinestex;
+
+const vec2 UVScalar = vec2(1.0, 1.0);
+const vec2 UVOffset = vec2(0.0, 0.0);
+const vec2 CRTMask_Scale = vec2(85.0, 153.6);
+const vec2 CRTMask_Offset = vec2(0.0, 0.0);
+const float Tuning_Overscan = 1.0;
+const float Tuning_Dimming = 0.5;
+const float Tuning_Satur = 1.35;
+const float Tuning_ReflScalar = 0.3;
+const float Tuning_Barrel = 0.12;
+const float Tuning_Scanline_Brightness = 0.25;
+const float Tuning_Scanline_Opacity = 0.5;
+const float Tuning_Diff_Brightness = 0.5;
+const float Tuning_Spec_Brightness = 0.35;
+const float Tuning_Spec_Power = 50.0;
+const float Tuning_Fres_Brightness = 1.0;
+const vec3 Tuning_LightPos = vec3(5.0, -10.0, 0.0);
+
+vec4 sampleCRT(vec2 uv)
+{
+  vec2 ScaledUV = uv;
+  ScaledUV *= UVScalar;
+  ScaledUV += UVOffset;
+  
+  vec2 scanuv = ScaledUV * CRTMask_Scale;
+  vec3 scantex = texture(scanlinestex, scanuv).rgb;
+  scantex += Tuning_Scanline_Brightness;
+  scantex = mix(vec3(1,1,1), scantex, Tuning_Scanline_Opacity);
+  
+  vec2 overscanuv = (ScaledUV * Tuning_Overscan) - ((Tuning_Overscan - 1.0f) * 0.5f);
+  overscanuv = overscanuv - vec2(0.5, 0.5);
+  float rsq = (overscanuv.x*overscanuv.x) + (overscanuv.y*overscanuv.y);
+  overscanuv = overscanuv + (overscanuv * (Tuning_Barrel * rsq)) + vec2(0.5,0.5);
+  
+  vec3 comptex = texture(rendertex, overscanuv).rgb;
+  
+  vec4 emissive = vec4(comptex * scantex, 1);
+  float desat = dot(vec4(0.299, 0.587, 0.114, 0.0), emissive);
+  emissive = mix(vec4(desat, desat, desat, 1), emissive, Tuning_Satur);
+  
+  return emissive;
+}
+
+void main()
+{
+  color = sampleCRT(UV).rgb;
+}
