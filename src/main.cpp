@@ -5,26 +5,6 @@
 
 using namespace::std;
 
-#if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
-
-  #include <windows.h>
-
-  inline void delay( unsigned long ms )
-    {
-    Sleep( ms );
-    }
-
-#else  /* presume POSIX */
-
-  #include <unistd.h>
-
-  inline void delay( unsigned long ms )
-    {
-    usleep( ms * 1000 );
-    }
-
-#endif 
-
 const int FRAMES_PER_SECOND = 60;
 bool holding_left = false;
 bool holding_right = false;
@@ -81,21 +61,8 @@ int main()
 
   Texture* tiles = loadTextureFromBMP("../res/tiles.bmp");
   
-  double lastTime = glfwGetTime();
-  int nbFrames = 0;
-  
   while (!quit)
   {
-    /*
-    double currentTime = glfwGetTime();
-         nbFrames++;
-         if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1 sec ago
-             // printf and reset timer
-             printf("%f ms/frame\n", 1000.0/double(nbFrames));
-             nbFrames = 0;
-             lastTime += 1.0;
-         }*/
-    
     if (holding_left && player->x_vel >= 0)
     {
       player->x_vel = -2;
@@ -125,20 +92,11 @@ int main()
     Rectangle dst_rect(player->x, player->y, player->w, player->h);
     
     //blitTexture(tiles, buffer, &src_rect, &dst_rect);
-    fillTexture(buffer, &dst_rect, 85, 85, 255);
-    //fillTexture(buffer, NULL, 85, 85, 0);
+    fillTexture(buffer, &dst_rect, 255, 255, 255);
     
     renderScreen(buffer);
     
-    //fuckThePolice(buffer);
-    
     glfwPollEvents();
-    
-    // Regulate frame rate
-    /*if ((clock() - frame_start) < CLOCKS_PER_SEC / FRAMES_PER_SECOND)
-    {
-      //delay(((CLOCKS_PER_SEC / FRAMES_PER_SECOND) - clock() + frame_start) * CLOCKS_PER_SEC / 1000);
-    }*/
   }
   
   delete map;
