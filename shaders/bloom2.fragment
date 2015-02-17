@@ -51,7 +51,9 @@ void main()
   }
   
   vec3 bloom_c = (sum / vec4(NUM_TAPS)).rgb;
-  bloom_c = vec3(bloom_c.r*bloom_c.r, bloom_c.g*bloom_c.g, bloom_c.b*bloom_c.b);
+  //bloom_c = vec3(bloom_c.r*bloom_c.r, bloom_c.g*bloom_c.g, bloom_c.b*bloom_c.b);
+  //bloom_c = vec3(bloom_c.r*bloom_c.r, bloom_c.g*bloom_c.g, bloom_c.b*bloom_c.b);
+  bloom_c = max(bloom_c - 0.25, vec3(0,0,0));
   
   color = texture(screenTex, UV).rgb + bloom_c;
 }

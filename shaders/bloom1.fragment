@@ -21,7 +21,7 @@ vec2 rot2d(vec2 p, float a)
 void main()
 {
   const int NUM_TAPS = 12;
-  float max_siz = 1.0;
+  float max_siz = 15.0;
   
   vec2 fTaps_Poisson[NUM_TAPS];
   fTaps_Poisson[0]  = vec2(-.326, -.406);
