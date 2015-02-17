@@ -3,7 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <cstdio>
-#include "map.h"
+#include "mapview.h"
 
 static bool rendererInitialized = false;
 
@@ -26,6 +26,12 @@ static GLuint artifactsTex;
 static GLuint scanlinesTex;
 static GLuint preBloomTex;
 static GLuint bloomPassTex;
+
+// The VAO
+static GLuint VertexArrayID;
+
+// A plane that fills the renderbuffer
+static GLuint quad_vertexbuffer;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 { 
@@ -221,7 +227,6 @@ GLFWwindow* initRenderer()
   }
   
   // Set up vertex array object
-  GLuint VertexArrayID;
   glGenVertexArrays(1, &VertexArrayID);
   glBindVertexArray(VertexArrayID);
   
@@ -269,6 +274,20 @@ GLFWwindow* initRenderer()
   
   curBuf = 0;
   
+  // Load the vertices of a flat surface
+  GLfloat g_quad_vertex_buffer_data[] = { 
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f,
+	};
+
+  glGenBuffers(1, &quad_vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+  
   artifactsTex = loadBMP_custom("../res/artifacts.bmp");
   scanlinesTex = loadBMP_custom("../res/scanlines.bmp");
   
@@ -293,6 +312,9 @@ void destroyRenderer()
     exit(-1);
   }
   
+  // Delete the plane buffer
+  glDeleteBuffers(1, &quad_vertexbuffer);
+  
   // Delete the shaders
   glDeleteProgram(ntscShader);
   glDeleteProgram(finalShader);
@@ -311,6 +333,9 @@ void destroyRenderer()
   
   // Delete the framebuffer
   glDeleteFramebuffers(1, &FramebufferName);
+  
+  // Delete the VAO
+  glDeleteVertexArrays(1, &VertexArrayID);
   
   // Kill the window
   glfwTerminate();
@@ -569,23 +594,9 @@ void renderScreen(Texture* tex)
   glUniform1i(glGetUniformLocation(ntscShader, "NTSCArtifactSampler"), 2);
   glUniform1f(glGetUniformLocation(ntscShader, "NTSCLerp"), curBuf * 1.0);
   
-  // Load the vertices of a flat surface
-  GLfloat g_quad_vertex_buffer_data[] = { 
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f,
-	};
-
-  GLuint quad_vertexbuffer;
-  glGenBuffers(1, &quad_vertexbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
-  
   // Render our composition
   glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glDisableVertexAttribArray(0);
@@ -694,7 +705,6 @@ void renderScreen(Texture* tex)
   glfwSwapBuffers(window);
   
   glDeleteBuffers(1, &g_norms);
-  glDeleteBuffers(1, &quad_vertexbuffer);
   
   curBuf = (curBuf + 1) % 2;
 }
