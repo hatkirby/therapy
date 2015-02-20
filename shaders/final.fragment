@@ -11,10 +11,6 @@ out vec3 color;
 uniform sampler2D rendertex;
 uniform sampler2D scanlinestex;
 
-const vec2 UVScalar = vec2(1.0, 1.0);
-const vec2 UVOffset = vec2(0.0, 0.0);
-const vec2 CRTMask_Scale = vec2(85.0, 153.6)*4.0;
-const vec2 CRTMask_Offset = vec2(0.0, 0.0);
 const float Tuning_Overscan = 1.08;
 const float Tuning_Dimming = 0.0;
 const float Tuning_Satur = 1.0;
@@ -27,18 +23,18 @@ const float Tuning_Spec_Brightness = 0.35;
 const float Tuning_Spec_Power = 50.0;
 const float Tuning_Fres_Brightness = 1.0;
 
+uniform vec2 resolution;
+
 vec4 sampleCRT(vec2 uv)
 {
-  vec2 ScaledUV = uv;
-  ScaledUV *= UVScalar;
-  ScaledUV += UVOffset;
+  vec2 CRTMask_Scale = resolution / vec2(6.0, 5.0);
   
-  vec2 scanuv = ScaledUV * CRTMask_Scale;
+  vec2 scanuv = uv * CRTMask_Scale;
   vec3 scantex = texture(scanlinestex, scanuv).rgb;
   scantex += Tuning_Scanline_Brightness;
   scantex = mix(vec3(1,1,1), scantex, Tuning_Scanline_Opacity);
   
-  vec2 overscanuv = (ScaledUV * Tuning_Overscan) - ((Tuning_Overscan - 1.0f) * 0.5f);
+  vec2 overscanuv = (uv * Tuning_Overscan) - ((Tuning_Overscan - 1.0f) * 0.5f);
   overscanuv = overscanuv - vec2(0.5, 0.5);
   float rsq = (overscanuv.x*overscanuv.x) + (overscanuv.y*overscanuv.y);
   overscanuv = overscanuv + (overscanuv * (Tuning_Barrel * rsq)) + vec2(0.5,0.5);

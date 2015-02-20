@@ -7,6 +7,7 @@ out vec3 color;
 uniform sampler2D screenTex;
 uniform sampler2D downsampledTex;
 uniform float iGlobalTime;
+uniform vec2 resolution;
 
 float nrand(vec2 n)
 {
@@ -46,7 +47,7 @@ void main()
     vec2 ofs = fTaps_Poisson[i];
     ofs = vec2(dot(ofs, basis.xz), dot(ofs, basis.yw));
     
-    vec2 texcoord = UV + max_siz * ofs / vec2(64.0,48.0);
+    vec2 texcoord = UV + max_siz * ofs / (resolution / vec2(16.0));
     sum += texture(downsampledTex, texcoord, -10.0);
   }
   
