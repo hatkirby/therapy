@@ -8,8 +8,8 @@ uniform sampler2D curFrameSampler;
 uniform sampler2D NTSCArtifactSampler;
 uniform sampler2D prevFrameSampler;
 
-const float Tuning_Sharp = 0.8;
-const vec4 Tuning_Persistence = vec4(0.7,0.7,0.7,0.7);
+const float Tuning_Sharp = 0.25;
+const vec4 Tuning_Persistence = vec4(1.0) * 0.5;
 const float Tuning_Bleed = 0.5;
 const float Tuning_NTSC = 0.35;
 uniform float NTSCLerp;
@@ -29,6 +29,7 @@ void main()
   vec4 NTSCArtifact1 = texture(NTSCArtifactSampler, UV);
   vec4 NTSCArtifact2 = texture(NTSCArtifactSampler, UV + RcpScrHeight);
   vec4 NTSCArtifact = mix(NTSCArtifact1, NTSCArtifact2, NTSCLerp);
+  vec4 TunedNTSC = NTSCArtifact * Tuning_NTSC;
   
   vec2 LeftUV = UV - RcpScrWidth;
   vec2 RightUV = UV + RcpScrWidth;
@@ -41,7 +42,7 @@ void main()
   vec4 Prev_Local = texture(prevFrameSampler, UV);
   vec4 Prev_Right = texture(prevFrameSampler, RightUV);
   
-  Cur_Local = clamp(Cur_Local + (((Cur_Left - Cur_Local) + (Cur_Right - Cur_Local)) * Tuning_NTSC), vec4(0,0,0,0), vec4(1,1,1,1));
+  Cur_Local = clamp(Cur_Local + (((Cur_Left - Cur_Local) + (Cur_Right - Cur_Local)) * TunedNTSC), vec4(0,0,0,0), vec4(1,1,1,1));
   
   float curBrt = Brightness(Cur_Local);
   float offset = 0;

@@ -17,7 +17,13 @@ MapView::MapView(Map* first, int x, int y)
   player->x_accel = 0;
   player->y_accel = jump_gravity;
   player->w = 10;
-  player->h = 14;
+  player->h = 12;
+  player->onGround = false;
+  player->animFrame = 0;
+  
+  bg = createTexture(GAME_WIDTH, GAME_HEIGHT);
+  chara = loadTextureFromBMP("../res/Starla.bmp");
+  tiles = loadTextureFromBMP("../res/tiles2.bmp");
   
   loadMap(first);
 }
@@ -25,6 +31,8 @@ MapView::MapView(Map* first, int x, int y)
 MapView::~MapView()
 {
   destroyTexture(bg);
+  destroyTexture(chara);
+  destroyTexture(tiles);
   
   delete player;
 }
@@ -41,55 +49,47 @@ void MapView::loadMap(Map* m)
   add_collision(-6, 0, GAME_WIDTH, left, (m->getLeftMap() == NULL) ? 1 : 2);
   add_collision(GAME_WIDTH+6, 0, GAME_WIDTH, right, (m->getRightMap() == NULL) ? 1 : 2);
   
-  if (bg == NULL)
-  {
-    bg = createTexture(GAME_WIDTH, GAME_HEIGHT);
-  }
-  
   fillTexture(bg, NULL, 0, 0, 0);
   
-  const char* mapbuf = m->mapdata();
+  const int* mapbuf = m->mapdata();
   
   for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;
     Rectangle dst(x*TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-    //Rectangle src;
+    Rectangle src(mapbuf[i]%8*TILE_WIDTH, mapbuf[i]/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     
-    switch (mapbuf[i])
+    if (mapbuf[i] > 0)
     {
-      case ' ': break;
-      case 'X': fillTexture(bg, &dst, 255, 85, 85); break;
-      case 'P': fillTexture(bg, &dst, 85, 255, 255); break;
-    }
-    
+      blitTexture(tiles, bg, &src, &dst);
+    }    
     //blitTexture(tiles, bg, &src, &dst);
     
-    if (mapbuf[i] == 'X')
+    if ((mapbuf[i] > 0) && (!((mapbuf[i] >= 5) && (mapbuf[i] <= 7))))
     {
-      if ((x != 0) && (mapbuf[i-1] != 'X'))
+      //if ((x != 0) && (mapbuf[i-1] != 'X'))
       {
         add_collision(x*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, right, 0);
       }
       
-      if ((x != 39) && (mapbuf[i+1] != 'X'))
+      //if ((x != 39) && (mapbuf[i+1] != 'X'))
       {
         add_collision((x+1)*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, left, 0);
       }
       
-      if ((y != 0) && (mapbuf[i-MAP_WIDTH] != 'X'))
+      //if ((y != 0) && (mapbuf[i-MAP_WIDTH] != 'X'))
       {
         add_collision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, down, 0);
       }
       
-      if ((y != 23) && (mapbuf[i+MAP_WIDTH] != 'X'))
+      //if ((y != 23) && (mapbuf[i+MAP_WIDTH] != 'X'))
       {
         add_collision((y+1)*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, up, 0);
       }
-    } else if (mapbuf[i] == 'P')
+    } else if ((mapbuf[i] >= 5) && (mapbuf[i] <= 7))
     {
-      add_collision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, down, 0);
+      add_collision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, down, 3);
     }
   }
   
@@ -112,16 +112,38 @@ void MapView::input(int key, int action)
   {
     switch (key)
     {
-      case GLFW_KEY_LEFT: holding_left = true; break;
-      case GLFW_KEY_RIGHT: holding_right = true; break;
-      case GLFW_KEY_UP: player->y_vel = jump_velocity; break;
+      case GLFW_KEY_LEFT:
+        holding_left = true;
+        break;
+      case GLFW_KEY_RIGHT:
+        holding_right = true;
+        break;
+      case GLFW_KEY_UP:
+        if (player->onGround)
+        {
+          player->y_vel = jump_velocity;
+          player->onGround = false;
+        }
+        break;
+      case GLFW_KEY_DOWN:
+        holding_down = true;
+        break;
     }
   } else if (action == GLFW_RELEASE)
   {
     switch (key)
     {
-      case GLFW_KEY_LEFT: holding_left = false; break;
-      case GLFW_KEY_RIGHT: holding_right = false; break;
+      case GLFW_KEY_LEFT:
+        holding_left = false;
+        if (!holding_right) player->animFrame = 1;
+        break;
+      case GLFW_KEY_RIGHT:
+        holding_right = false;
+        if (!holding_left) player->animFrame = 0;
+        break;
+      case GLFW_KEY_DOWN:
+        holding_down = false;
+        break;
     }
   }
 }
@@ -153,12 +175,37 @@ void MapView::tick()
 
 void MapView::render(Texture* tex)
 {
+  if (animFrame == 0)
+  {
+    if (holding_left)
+    {
+      if (player->animFrame == 3)
+      {
+        player->animFrame = 5;
+      } else {
+        player->animFrame = 3;
+      }
+    } else if (holding_right)
+    {
+      if (player->animFrame == 2)
+      {
+        player->animFrame = 4;
+      } else {
+        player->animFrame = 2;
+      }
+    }
+  }
+  
+  animFrame++;
+  animFrame %= 10;
+  
   // Draw the background
   blitTexture(bg, tex, NULL, NULL);
   
   // Draw the player
+  Rectangle src_rect(player->animFrame * 10, 0, 10, 12);
   Rectangle dst_rect(player->x, player->y, player->w, player->h);
-  fillTexture(tex, &dst_rect, 255, 255, 255);
+  blitTexture(chara, tex, &src_rect, &dst_rect);
 }
 
 void MapView::add_collision(int axis, int lower, int upper, direction_t dir, int type)
@@ -305,9 +352,20 @@ void MapView::check_collisions(mob_t* mob, int x_next, int y_next)
         {
           y_next = it->axis - mob->h;
           mob->y_vel = 0;
+          mob->onGround = true;
         } else if (it->type == 1)
         {
           y_next = 1 - mob->h/2;
+        } else if (it->type == 3)
+        {
+          if (holding_down)
+          {
+            holding_down = false;
+          } else {
+            y_next = it->axis - mob->h;
+            mob->y_vel = 0;
+            mob->onGround = true;
+          }
         }
         
         break;

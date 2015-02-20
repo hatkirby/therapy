@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <cstdio>
+#include <cstring>
 #include "mapview.h"
 
 static bool rendererInitialized = false;
@@ -10,6 +11,8 @@ static bool rendererInitialized = false;
 static GLFWwindow* window;
 
 static GLuint FramebufferName; // The framebuffer
+static GLuint depthrenderbuffer;
+
 static GLuint ntscShader; // The NTSC shader
 static GLuint finalShader; // The passthrough shader
 static GLuint blitShader; // The blitting shader
@@ -32,6 +35,12 @@ static GLuint VertexArrayID;
 
 // A plane that fills the renderbuffer
 static GLuint quad_vertexbuffer;
+
+// Buffers for the mesh
+static GLuint mesh_vertexbuffer;
+static GLuint mesh_uvbuffer;
+static GLuint mesh_normalbuffer;
+static int mesh_numvertices;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 { 
@@ -188,6 +197,58 @@ GLuint loadBMP_custom(const char * imagepath){
 	return textureID;
 }
 
+void loadMesh(const char* filename, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals)
+{
+  FILE* file = fopen(filename, "r");
+  if (file == NULL)
+  {
+    fprintf(stderr, "Could not open mesh file %s\n", filename);
+    exit(1);
+  }
+  
+  std::vector<glm::vec3> temp_vertices;
+  std::vector<glm::vec2> temp_uvs;
+  std::vector<glm::vec3> temp_normals;
+  
+  for (;;)
+  {
+    char lineHeader[256];
+    int res = fscanf(file, "%s", lineHeader);
+    if (res == EOF)
+    {
+      break;
+    }
+    
+    if (!strncmp(lineHeader, "v", 2))
+    {
+      vec3 vertex;
+      fscanf(file, "%f %f %f\n", &vertex.x,&vertex.y,&vertex.z);
+      temp_vertices.push_back(vertex);
+    } else if (!strncmp(lineHeader, "vt", 3))
+    {
+      vec2 uv;
+      fscanf(file, "%f %f\n", &uv.x, &uv.y);
+      temp_uvs.push_back(uv);
+    } else if (!strncmp(lineHeader, "vn", 3))
+    {
+      vec3 normal;
+      fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+      temp_normals.push_back(normal);
+    } else if (!strncmp(lineHeader, "f", 2))
+    {
+      int vertexIDs[3], uvIDs[3], normalIDs[3];
+      fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIDs[0], &uvIDs[0], &normalIDs[0], &vertexIDs[1], &uvIDs[1], &normalIDs[1], &vertexIDs[2], &uvIDs[2], &normalIDs[2]);
+      
+      for (int i=0; i<3; i++)
+      {
+        out_vertices.push_back(temp_vertices[vertexIDs[i] - 1]);
+        out_uvs.push_back(temp_uvs[uvIDs[i] - 1]);
+        out_normals.push_back(temp_normals[normalIDs[i] - 1]);
+      }
+    }
+  }
+}
+
 GLFWwindow* initRenderer()
 {
   if (rendererInitialized)
@@ -230,11 +291,19 @@ GLFWwindow* initRenderer()
   glGenVertexArrays(1, &VertexArrayID);
   glBindVertexArray(VertexArrayID);
   
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  
   // Set up the framebuffer
   glGenFramebuffers(1, &FramebufferName);
   glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
   GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
   glDrawBuffers(1, DrawBuffers);
+  
+  glGenRenderbuffers(1, &depthrenderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
   
   // Set up the NTSC rendering buffers
   glGenTextures(1, &renderedTex1);
@@ -273,6 +342,26 @@ GLFWwindow* initRenderer()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   
   curBuf = 0;
+  
+  // Load the mesh!
+  std::vector<glm::vec3> mesh_vertices;
+  std::vector<glm::vec2> mesh_uvs;
+  std::vector<glm::vec3> mesh_normals;
+  loadMesh("../res/monitor-fef.obj", mesh_vertices, mesh_uvs, mesh_normals);
+  
+  mesh_numvertices = mesh_vertices.size();
+  
+  glGenBuffers(1, &mesh_vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh_vertices.size() * sizeof(vec3), &mesh_vertices[0], GL_STATIC_DRAW);
+  
+  glGenBuffers(1, &mesh_uvbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_uvbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh_uvs.size() * sizeof(vec3), &mesh_uvs[0], GL_STATIC_DRAW);
+  
+  glGenBuffers(1, &mesh_normalbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_normalbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh_normals.size() * sizeof(vec3), &mesh_normals[0], GL_STATIC_DRAW);
   
   // Load the vertices of a flat surface
   GLfloat g_quad_vertex_buffer_data[] = { 
@@ -314,6 +403,9 @@ void destroyRenderer()
   
   // Delete the plane buffer
   glDeleteBuffers(1, &quad_vertexbuffer);
+  glDeleteBuffers(1, &mesh_vertexbuffer);
+  glDeleteBuffers(1, &mesh_uvbuffer);
+  glDeleteBuffers(1, &mesh_normalbuffer);
   
   // Delete the shaders
   glDeleteProgram(ntscShader);
@@ -332,6 +424,7 @@ void destroyRenderer()
   glDeleteTextures(1, &bloomPassTex);
   
   // Delete the framebuffer
+  glDeleteRenderbuffers(1, &depthrenderbuffer);
   glDeleteFramebuffers(1, &FramebufferName);
   
   // Delete the VAO
@@ -466,6 +559,7 @@ void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
   
   glViewport(0, 0, tex->width, tex->height);
+  glClear(GL_DEPTH_BUFFER_BIT);
   glUseProgram(fillShader);
   glUniform3f(glGetUniformLocation(fillShader, "vecColor"), r / 255.0, g / 255.0, b / 255.0);
   
@@ -536,6 +630,7 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   
   // Set up the shader
   glUseProgram(blitShader);
+  glClear(GL_DEPTH_BUFFER_BIT);
   glViewport(0, 0, dsttex->width, dsttex->height);
   
   glActiveTexture(GL_TEXTURE0);
@@ -552,6 +647,62 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   glDeleteBuffers(1, &vertexbuffer);
 }
 
+void renderWithoutEffects(Texture* tex)
+{
+  if (!rendererInitialized)
+  {
+    fprintf(stderr, "Renderer not initialized\n");
+    exit(-1);
+  }
+  
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0, 0, 1024, 768);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glUseProgram(blitShader);
+  
+  const GLfloat fullBlitVertices_data[] = {
+    -1.0, -1.0,
+    1.0, -1.0,
+    -1.0, 1.0,
+    1.0, 1.0
+  };
+  
+  GLuint fullBlitVertices;
+  glGenBuffers(1, &fullBlitVertices);
+  glBindBuffer(GL_ARRAY_BUFFER, fullBlitVertices);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(fullBlitVertices_data), fullBlitVertices_data, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  
+  const GLfloat fullBlitTex_data[] = {
+    0.0, 0.0,
+    1.0, 0.0,
+    0.0, 1.0,
+    1.0, 1.0
+  };
+  
+  GLuint fullBlitTex;
+  glGenBuffers(1, &fullBlitTex);
+  glBindBuffer(GL_ARRAY_BUFFER, fullBlitTex);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(fullBlitTex_data), fullBlitTex_data, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, tex->texID);
+  glUniform1i(glGetUniformLocation(blitShader, "srctex"), 0);
+  
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  
+  glDisableVertexAttribArray(1);
+  glDisableVertexAttribArray(0);
+  
+  glDeleteBuffers(1, &fullBlitTex);
+  glDeleteBuffers(1, &fullBlitVertices);
+  
+  glfwSwapBuffers(window);
+}
+
 void renderScreen(Texture* tex)
 {
   if (!rendererInitialized)
@@ -565,9 +716,9 @@ void renderScreen(Texture* tex)
   glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexBufs[curBuf], 0);
   
-  // Set up the shaer
+  // Set up the shader
   glViewport(0,0,GAME_WIDTH,GAME_HEIGHT);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(ntscShader);
   
   // Use the current frame texture, nearest neighbor and clamped to edge
@@ -601,26 +752,11 @@ void renderScreen(Texture* tex)
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glDisableVertexAttribArray(0);
 
-  // Load the normal vertices of a flat surface
-  GLfloat g_norms_data[] = {
-    0.0f, 0.0f, 1.0f,
-    0.0f, 0.0f, 1.0f,
-    0.0f, 0.0f, 1.0f,
-    0.0f, 0.0f, 1.0f,
-    0.0f, 0.0f, 1.0f,
-    0.0f, 0.0f, 1.0f
-  };
-  
-  GLuint g_norms;
-  glGenBuffers(1, &g_norms);
-  glBindBuffer(GL_ARRAY_BUFFER, g_norms);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_norms_data), g_norms_data, GL_STATIC_DRAW);
-  
   // We're going to render the screen now
-  //glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, preBloomTex, 0);
+  //glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0,0,1024,768);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(finalShader);
   
   // Use the composited frame texture, linearly filtered and filling in black for the border
@@ -641,9 +777,9 @@ void renderScreen(Texture* tex)
   glUniform1i(glGetUniformLocation(finalShader, "scanlinestex"), 1);
   
   // Initialize the MVP matrices
-  mat4 p_matrix = perspective(90.0f, 4.0f / 4.0f, 0.1f, 100.0f);
-  mat4 v_matrix = lookAt(vec3(0,0,1), vec3(0,0,0), vec3(0,1,0));
-  mat4 m_matrix = mat4(1.0f);
+  mat4 p_matrix = perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+  mat4 v_matrix = lookAt(vec3(2,0,0), vec3(0,0,0), vec3(0,1,0));
+  mat4 m_matrix = mat4(1.0);
   mat4 mvp_matrix = p_matrix * v_matrix * m_matrix;
   //mat4 mv_matrix = v_matrix * m_matrix;
   
@@ -651,21 +787,26 @@ void renderScreen(Texture* tex)
   glUniformMatrix4fv(glGetUniformLocation(finalShader, "worldMat"), 1, GL_FALSE, &m_matrix[0][0]);
   
   glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_vertexbuffer);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   
   glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, g_norms);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_normalbuffer);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   
-  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glEnableVertexAttribArray(2);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh_uvbuffer);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  
+  glDrawArrays(GL_TRIANGLES, 0, mesh_numvertices);
+  glDisableVertexAttribArray(2);
   glDisableVertexAttribArray(1);
   glDisableVertexAttribArray(0);
   
   // Do the first pass of bloom (downsampling and tapping)
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, bloomPassTex, 0);
   glViewport(0, 0, 64, 48);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(bloom1Shader);
   
   glActiveTexture(GL_TEXTURE0);
@@ -683,7 +824,7 @@ void renderScreen(Texture* tex)
   // Do the second pass of bloom and render to screen
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0, 0, 1024, 768);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(bloom2Shader);
   
   glActiveTexture(GL_TEXTURE0);
@@ -703,8 +844,6 @@ void renderScreen(Texture* tex)
   glDisableVertexAttribArray(0);
   
   glfwSwapBuffers(window);
-  
-  glDeleteBuffers(1, &g_norms);
   
   curBuf = (curBuf + 1) % 2;
 }

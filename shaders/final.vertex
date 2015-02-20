@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec3 vertexPosition_modelspace;
 layout(location = 1) in vec3 vertexNormal;
+layout(location = 2) in vec2 vertexUV;
 
 out vec2 UV;
 out vec3 normIn;
@@ -12,18 +13,18 @@ out vec3 lightDirIn;
 uniform mat4 MVP;
 uniform mat4 worldMat;
 
-const vec3 Tuning_LightPos = vec3(1, 1, 1.0);
+const vec3 Tuning_LightPos = vec3(1, 1, -1.0);
 
 void main()
 {
   gl_Position = MVP * vec4(vertexPosition_modelspace,1);
-  UV = (vertexPosition_modelspace.xy+vec2(1,1))/2.0;
+  UV = vertexUV;
   normIn = vertexNormal;
   
   mat3 invWorldRot = transpose(mat3(worldMat[0].xyz, worldMat[1].xyz, worldMat[2].xyz));
   //mat3 invWorldRot = mat3(1.0f);
   vec3 worldPos = (worldMat * vec4(vertexPosition_modelspace,1)).xyz;
-  camDirIn = invWorldRot * (vec3(0,0,1) - worldPos);
+  camDirIn = invWorldRot * (vec3(2,0,0) - worldPos);
   //camDir = worldPos;
   lightDirIn = invWorldRot * (Tuning_LightPos - worldPos);
   //vec4 vertPos4 =  vec4(vertexPosition_modelspace,1);

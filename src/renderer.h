@@ -39,6 +39,7 @@ Texture* loadTextureFromBMP(char* filename);
 void saveTextureToBMP(Texture* tex, char* filename);
 void fillTexture(Texture* tex, Rectangle* loc, int r, int g, int b);
 void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle* dstrect);
+void renderWithoutEffects(Texture* tex);
 void renderScreen(Texture* tex);
 
 #endif

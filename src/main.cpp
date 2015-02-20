@@ -30,20 +30,31 @@ int main()
   glfwSwapInterval(1);
   glfwSetKeyCallback(window, key_callback);
   
-  Map* m = new Map("../maps/bigmap.txt");
-  Map* m2 = new Map("../maps/cozy.txt");
+  Map* m = new Map("../maps/embarass.txt");
+  //Map* m2 = new Map("../maps/cozy.txt");
   
-  m->setLeftMap(m2);
-  m2->setRightMap(m);
+  //m->setLeftMap(m2);
+  //m2->setRightMap(m);
   
   curGameState = new MapView(m, 100, 100);
   
   Texture* buffer = createTexture(GAME_WIDTH, GAME_HEIGHT);
   
+  double lastTime = glfwGetTime();
+  double accum = 0.0;
+  
   while (!(quit || glfwWindowShouldClose(window)))
   {
     // Tick!
-    curGameState->tick();
+    accum += (glfwGetTime() - lastTime);
+    if (accum < 0) accum = 0;
+    while (accum > SECONDS_PER_FRAME)
+    {
+      curGameState->tick();
+      accum -= SECONDS_PER_FRAME;
+    }
+    
+    lastTime = glfwGetTime();
     
     // Do rendering
     curGameState->render(buffer);

@@ -16,6 +16,7 @@ const int MAP_WIDTH = GAME_WIDTH/TILE_WIDTH;
 const int MAP_HEIGHT = GAME_HEIGHT/TILE_HEIGHT;
 
 const int FRAMES_PER_SECOND = 60;
+const double SECONDS_PER_FRAME = 1.0 / FRAMES_PER_SECOND;
 
 enum direction_t {
   up, left, down, right
@@ -47,12 +48,17 @@ class MapView : public State {
     list<collision_t> down_collisions;
   
     Texture* bg = NULL;
+    Texture* chara;
+    Texture* tiles;
     
     bool holding_left = false;
     bool holding_right = false;
+    bool holding_down = false;
     mob_t* player;
     
     Map* curMap;
+    
+    int animFrame = 0;
 };
 
 #endif

@@ -4,11 +4,15 @@
 Map::Map(char* filename)
 {
   FILE* f = fopen(filename, "r");
-  m_mapdata = (char*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(char));
   
+  m_mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
   for (int i=0; i<MAP_HEIGHT-1; i++)
   {
-    fread(m_mapdata + i*MAP_WIDTH, sizeof(char), MAP_WIDTH, f);
+    for (int j=0; j<MAP_WIDTH; j++)
+    {
+      fscanf(f, "%d,", &(m_mapdata[i*MAP_WIDTH + j]));
+    }
+    
     fgetc(f);
   }
   
@@ -24,7 +28,7 @@ Map::~Map()
   free(m_title);
 }
 
-const char* Map::mapdata()
+const int* Map::mapdata()
 {
   return m_mapdata;
 }

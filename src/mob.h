@@ -7,4 +7,6 @@ typedef struct {
   double y_accel;
   int w;
   int h;
+  bool onGround;
+  int animFrame;
 } mob_t;

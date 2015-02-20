@@ -5,14 +5,14 @@ class Map {
   public:
     Map(char* filename);
     ~Map();
-    const char* mapdata();
+    const int* mapdata();
     const char* title();
     Map* getLeftMap();
     Map* getRightMap();
     void setLeftMap(Map* m);
     void setRightMap(Map* m);
   private:
-    char* m_mapdata;
+    int* m_mapdata;
     char* m_title;
     Map* m_leftMap = 0;
     Map* m_rightMap = 0;
