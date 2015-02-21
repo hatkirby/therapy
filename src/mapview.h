@@ -54,6 +54,7 @@ class MapView : public State {
     bool holding_left = false;
     bool holding_right = false;
     bool holding_down = false;
+    bool holding_up = false;
     mob_t* player;
     
     Map* curMap;

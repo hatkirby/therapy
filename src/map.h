@@ -3,6 +3,7 @@
 
 class Map {
   public:
+    Map();
     Map(char* filename);
     ~Map();
     const int* mapdata();

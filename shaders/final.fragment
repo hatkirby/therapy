@@ -4,7 +4,6 @@ in vec2 UV;
 in vec3 normIn;
 in vec3 camDirIn;
 in vec3 lightDirIn;
-//in vec3 vertPos;
 
 out vec3 color;
 
@@ -53,7 +52,6 @@ void main()
   vec3 norm = normalize(normIn);
   vec3 camDir = normalize(camDirIn);
   vec3 lightDir = normalize(lightDirIn);
-  //vec3 refl = reflect(camDir, normIn);
   
   float diffuse = clamp(dot(norm, lightDir), 0.0f, 1.0f);
   vec4 colordiff = vec4(0.175, 0.15, 0.2, 1) * diffuse * Tuning_Diff_Brightness;
@@ -65,19 +63,7 @@ void main()
   
   float fres = 1.0f - dot(camDir, norm);
   fres = (fres*fres) * Tuning_Fres_Brightness;
-  vec4 colorfres = vec4(0.45, 0.4, 0.5, 1) * fres;/*
-  
-  float lambertian = max(dot(camDirNorm,norm),0.0);
-  vec4 colorspec = vec4(0.0);
-  vec4 colorfres = vec4(0.0);
-  vec4 colordiff = vec4(0.175,0.15,0.2,1) * lambertian * Tuning_Diff_Brightness;
-  if (lambertian > 0.0)
-  {
-    vec3 viewDir = normalize(-vertPos);
-    vec3 halfDir = normalize(camDirNorm + viewDir);
-    float specAngle = max(dot(halfDir, normnorm), 0.0);
-    colorspec = vec4(0.25,0.25,0.25,1) * pow(specAngle, Tuning_Spec_Power) * Tuning_Spec_Brightness;
-  }*/
+  vec4 colorfres = vec4(0.45, 0.4, 0.5, 1) * fres;
   
   vec4 emissive = sampleCRT(UV);
   

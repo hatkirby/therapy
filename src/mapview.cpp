@@ -1,10 +1,16 @@
 #include "mapview.h"
 
+#define JUMP_VELOCITY(h, l) (-2 * (h) / (l))
+#define JUMP_GRAVITY(h, l) (2 * ((h) / (l)) / (l))
+
 // Initialize jump physics
-double jump_height = TILE_HEIGHT*3;
+double jump_height = TILE_HEIGHT*4;
 double jump_length = 0.25 * FRAMES_PER_SECOND;
-double jump_velocity = -2 * jump_height / jump_length;
-double jump_gravity = -1 * jump_velocity / jump_length;
+//double jump_velocity = -2 * jump_height / jump_length;
+//double jump_gravity = -1 * jump_velocity / jump_length;
+double jump_velocity = JUMP_VELOCITY(TILE_HEIGHT*4, 0.30*FRAMES_PER_SECOND);
+double jump_gravity = JUMP_GRAVITY(TILE_HEIGHT*4, 0.30*FRAMES_PER_SECOND);
+double jump_gravity_short = JUMP_GRAVITY(TILE_HEIGHT*3, 0.20*FRAMES_PER_SECOND);
 
 MapView::MapView(Map* first, int x, int y)
 {
@@ -14,8 +20,8 @@ MapView::MapView(Map* first, int x, int y)
   player->y = y;
   player->x_vel = 0;
   player->y_vel = 0;
+  player->y_accel = jump_gravity_short;
   player->x_accel = 0;
-  player->y_accel = jump_gravity;
   player->w = 10;
   player->h = 12;
   player->onGround = false;
@@ -123,6 +129,7 @@ void MapView::input(int key, int action)
         {
           player->y_vel = jump_velocity;
           player->onGround = false;
+          holding_up = true;
         }
         break;
       case GLFW_KEY_DOWN:
@@ -143,6 +150,9 @@ void MapView::input(int key, int action)
         break;
       case GLFW_KEY_DOWN:
         holding_down = false;
+        break;
+      case GLFW_KEY_UP:
+        holding_up = false;
         break;
     }
   }
@@ -165,7 +175,13 @@ void MapView::tick()
   if (player->x_vel > 16) player->x_vel = 16;
   int playerx_next = player->x + player->x_vel;
   
-  player->y_vel += player->y_accel;
+  if (holding_up)
+  {
+    player->y_vel += jump_gravity;
+  } else {
+    player->y_vel += jump_gravity_short;
+  }
+
   if (player->y_vel > 16) player->y_vel = 16; // Terminal velocity
   if (player->y_vel < -16) player->y_vel = -16;
   int playery_next = player->y + player->y_vel;

@@ -8,12 +8,11 @@ out vec2 UV;
 out vec3 normIn;
 out vec3 camDirIn;
 out vec3 lightDirIn;
-//out vec3 vertPos;
 
 uniform mat4 MVP;
 uniform mat4 worldMat;
 
-const vec3 Tuning_LightPos = vec3(1, 1, -1.0);
+const vec3 Tuning_LightPos = vec3(2, 1, -1);
 
 void main()
 {
@@ -22,11 +21,8 @@ void main()
   normIn = vertexNormal;
   
   mat3 invWorldRot = transpose(mat3(worldMat[0].xyz, worldMat[1].xyz, worldMat[2].xyz));
-  //mat3 invWorldRot = mat3(1.0f);
   vec3 worldPos = (worldMat * vec4(vertexPosition_modelspace,1)).xyz;
+  
   camDirIn = invWorldRot * (vec3(2,0,0) - worldPos);
-  //camDir = worldPos;
   lightDirIn = invWorldRot * (Tuning_LightPos - worldPos);
-  //vec4 vertPos4 =  vec4(vertexPosition_modelspace,1);
-  //vertPos = vec3(vertPos4) / vertPos4.w;
 }
