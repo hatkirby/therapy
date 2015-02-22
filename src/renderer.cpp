@@ -5,6 +5,13 @@
 #include <cstdio>
 #include <cstring>
 #include "mapview.h"
+#include <cstdlib>
+
+// include stb_image
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#define STBI_ONLY_BMP
+#include "stb_image.h"
 
 static bool rendererInitialized = false;
 
@@ -120,83 +127,19 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
     return ProgramID;
 }
 
-GLuint loadBMP_custom(const char * imagepath){
-
-	printf("Reading image %s\n", imagepath);
-
-	// Data read from the header of the BMP file
-	unsigned char header[54];
-	unsigned int dataPos;
-	unsigned int imageSize;
-	unsigned int width, height;
-	// Actual RGB data
-	unsigned char * data;
-
-	// Open the file
-	FILE * file = fopen(imagepath,"rb");
-	if (!file)							    {printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath); getchar(); return 0;}
-
-	// Read the header, i.e. the 54 first bytes
-
-	// If less than 54 bytes are read, problem
-	if ( fread(header, 1, 54, file)!=54 ){ 
-		printf("Not a correct BMP file\n");
-		return 0;
-	}
-	// A BMP files always begins with "BM"
-	if ( header[0]!='B' || header[1]!='M' ){
-		printf("Not a correct BMP file\n");
-		return 0;
-	}
-	// Make sure this is a 24bpp file
-	if ( *(int*)&(header[0x1E])!=0  )         {printf("Not a correct BMP file\n");    return 0;}
-	if ( *(int*)&(header[0x1C])!=24 )         {printf("Not a correct BMP file\n");    return 0;}
-
-	// Read the information about the image
-	dataPos    = *(int*)&(header[0x0A]);
-	imageSize  = *(int*)&(header[0x22]);
-	width      = *(int*)&(header[0x12]);
-	height     = *(int*)&(header[0x16]);
-
-	// Some BMP files are misformatted, guess missing information
-	if (imageSize==0)    imageSize=width*height*3; // 3 : one byte for each Red, Green and Blue component
-	if (dataPos==0)      dataPos=54; // The BMP header is done that way
-
-	// Create a buffer
-	data = new unsigned char [imageSize];
-
-	// Read the actual data from the file into the buffer
-	fread(data,1,imageSize,file);
-
-	// Everything is in memory now, the file wan be closed
-	fclose (file);
-
-	// Create one OpenGL texture
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-	
-	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, textureID);
-
-	// Give the image to OpenGL
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-
-	// OpenGL has now copied the data. Free our own version
-	delete [] data;
-
-	// Poor filtering, or ...
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-
-	// ... nice trilinear filtering.
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	// Return the ID of the texture we just created
-	return textureID;
+void flipImageData(unsigned char* data, int width, int height, int comps)
+{
+  unsigned char* data_copy = (unsigned char*) malloc(width*height*comps*sizeof(unsigned char));
+  memcpy(data_copy, data, width*height*comps);
+  
+  int row_size = width * comps;
+  
+  for (int i=0;i<height;i++)
+  {
+    memcpy(data + (row_size*i), data_copy + (row_size*(height-i-1)), row_size);
+  }
+  
+  free(data_copy);
 }
 
 void loadMesh(const char* filename, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals)
@@ -333,8 +276,13 @@ GLFWwindow* initRenderer()
   glGenVertexArrays(1, &VertexArrayID);
   glBindVertexArray(VertexArrayID);
   
+  // Enable depth testing
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
+  
+  // Enable blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
   // Set up the framebuffer
   glGenFramebuffers(1, &FramebufferName);
@@ -419,8 +367,27 @@ GLFWwindow* initRenderer()
   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
   
-  artifactsTex = loadBMP_custom("../res/artifacts.bmp");
-  scanlinesTex = loadBMP_custom("../res/scanlines.bmp");
+  glGenTextures(1, &artifactsTex);
+  glBindTexture(GL_TEXTURE_2D, artifactsTex);
+  int atdw, atdh;
+  unsigned char* artifactsTex_data = stbi_load("../res/artifacts.bmp", &atdw, &atdh, 0, 3);
+  flipImageData(artifactsTex_data, atdw, atdh, 3);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atdw, atdh, 0, GL_RGB, GL_UNSIGNED_BYTE, artifactsTex_data);
+  stbi_image_free(artifactsTex_data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  
+  glGenTextures(1, &scanlinesTex);
+  glBindTexture(GL_TEXTURE_2D, scanlinesTex);
+  int stdw, stdh;
+  unsigned char* scanlinesTex_data = stbi_load("../res/scanlines.bmp", &stdw, &stdh, 0, 3);
+  flipImageData(scanlinesTex_data, stdw, stdh, 3);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atdw, atdh, 0, GL_RGB, GL_UNSIGNED_BYTE, scanlinesTex_data);
+  stbi_image_free(scanlinesTex_data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+  glGenerateMipmap(GL_TEXTURE_2D);
   
   // Load the shaders
   ntscShader = LoadShaders("../shaders/ntsc.vertex", "../shaders/ntsc.fragment");
@@ -492,7 +459,7 @@ Texture* createTexture(int width, int height)
   
   glGenTextures(1, &(tex->texID));
   glBindTexture(GL_TEXTURE_2D, tex->texID);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -523,11 +490,16 @@ Texture* loadTextureFromBMP(char* filename)
   }
   
   Texture* tex = new Texture();
-  tex->texID = loadBMP_custom(filename);
-  
+  glGenTextures(1, &(tex->texID));
   glBindTexture(GL_TEXTURE_2D, tex->texID);
-  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &(tex->width));
-  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &(tex->height));
+  unsigned char* data = stbi_load(filename, &(tex->width), &(tex->height), 0, 4);
+  flipImageData(data, tex->width, tex->height, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  stbi_image_free(data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   
   return tex;
 }
@@ -786,6 +758,14 @@ void renderScreen(Texture* tex)
   glBindTexture(GL_TEXTURE_2D, artifactsTex);
   glUniform1i(glGetUniformLocation(ntscShader, "NTSCArtifactSampler"), 2);
   glUniform1f(glGetUniformLocation(ntscShader, "NTSCLerp"), curBuf * 1.0);
+  
+  if ((rand() % 60) == 0)
+  {
+    // Change the 0.0 to a 1.0 or a 10.0 for a glitchy effect!
+    glUniform1f(glGetUniformLocation(ntscShader, "Tuning_NTSC"), 0.0);
+  } else {
+    glUniform1f(glGetUniformLocation(ntscShader, "Tuning_NTSC"), 0.0);
+  }
   
   // Render our composition
   glEnableVertexAttribArray(0);

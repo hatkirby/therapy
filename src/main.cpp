@@ -4,6 +4,7 @@
 #include "state.h"
 #include "mapview.h"
 #include "renderer.h"
+#include <cstdlib>
 
 using namespace::std;
 
@@ -26,6 +27,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 int main()
 {
+  srand(time(NULL));
+  
   GLFWwindow* window = initRenderer();
   glfwSwapInterval(1);
   glfwSetKeyCallback(window, key_callback);

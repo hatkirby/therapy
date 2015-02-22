@@ -28,8 +28,8 @@ MapView::MapView(Map* first, int x, int y)
   player->animFrame = 0;
   
   bg = createTexture(GAME_WIDTH, GAME_HEIGHT);
-  chara = loadTextureFromBMP("../res/Starla.bmp");
-  tiles = loadTextureFromBMP("../res/tiles2.bmp");
+  chara = loadTextureFromBMP("../res/Starla.png");
+  tiles = loadTextureFromBMP("../res/tiles.png");
   
   loadMap(first);
 }
