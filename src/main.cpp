@@ -42,22 +42,24 @@ int main()
   curGameState = new MapView(m, 100, 100);
   
   Texture* buffer = createTexture(GAME_WIDTH, GAME_HEIGHT);
+  //Texture* buffer = loadTextureFromBMP("../res/title.png");
   
   double lastTime = glfwGetTime();
-  double accum = 0.0;
+  int nbFrames = 0;
   
   while (!(quit || glfwWindowShouldClose(window)))
   {
-    // Tick!
-    accum += (glfwGetTime() - lastTime);
-    if (accum < 0) accum = 0;
-    while (accum > SECONDS_PER_FRAME)
+    double currentTime = glfwGetTime();
+    nbFrames++;
+    if (currentTime - lastTime >= 1.0)
     {
-      curGameState->tick();
-      accum -= SECONDS_PER_FRAME;
+      // printf and reset timer
+      printf("%f ms/frame\n", 1000.0/double(nbFrames));
+      nbFrames = 0;
+      lastTime += 1.0;
     }
     
-    lastTime = glfwGetTime();
+    curGameState->tick();
     
     // Do rendering
     curGameState->render(buffer);

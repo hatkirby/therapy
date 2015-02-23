@@ -17,8 +17,9 @@ static bool rendererInitialized = false;
 
 static GLFWwindow* window;
 
-static GLuint FramebufferName; // The framebuffer
-static GLuint depthrenderbuffer;
+static GLuint generic_framebuffer; // The framebuffer
+static GLuint bloom_framebuffer;
+static GLuint bloom_depthbuffer;
 static int buffer_width = 1024;
 static int buffer_height = 768;
 
@@ -37,7 +38,8 @@ static int curBuf;
 static GLuint artifactsTex;
 static GLuint scanlinesTex;
 static GLuint preBloomTex;
-static GLuint bloomPassTex;
+static GLuint bloomPassTex1;
+static GLuint bloomPassTex2;
 
 // The VAO
 static GLuint VertexArrayID;
@@ -199,21 +201,22 @@ void setFramebufferSize(GLFWwindow* w, int width, int height)
   buffer_width = width;
   buffer_height = height;
   
-  glDeleteFramebuffers(1, &FramebufferName);
-  glDeleteRenderbuffers(1, &depthrenderbuffer);
+  glDeleteFramebuffers(1, &bloom_framebuffer);
+  glDeleteRenderbuffers(1, &bloom_depthbuffer);
   
-  glGenFramebuffers(1, &FramebufferName);
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-  GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+  glGenFramebuffers(1, &bloom_framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, bloom_framebuffer);
+  GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT1};
   glDrawBuffers(1, DrawBuffers);
   
-  glGenRenderbuffers(1, &depthrenderbuffer);
-  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glGenRenderbuffers(1, &bloom_depthbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, bloom_depthbuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, bloom_depthbuffer);
   
   glDeleteTextures(1, &preBloomTex);
-  glDeleteTextures(1, &bloomPassTex);
+  glDeleteTextures(1, &bloomPassTex1);
+  glDeleteTextures(1, &bloomPassTex2);
   
   glGenTextures(1, &preBloomTex);
   glBindTexture(GL_TEXTURE_2D, preBloomTex);
@@ -223,9 +226,17 @@ void setFramebufferSize(GLFWwindow* w, int width, int height)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   
-  glGenTextures(1, &bloomPassTex);
-  glBindTexture(GL_TEXTURE_2D, bloomPassTex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width/16, height/16, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glGenTextures(1, &bloomPassTex1);
+  glBindTexture(GL_TEXTURE_2D, bloomPassTex1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width/4, height/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  
+  glGenTextures(1, &bloomPassTex2);
+  glBindTexture(GL_TEXTURE_2D, bloomPassTex2);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width/4, height/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -285,15 +296,20 @@ GLFWwindow* initRenderer()
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
   // Set up the framebuffer
-  glGenFramebuffers(1, &FramebufferName);
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glGenFramebuffers(1, &generic_framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
   GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
   glDrawBuffers(1, DrawBuffers);
   
-  glGenRenderbuffers(1, &depthrenderbuffer);
-  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glGenFramebuffers(1, &bloom_framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, bloom_framebuffer);
+  GLenum DrawBuffers2[1] = {GL_COLOR_ATTACHMENT1};
+  glDrawBuffers(1, DrawBuffers2);
+  
+  glGenRenderbuffers(1, &bloom_depthbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, bloom_depthbuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, bloom_depthbuffer);
   
   // Set up the NTSC rendering buffers
   glGenTextures(1, &renderedTex1);
@@ -323,9 +339,17 @@ GLFWwindow* initRenderer()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   
-  glGenTextures(1, &bloomPassTex);
-  glBindTexture(GL_TEXTURE_2D, bloomPassTex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 64, 48, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glGenTextures(1, &bloomPassTex1);
+  glBindTexture(GL_TEXTURE_2D, bloomPassTex1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024/4, 768/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  
+  glGenTextures(1, &bloomPassTex2);
+  glBindTexture(GL_TEXTURE_2D, bloomPassTex2);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024/4, 768/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -381,7 +405,7 @@ GLFWwindow* initRenderer()
   glGenTextures(1, &scanlinesTex);
   glBindTexture(GL_TEXTURE_2D, scanlinesTex);
   int stdw, stdh;
-  unsigned char* scanlinesTex_data = stbi_load("../res/scanlines.bmp", &stdw, &stdh, 0, 3);
+  unsigned char* scanlinesTex_data = stbi_load("../res/scanlines_222.bmp", &stdw, &stdh, 0, 3);
   flipImageData(scanlinesTex_data, stdw, stdh, 3);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atdw, atdh, 0, GL_RGB, GL_UNSIGNED_BYTE, scanlinesTex_data);
   stbi_image_free(scanlinesTex_data);
@@ -430,11 +454,13 @@ void destroyRenderer()
   glDeleteTextures(1, &artifactsTex);
   glDeleteTextures(1, &scanlinesTex);
   glDeleteTextures(1, &preBloomTex);
-  glDeleteTextures(1, &bloomPassTex);
+  glDeleteTextures(1, &bloomPassTex1);
+  glDeleteTextures(1, &bloomPassTex2);
   
   // Delete the framebuffer
-  glDeleteRenderbuffers(1, &depthrenderbuffer);
-  glDeleteFramebuffers(1, &FramebufferName);
+  glDeleteRenderbuffers(1, &bloom_depthbuffer);
+  glDeleteFramebuffers(1, &bloom_framebuffer);
+  glDeleteFramebuffers(1, &generic_framebuffer);
   
   // Delete the VAO
   glDeleteVertexArrays(1, &VertexArrayID);
@@ -543,7 +569,7 @@ void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
   }
   
   // Target the framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex->texID, 0);
   
   // Set up the vertex attributes
@@ -592,7 +618,7 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   }
   
   // Target the framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dsttex->texID, 0);
   
   // Set up the vertex attributes
@@ -717,6 +743,35 @@ void renderWithoutEffects(Texture* tex)
   glfwSwapBuffers(window);
 }
 
+void bloomPass1(GLuint srcTex, GLuint dstTex, bool horizontal, vec2 srcRes, vec2 dstRes)
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dstTex, 0);
+  glViewport(0,0,dstRes.x,dstRes.y);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glUseProgram(bloom1Shader);
+  
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, srcTex);
+  glUniform1i(glGetUniformLocation(bloom1Shader, "inTex"), 0);
+  
+  vec2 offset = vec2(0.0);
+  if (horizontal)
+  {
+    offset.x = 1.2/srcRes.x;
+  } else {
+    offset.y = 1.2/srcRes.y;
+  }
+  
+  glUniform2f(glGetUniformLocation(bloom1Shader, "offset"), offset.x, offset.y);
+  
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glDisableVertexAttribArray(0);
+}
+
 void renderScreen(Texture* tex)
 {
   if (!rendererInitialized)
@@ -727,7 +782,7 @@ void renderScreen(Texture* tex)
   
   // First we're going to composite our frame with the previous frame
   // We start by setting up the framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexBufs[curBuf], 0);
   
   // Set up the shader
@@ -775,7 +830,8 @@ void renderScreen(Texture* tex)
   glDisableVertexAttribArray(0);
 
   // We're going to render the screen now
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, preBloomTex, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, bloom_framebuffer);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, preBloomTex, 0);
   //glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0,0,buffer_width,buffer_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -799,7 +855,7 @@ void renderScreen(Texture* tex)
   glUniform1i(glGetUniformLocation(finalShader, "scanlinestex"), 1);
   
   // Initialize the MVP matrices
-  mat4 p_matrix = perspective(45.0f, (float) buffer_width / (float) buffer_height, 0.1f, 100.0f);
+  mat4 p_matrix = perspective(42.5f, (float) buffer_width / (float) buffer_height, 0.1f, 100.0f);
   mat4 v_matrix = lookAt(vec3(2,0,0), vec3(0,0,0), vec3(0,1,0));
   mat4 m_matrix = mat4(1.0);
   mat4 mvp_matrix = p_matrix * v_matrix * m_matrix;
@@ -808,6 +864,7 @@ void renderScreen(Texture* tex)
   glUniformMatrix4fv(glGetUniformLocation(finalShader, "MVP"), 1, GL_FALSE, &mvp_matrix[0][0]);
   glUniformMatrix4fv(glGetUniformLocation(finalShader, "worldMat"), 1, GL_FALSE, &m_matrix[0][0]);
   glUniform2f(glGetUniformLocation(finalShader, "resolution"), buffer_width, buffer_height);
+  glUniform1f(glGetUniformLocation(finalShader, "iGlobalTime"), glfwGetTime());
   
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_vertexbuffer);
@@ -826,24 +883,10 @@ void renderScreen(Texture* tex)
   glDisableVertexAttribArray(1);
   glDisableVertexAttribArray(0);
   
-  // Do the first pass of bloom (downsampling and tapping)
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, bloomPassTex, 0);
-  glViewport(0, 0, buffer_width/16, buffer_height/16);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glUseProgram(bloom1Shader);
-  
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, preBloomTex);
-  glUniform1i(glGetUniformLocation(bloom1Shader, "screenTex"), 0);
-  
-  glUniform1f(glGetUniformLocation(bloom1Shader, "iGlobalTime"), glfwGetTime());
-  glUniform2f(glGetUniformLocation(bloom1Shader, "resolution"), buffer_width, buffer_height);
-  
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-  glDisableVertexAttribArray(0);
+  // First pass of bloom!
+  vec2 buffer_size = vec2(buffer_width, buffer_height);
+  bloomPass1(preBloomTex, bloomPassTex1, true, buffer_size, buffer_size / 4.0f);
+  bloomPass1(bloomPassTex1, bloomPassTex2, false, buffer_size / 4.0f, buffer_size / 4.0f);
   
   // Do the second pass of bloom and render to screen
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -853,14 +896,14 @@ void renderScreen(Texture* tex)
   
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, preBloomTex);
-  glUniform1i(glGetUniformLocation(bloom2Shader, "screenTex"), 0);
+  glUniform1i(glGetUniformLocation(bloom2Shader, "clearTex"), 0);
   
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, bloomPassTex);
-  glUniform1i(glGetUniformLocation(bloom2Shader, "downsampledTex"), 1);
+  glBindTexture(GL_TEXTURE_2D, bloomPassTex2);
+  glUniform1i(glGetUniformLocation(bloom2Shader, "blurTex"), 1);
   
   glUniform1f(glGetUniformLocation(bloom2Shader, "iGlobalTime"), glfwGetTime());
-  glUniform2f(glGetUniformLocation(bloom2Shader, "resolution"), buffer_width, buffer_height);
+//  glUniform2f(glGetUniformLocation(bloom2Shader, "resolution"), buffer_width, buffer_height);
   
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
