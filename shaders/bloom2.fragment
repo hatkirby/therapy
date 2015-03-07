@@ -18,14 +18,14 @@ void main()
   color = vec3(0.0);
   //color += texture(tex2, UV).rgb / 2.0;
   color += texture(blurTex, UV).rgb;
-  color = max(vec3(0.0), color - 0.25);
+  color = max(vec3(0.0), color - 0.5);
   //color *= color;
   
-  float flicker =  0.5 + nrand(vec2(iGlobalTime));
+  //float flicker =  0.5 + nrand(vec2(iGlobalTime));
   //flicker *= (flicker);
-  flicker = sqrt(flicker);
+  //flicker = sqrt(flicker);
   //flicker = pow(flicker, 1.0/8.0);
-  color *= flicker;
+  //color *= flicker;
   //color *= mix(vec3(0.0), color, flicker);
   
   color += texture(clearTex, UV).rgb;

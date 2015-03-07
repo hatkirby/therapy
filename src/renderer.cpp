@@ -4,8 +4,8 @@
 #include <vector>
 #include <cstdio>
 #include <cstring>
-#include "mapview.h"
 #include <cstdlib>
+#include "game.h"
 
 // include stb_image
 #define STB_IMAGE_IMPLEMENTATION
@@ -405,7 +405,7 @@ GLFWwindow* initRenderer()
   glGenTextures(1, &scanlinesTex);
   glBindTexture(GL_TEXTURE_2D, scanlinesTex);
   int stdw, stdh;
-  unsigned char* scanlinesTex_data = stbi_load("../res/scanlines_222.bmp", &stdw, &stdh, 0, 3);
+  unsigned char* scanlinesTex_data = stbi_load("../res/scanlines_333.bmp", &stdw, &stdh, 0, 3);
   flipImageData(scanlinesTex_data, stdw, stdh, 3);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atdw, atdh, 0, GL_RGB, GL_UNSIGNED_BYTE, scanlinesTex_data);
   stbi_image_free(scanlinesTex_data);
@@ -507,7 +507,7 @@ void destroyTexture(Texture* tex)
   delete tex;
 }
 
-Texture* loadTextureFromBMP(char* filename)
+Texture* loadTextureFromFile(char* filename)
 {
   if (!rendererInitialized)
   {

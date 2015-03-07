@@ -35,7 +35,7 @@ GLFWwindow* initRenderer();
 void destroyRenderer();
 Texture* createTexture(int width, int height);
 void destroyTexture(Texture* tex);
-Texture* loadTextureFromBMP(char* filename);
+Texture* loadTextureFromFile(char* filename);
 void saveTextureToBMP(Texture* tex, char* filename);
 void fillTexture(Texture* tex, Rectangle* loc, int r, int g, int b);
 void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle* dstrect);

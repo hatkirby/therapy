@@ -1,5 +1,5 @@
 #include "map.h"
-#include "mapview.h"
+#include "game.h"
 
 Map::Map(char* filename)
 {

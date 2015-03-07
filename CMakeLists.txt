@@ -34,6 +34,6 @@ set(ALL_LIBS
 
 # include_directories(${SDL2_INCLUDE_DIR})
 set(CMAKE_BUILD_TYPE Debug)
-add_executable(Aromatherapy src/main.cpp src/map.cpp src/mapview.cpp src/renderer.cpp)
+add_executable(Aromatherapy src/main.cpp src/map.cpp src/renderer.cpp src/world.cpp src/entity.cpp src/components.cpp src/game.cpp)
 target_link_libraries(Aromatherapy ${ALL_LIBS})
 install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})
