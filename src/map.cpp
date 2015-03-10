@@ -67,32 +67,32 @@ void swap(Map& first, Map& second)
   std::swap(first.m_rightMap, second.m_rightMap);
 }
 
-const int* Map::mapdata()
+const int* Map::mapdata() const
 {
   return m_mapdata;
 }
 
-const char* Map::title()
+const char* Map::title() const
 {
   return m_title;
 }
 
-Map* Map::getLeftMap()
+const Map* Map::getLeftMap() const
 {
   return m_leftMap;
 }
 
-Map* Map::getRightMap()
+const Map* Map::getRightMap() const
 {
   return m_rightMap;
 }
 
-void Map::setLeftMap(Map* m)
+void Map::setLeftMap(const Map* m)
 {
   m_leftMap = m;
 }
 
-void Map::setRightMap(Map* m)
+void Map::setRightMap(const Map* m)
 {
   m_rightMap = m;
 }

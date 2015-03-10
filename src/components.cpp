@@ -68,7 +68,7 @@ void UserMovementComponent::input(Game& game, Entity& entity, int key, int actio
 
 // Physics component
 
-void PhysicsBodyComponent::receive(Game&, Entity&, Message& msg)
+void PhysicsBodyComponent::receive(Game&, Entity&, const Message& msg)
 {
   if (msg.type == Message::Type::walkLeft)
   {
@@ -142,7 +142,7 @@ void PlayerSpriteComponent::render(Game&, Entity& entity, Texture& buffer)
   buffer.blit(sprite, src_rect, dst_rect);
 }
 
-void PlayerSpriteComponent::receive(Game&, Entity&, Message& msg)
+void PlayerSpriteComponent::receive(Game&, Entity&, const Message& msg)
 {
   if (msg.type == Message::Type::walkLeft)
   {
@@ -178,7 +178,7 @@ PlayerPhysicsComponent::PlayerPhysicsComponent()
   accel.second = jump_gravity_short;
 }
 
-void PlayerPhysicsComponent::receive(Game&, Entity& entity, Message& msg)
+void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
 {
   if (msg.type == Message::Type::walkLeft)
   {
@@ -264,7 +264,7 @@ void PlayerPhysicsComponent::tick(Game& game, Entity& entity)
 
 // Map rendering
 
-MapRenderComponent::MapRenderComponent(Map& map)
+MapRenderComponent::MapRenderComponent(const Map& map)
 {
   screen.fill(screen.entirety(), 0, 0, 0);
   
@@ -302,13 +302,13 @@ void MapRenderComponent::render(Game&, Entity&, Texture& buffer)
 
 // Map collision
 
-MapCollisionComponent::MapCollisionComponent(Map& map)
+MapCollisionComponent::MapCollisionComponent(const Map& map)
 {
   leftMap = map.getLeftMap();
   rightMap = map.getRightMap();
   
-  add_collision(-6, 0, GAME_WIDTH, left, (map.getLeftMap() == nullptr) ? 1 : 2);
-  add_collision(GAME_WIDTH+6, 0, GAME_WIDTH, right, (map.getRightMap() == nullptr) ? 3 : 2);
+  addCollision(-6, 0, GAME_WIDTH, Direction::left, (leftMap == nullptr) ? 1 : 2);
+  addCollision(GAME_WIDTH+6, 0, GAME_WIDTH, Direction::right, (rightMap == nullptr) ? 3 : 2);
   
   for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
@@ -318,24 +318,24 @@ MapCollisionComponent::MapCollisionComponent(Map& map)
     
     if ((tile > 0) && (!((tile >= 5) && (tile <= 7))))
     {
-      add_collision(x*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, right, 0);
-      add_collision((x+1)*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, left, 0);
-      add_collision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, down, 0);
-      add_collision((y+1)*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, up, 0);
+      addCollision(x*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, Direction::right, 0);
+      addCollision((x+1)*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, Direction::left, 0);
+      addCollision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, Direction::down, 0);
+      addCollision((y+1)*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, Direction::up, 0);
     } else if ((tile >= 5) && (tile <= 7))
     {
-      add_collision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, down, 3);
+      addCollision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, Direction::down, 4);
     }
   }
 }
 
-void MapCollisionComponent::add_collision(int axis, int lower, int upper, direction_t dir, int type)
+void MapCollisionComponent::addCollision(int axis, int lower, int upper, Direction dir, int type)
 {
-  std::list<collision_t>::iterator it;
+  std::list<Collision>::iterator it;
   
   switch (dir)
   {
-    case up:
+    case Direction::up:
       it = up_collisions.begin();
       for (; it!=up_collisions.end(); it++)
       {
@@ -345,7 +345,7 @@ void MapCollisionComponent::add_collision(int axis, int lower, int upper, direct
       up_collisions.insert(it, {axis, lower, upper, type});
       
       break;
-    case down:
+    case Direction::down:
       it = down_collisions.begin();
       for (; it!=down_collisions.end(); it++)
       {
@@ -355,7 +355,7 @@ void MapCollisionComponent::add_collision(int axis, int lower, int upper, direct
       down_collisions.insert(it, {axis, lower, upper, type});
       
       break;
-    case left:
+    case Direction::left:
       it = left_collisions.begin();
       for (; it!=left_collisions.end(); it++)
       {
@@ -365,7 +365,7 @@ void MapCollisionComponent::add_collision(int axis, int lower, int upper, direct
       left_collisions.insert(it, {axis, lower, upper, type});
       
       break;
-    case right:
+    case Direction::right:
       it = right_collisions.begin();
       for (; it!=right_collisions.end(); it++)
       {
@@ -395,20 +395,7 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_oy+collider.size.second > collision.lower) && (fixed_oy < collision.upper))
       {
         // We have a collision!
-        if (collision.type == 0)
-        {
-          collider.position.first = collision.axis;
-          
-          Message msg(Message::Type::stopMovingHorizontally);
-          collider.send(game, msg);
-        } else if (collision.type == 1)
-        {
-          collider.position.first = GAME_WIDTH-collider.size.first/2;
-        } else if (collision.type == 2)
-        {
-          collider.position.first = GAME_WIDTH-collider.size.first/2;
-          game.loadMap(*leftMap);
-        }
+        processCollision(game, collider, collision, Direction::left);
     
         break;
       }
@@ -423,26 +410,7 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_oy+collider.size.second > collision.lower) && (fixed_oy < collision.upper))
       {
         // We have a collision!
-        if (collision.type == 0)
-        {
-          collider.position.first = collision.axis - collider.size.first;
-          
-          Message msg(Message::Type::stopMovingHorizontally);
-          collider.send(game, msg);
-        } else if (collision.type == 1)
-        {
-          collider.position.first = -collider.size.first/2;
-        } else if (collision.type == 2)
-        {
-          collider.position.first = -collider.size.first/2;
-          game.loadMap(*rightMap);
-        } else if (collision.type == 3)
-        {
-          collider.position.first = collision.axis - collider.size.first;
-          
-          Message msg(Message::Type::walkLeft);
-          collider.send(game, msg);
-        }
+        processCollision(game, collider, collision, Direction::right);
     
         break;
       }
@@ -462,16 +430,7 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_x+collider.size.first > collision.lower) && (fixed_x < collision.upper))
       {
         // We have a collision!
-        if (collision.type == 0)
-        {
-          collider.position.second = collision.axis;
-          
-          Message msg(Message::Type::stopMovingVertically);
-          collider.send(game, msg);
-        } else if (collision.type == 1)
-        {
-          collider.position.second = GAME_HEIGHT-collider.size.second/2-1;
-        }
+        processCollision(game, collider, collision, Direction::up);
     
         break;
       }
@@ -486,25 +445,83 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_x+collider.size.first > collision.lower) && (fixed_x < collision.upper))
       {
         // We have a collision!
-        if (collision.type == 0)
-        {
-          collider.position.second = collision.axis - collider.size.second;
-          
-          Message msg(Message::Type::stopMovingVertically);
-          collider.send(game, msg);
-        } else if (collision.type == 1)
-        {
-          collider.position.second = -collider.size.second/2;
-        } else if (collision.type == 3)
-        {
-          Message msg(Message::Type::drop);
-          msg.dropAxis = collision.axis;
-
-          collider.send(game, msg);
-        }
+        processCollision(game, collider, collision, Direction::down);
         
         break;
       }
     }
+  }
+}
+
+void MapCollisionComponent::processCollision(Game& game, Entity& collider, Collision collision, Direction dir)
+{
+  if (collision.type == 0)
+  {
+    if (dir == Direction::left)
+    {
+      collider.position.first = collision.axis;
+    
+      Message msg(Message::Type::stopMovingHorizontally);
+      collider.send(game, msg);
+    } else if (dir == Direction::right)
+    {
+      collider.position.first = collision.axis - collider.size.first;
+    
+      Message msg(Message::Type::stopMovingHorizontally);
+      collider.send(game, msg);
+    } else if (dir == Direction::up)
+    {
+      collider.position.second = collision.axis;
+      
+      Message msg(Message::Type::stopMovingVertically);
+      collider.send(game, msg);
+    } else if (dir == Direction::down)
+    {
+      collider.position.second = collision.axis - collider.size.second;
+      
+      Message msg(Message::Type::stopMovingVertically);
+      collider.send(game, msg);
+    }
+  } else if (collision.type == 1)
+  {
+    if (dir == Direction::left)
+    {
+      collider.position.first = GAME_WIDTH-collider.size.first/2;
+    } else if (dir == Direction::right)
+    {
+      collider.position.first = -collider.size.first/2;
+    } else if (dir == Direction::up)
+    {
+      collider.position.second = GAME_HEIGHT-collider.size.second/2-1;
+    } else if (dir == Direction::down)
+    {
+      collider.position.second = -collider.size.second/2;
+    }
+  } else if (collision.type == 2)
+  {
+    if (dir == Direction::left)
+    {
+      collider.position.first = GAME_WIDTH-collider.size.first/2;
+      game.loadMap(*leftMap);
+    } else if (dir == Direction::right)
+    {
+      collider.position.first = -collider.size.first/2;
+      game.loadMap(*rightMap);
+    }
+  } else if (collision.type == 3)
+  {
+    if (dir == Direction::right)
+    {
+      collider.position.first = collision.axis - collider.size.first;
+    
+      Message msg(Message::Type::walkLeft);
+      collider.send(game, msg);
+    }
+  } else if (collision.type == 4)
+  {
+    Message msg(Message::Type::drop);
+    msg.dropAxis = collision.axis;
+
+    collider.send(game, msg);
   }
 }

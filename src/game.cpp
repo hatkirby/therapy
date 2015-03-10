@@ -20,6 +20,8 @@ Game::Game()
   auto player_anim = std::make_shared<PlayerSpriteComponent>();
   player->addComponent(player_anim);
   
+  save = {&m, player->position};
+  
   loadMap(m);
 }
 
@@ -87,7 +89,7 @@ void Game::execute(GLFWwindow* window)
   }
 }
 
-void Game::loadMap(Map& map)
+void Game::loadMap(const Map& map)
 {
   auto mapEn = std::make_shared<Entity>();
   
@@ -110,4 +112,19 @@ void Game::detectCollision(Entity& collider, std::pair<double, double> old_posit
   {
     entity->detectCollision(*this, collider, old_position);
   }
+}
+
+void Game::saveGame(const Map& map, std::pair<double, double> position)
+{
+  save = {&map, position};
+}
+
+void Game::loadGame(const Map& curMap)
+{
+  if (&curMap != save.map)
+  {
+    loadMap(*(save.map));
+  }
+  
+  player->position = save.position;
 }

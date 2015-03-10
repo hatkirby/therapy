@@ -17,12 +17,19 @@ const int MAP_HEIGHT = GAME_HEIGHT/TILE_HEIGHT;
 const int FRAMES_PER_SECOND = 60;
 const double SECONDS_PER_FRAME = 1.0 / FRAMES_PER_SECOND;
 
+struct Savefile {
+  const Map* map;
+  std::pair<double, double> position;
+};
+
 class Game {
   public:
     Game();
     void execute(GLFWwindow* window);
-    void loadMap(Map& map);
+    void loadMap(const Map& map);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
+    void saveGame(const Map& map, std::pair<double, double> position);
+    void loadGame(const Map& curMap);
     
     bool shouldQuit = false;
   private:
@@ -34,6 +41,7 @@ class Game {
     std::shared_ptr<Entity> player;
     Map m{"../maps/embarass.txt"};
     Map m2{"../maps/second.txt"};
+    Savefile save;
 };
 
 #endif

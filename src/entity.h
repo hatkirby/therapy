@@ -34,7 +34,7 @@ class Message {
 class Entity {
   public:
     void addComponent(std::shared_ptr<Component> c);
-    void send(Game& game, Message& msg);
+    void send(Game& game, const Message& msg);
     void tick(Game& game);
     void input(Game& game, int key, int action);
     void render(Game& game, Texture& buffer);
@@ -49,7 +49,7 @@ class Entity {
 
 class Component {
   public:
-    virtual void receive(Game&, Entity&, Message&) {}
+    virtual void receive(Game&, Entity&, const Message&) {}
     virtual void render(Game&, Entity&, Texture&) {}
     virtual void tick(Game&, Entity&) {}
     virtual void input(Game&, Entity&, int, int) {}

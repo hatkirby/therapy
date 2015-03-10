@@ -5,7 +5,7 @@ void Entity::addComponent(std::shared_ptr<Component> c)
   components.push_back(c);
 }
 
-void Entity::send(Game& game, Message& msg)
+void Entity::send(Game& game, const Message& msg)
 {
   for (auto component : components)
   {

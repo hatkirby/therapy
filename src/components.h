@@ -18,11 +18,11 @@ class UserMovementComponent : public Component {
 
 class PhysicsBodyComponent : public Component {
   public:
-    void receive(Game& game, Entity& entity, Message& msg);
+    void receive(Game& game, Entity& entity, const Message& msg);
     void tick(Game& game, Entity& entity);
     void detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position);
     
-  private:
+  private:    
     std::pair<double, double> velocity;
     std::pair<double, double> accel;
 };
@@ -30,7 +30,7 @@ class PhysicsBodyComponent : public Component {
 class PlayerSpriteComponent : public Component {
   public:
     void render(Game& game, Entity& entity, Texture& buffer);
-    void receive(Game& game, Entity& entity, Message& msg);
+    void receive(Game& game, Entity& entity, const Message& msg);
     void tick(Game& game, Entity& entity);
     
   private:
@@ -44,7 +44,7 @@ class PlayerPhysicsComponent : public Component {
   public:
     PlayerPhysicsComponent();
     void tick(Game& game, Entity& entity);
-    void receive(Game& game, Entity& entity, Message& msg);
+    void receive(Game& game, Entity& entity, const Message& msg);
     
   private:
     std::pair<double, double> velocity;
@@ -58,7 +58,7 @@ class PlayerPhysicsComponent : public Component {
 
 class MapRenderComponent : public Component {
   public:
-    MapRenderComponent(Map& map);
+    MapRenderComponent(const Map& map);
     void render(Game& game, Entity& entity, Texture& buffer);
     
   private:
@@ -67,29 +67,30 @@ class MapRenderComponent : public Component {
 
 class MapCollisionComponent : public Component {
   public:
-    MapCollisionComponent(Map& map);
+    MapCollisionComponent(const Map& map);
     void detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position);
     
   private:
-    enum direction_t {
+    enum class Direction {
       up, left, down, right
     };
 
-    typedef struct {
+    struct Collision {
       int axis;
       int lower;
       int upper;
       int type;
-    } collision_t;
+    };
     
-    void add_collision(int axis, int lower, int upper, direction_t dir, int type);
+    void addCollision(int axis, int lower, int upper, Direction dir, int type);
+    void processCollision(Game& game, Entity& collider, Collision collision, Direction dir);
     
-    std::list<collision_t> left_collisions;
-    std::list<collision_t> right_collisions;
-    std::list<collision_t> up_collisions;
-    std::list<collision_t> down_collisions;
-    Map* leftMap;
-    Map* rightMap;
+    std::list<Collision> left_collisions;
+    std::list<Collision> right_collisions;
+    std::list<Collision> up_collisions;
+    std::list<Collision> down_collisions;
+    const Map* leftMap;
+    const Map* rightMap;
 };
 
 #endif

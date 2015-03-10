@@ -10,19 +10,19 @@ class Map {
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
-    const int* mapdata();
-    const char* title();
-    Map* getLeftMap();
-    Map* getRightMap();
-    void setLeftMap(Map* m);
-    void setRightMap(Map* m);
+    const int* mapdata() const;
+    const char* title() const;
+    const Map* getLeftMap() const;
+    const Map* getRightMap() const;
+    void setLeftMap(const Map* m);
+    void setRightMap(const Map* m);
   private:
     Map();
     
     int* m_mapdata;
     char* m_title;
-    Map* m_leftMap;
-    Map* m_rightMap;
+    const Map* m_leftMap = nullptr;
+    const Map* m_rightMap = nullptr;
 };
 
 #endif
