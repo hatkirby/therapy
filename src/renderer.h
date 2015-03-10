@@ -1,9 +1,5 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-using namespace glm;
 
 #ifndef RENDERER_H
 #define RENDERER_H
@@ -13,33 +9,29 @@ struct Rectangle {
   int y;
   int w;
   int h;
-  
-  Rectangle() {};
-  
-  Rectangle(int m_x, int m_y, int m_w, int m_h)
-  {
-    x = m_x;
-    y = m_y;
-    w = m_w;
-    h = m_h;
-  }
 };
 
-struct Texture {
-  GLuint texID;
-  int width;
-  int height;
+class Texture {
+  public:
+    Texture(int width, int height);
+    Texture(const char* file);
+    Texture(Texture& tex);
+    Texture(Texture&& tex);
+    ~Texture();
+    Texture& operator= (Texture tex);
+    friend void swap(Texture& tex1, Texture& tex2);
+    void fill(Rectangle loc, int r, int g, int b);
+    void blit(Texture& src, Rectangle srcrect, Rectangle dstrect);
+    void renderScreen();
+    Rectangle entirety();
+    
+  private:
+    GLuint texID;
+    int width;
+    int height;
 };
 
 GLFWwindow* initRenderer();
 void destroyRenderer();
-Texture* createTexture(int width, int height);
-void destroyTexture(Texture* tex);
-Texture* loadTextureFromFile(char* filename);
-void saveTextureToBMP(Texture* tex, char* filename);
-void fillTexture(Texture* tex, Rectangle* loc, int r, int g, int b);
-void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle* dstrect);
-void renderWithoutEffects(Texture* tex);
-void renderScreen(Texture* tex);
 
 #endif

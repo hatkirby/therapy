@@ -5,48 +5,50 @@
 #include <utility>
 #include <list>
 #include "map.h"
+#include <memory>
 
 class UserMovementComponent : public Component {
   public:
-    UserMovementComponent(Entity& parent) : Component(parent) {};
-    void input(int key, int action);
+    void input(Game& game, Entity& entity, int key, int action);
       
   private:
     bool holdingLeft = false;
     bool holdingRight = false;
 };
 
-class PhysicsBodyComponent : public Component, public Collidable, public Locatable {
+class PhysicsBodyComponent : public Component {
   public:
-    PhysicsBodyComponent(Entity& parent) : Component(parent) {};
-    void receive(message_t msg);
-    void tick();
-    void detectCollision(Entity& player, Locatable& physics, std::pair<double, double> old_position);
+    void receive(Game& game, Entity& entity, Message& msg);
+    void tick(Game& game, Entity& entity);
+    void detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position);
+    
+  private:
+    std::pair<double, double> velocity;
+    std::pair<double, double> accel;
 };
 
 class PlayerSpriteComponent : public Component {
   public:
-    PlayerSpriteComponent(Entity& parent, Locatable& physics);
-    ~PlayerSpriteComponent();
-    void render(Texture* buffer);
-    void receive(message_t msg);
-    void tick();
+    void render(Game& game, Entity& entity, Texture& buffer);
+    void receive(Game& game, Entity& entity, Message& msg);
+    void tick(Game& game, Entity& entity);
     
   private:
-    Locatable& physics;
-    Texture* sprite;
+    Texture sprite{"../res/Starla.png"};
     int animFrame = 0;
     bool facingLeft = false;
     bool isMoving = false;
 };
 
-class PlayerPhysicsComponent : public Component, public Locatable {
+class PlayerPhysicsComponent : public Component {
   public:
-    PlayerPhysicsComponent(Entity& parent);
-    void tick();
-    void receive(message_t msg);
+    PlayerPhysicsComponent();
+    void tick(Game& game, Entity& entity);
+    void receive(Game& game, Entity& entity, Message& msg);
     
   private:
+    std::pair<double, double> velocity;
+    std::pair<double, double> accel;
     double jump_velocity;
     double jump_gravity;
     double jump_gravity_short;
@@ -56,38 +58,38 @@ class PlayerPhysicsComponent : public Component, public Locatable {
 
 class MapRenderComponent : public Component {
   public:
-    MapRenderComponent(Entity& parent, Map* map);
-    ~MapRenderComponent();
-    void render(Texture* buffer);
+    MapRenderComponent(Map& map);
+    void render(Game& game, Entity& entity, Texture& buffer);
     
   private:
-    Texture* screen;
+    Texture screen{GAME_WIDTH, GAME_HEIGHT};
 };
 
-enum direction_t {
-  up, left, down, right
-};
-
-typedef struct {
-  int axis;
-  int lower;
-  int upper;
-  int type;
-} collision_t;
-
-class MapCollisionComponent : public Component, public Collidable {
+class MapCollisionComponent : public Component {
   public:
-    MapCollisionComponent(Entity& parent, Map* map);
-    void detectCollision(Entity& player, Locatable& physics, std::pair<double, double> old_position);
+    MapCollisionComponent(Map& map);
+    void detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position);
     
   private:
+    enum direction_t {
+      up, left, down, right
+    };
+
+    typedef struct {
+      int axis;
+      int lower;
+      int upper;
+      int type;
+    } collision_t;
+    
     void add_collision(int axis, int lower, int upper, direction_t dir, int type);
     
     std::list<collision_t> left_collisions;
     std::list<collision_t> right_collisions;
     std::list<collision_t> up_collisions;
     std::list<collision_t> down_collisions;
-    Map* map;
+    Map* leftMap;
+    Map* rightMap;
 };
 
 #endif

@@ -3,42 +3,45 @@
 
 class Entity;
 class Component;
-class Locatable;
-class Collidable;
 
 #include <list>
 #include "renderer.h"
-#include "world.h"
+#include "game.h"
 
-enum message_type {
-  CM_WALK_LEFT,
-  CM_WALK_RIGHT,
-  CM_STOP_WALKING,
-  CM_COLLISION,
-  CM_JUMP,
-  CM_STOP_JUMP,
-  CM_DROP,
-  CM_CAN_DROP,
-  CM_CANT_DROP
+class Message {
+  public:
+    enum class Type {
+      walkLeft,
+      walkRight,
+      stopWalking,
+      stopMovingHorizontally,
+      stopMovingVertically,
+      collision,
+      jump,
+      stopJump,
+      drop,
+      canDrop,
+      cantDrop
+    };
+    
+    Message(Type type) : type(type) {}
+    
+    Type type;
+    Entity* collisionEntity;
+    int dropAxis;
 };
-
-typedef struct {
-  message_type type;
-  Entity* collisionEntity;
-  int dropAxis;
-} message_t;
 
 class Entity {
   public:
-    Entity(World* world) : world(world) {}
-    ~Entity() {};
     void addComponent(std::shared_ptr<Component> c);
-    void send(message_t msg);
-    void tick();
-    void input(int key, int action);
-    void render(Texture* buffer);
+    void send(Game& game, Message& msg);
+    void tick(Game& game);
+    void input(Game& game, int key, int action);
+    void render(Game& game, Texture& buffer);
+    void detectCollision(Game& game, Entity& collider, std::pair<double, double> old_position);
     
-    World* world;
+    std::pair<double, double> position;
+    std::pair<int, int> size;
     
   private:
     std::list<std::shared_ptr<Component>> components;
@@ -46,27 +49,11 @@ class Entity {
 
 class Component {
   public:
-    Component(Entity& entity) : entity(entity) {}
-    virtual ~Component() {};
-    virtual void receive(message_t msg) {(void)msg;}
-    virtual void render(Texture* tex) {(void)tex;}
-    virtual void tick() {}
-    virtual void input(int key, int action) {(void)key; (void)action;}
-    
-    Entity& entity;
-};
-
-class Locatable {
-  public:
-    std::pair<double, double> position;
-    std::pair<int, int> size;
-    std::pair<double, double> velocity;
-    std::pair<double, double> accel;
-};
-
-class Collidable {
-  public:
-    virtual void detectCollision(Entity& player, Locatable& physics, std::pair<double, double> old_position) = 0;
+    virtual void receive(Game&, Entity&, Message&) {}
+    virtual void render(Game&, Entity&, Texture&) {}
+    virtual void tick(Game&, Entity&) {}
+    virtual void input(Game&, Entity&, int, int) {}
+    virtual void detectCollision(Game&, Entity&, Entity&, std::pair<double, double>) {}
 };
 
 #endif

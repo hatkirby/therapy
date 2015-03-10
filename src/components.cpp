@@ -3,7 +3,7 @@
 
 // User movement component
 
-void UserMovementComponent::input(int key, int action)
+void UserMovementComponent::input(Game& game, Entity& entity, int key, int action)
 {
   if (action == GLFW_PRESS)
   {
@@ -11,30 +11,22 @@ void UserMovementComponent::input(int key, int action)
     {
       holdingLeft = true;
       
-      message_t msg;
-      msg.type = CM_WALK_LEFT;
-      
-      entity.send(msg);
+      Message msg(Message::Type::walkLeft);
+      entity.send(game, msg);
     } else if (key == GLFW_KEY_RIGHT)
     {
       holdingRight = true;
       
-      message_t msg;
-      msg.type = CM_WALK_RIGHT;
-      
-      entity.send(msg);
+      Message msg(Message::Type::walkRight);
+      entity.send(game, msg);
     } else if (key == GLFW_KEY_UP)
     {
-      message_t msg;
-      msg.type = CM_JUMP;
-      
-      entity.send(msg);
+      Message msg(Message::Type::jump);
+      entity.send(game, msg);
     } else if (key == GLFW_KEY_DOWN)
     {
-      message_t msg;
-      msg.type = CM_CAN_DROP;
-      
-      entity.send(msg);
+      Message msg(Message::Type::canDrop);
+      entity.send(game, msg);
     }
   } else if (action == GLFW_RELEASE)
   {
@@ -44,15 +36,11 @@ void UserMovementComponent::input(int key, int action)
       
       if (holdingRight)
       {
-        message_t msg;
-        msg.type = CM_WALK_RIGHT;
-        
-        entity.send(msg);
+        Message msg(Message::Type::walkRight);
+        entity.send(game, msg);
       } else {
-        message_t msg;
-        msg.type = CM_STOP_WALKING;
-        
-        entity.send(msg);
+        Message msg(Message::Type::stopWalking);
+        entity.send(game, msg);
       }
     } else if (key == GLFW_KEY_RIGHT)
     {
@@ -60,95 +48,82 @@ void UserMovementComponent::input(int key, int action)
       
       if (holdingLeft)
       {
-        message_t msg;
-        msg.type = CM_WALK_LEFT;
-        
-        entity.send(msg);
+        Message msg(Message::Type::walkLeft);
+        entity.send(game, msg);
       } else {
-        message_t msg;
-        msg.type = CM_STOP_WALKING;
-        
-        entity.send(msg);
+        Message msg(Message::Type::stopWalking);
+        entity.send(game, msg);
       }
     } else if (key == GLFW_KEY_DOWN)
     {
-      message_t msg;
-      msg.type = CM_CANT_DROP;
-      
-      entity.send(msg);
+      Message msg(Message::Type::cantDrop);
+      entity.send(game, msg);
     } else if (key == GLFW_KEY_UP)
     {
-      message_t msg;
-      msg.type = CM_STOP_JUMP;
-      
-      entity.send(msg);
+      Message msg(Message::Type::stopJump);
+      entity.send(game, msg);
     }
   }
 }
 
 // Physics component
 
-void PhysicsBodyComponent::receive(message_t msg)
+void PhysicsBodyComponent::receive(Game&, Entity&, Message& msg)
 {
-  if (msg.type == CM_WALK_LEFT)
+  if (msg.type == Message::Type::walkLeft)
   {
     velocity.first = -1.5;
-  } else if (msg.type == CM_WALK_RIGHT)
+  } else if (msg.type == Message::Type::walkRight)
   {
     velocity.first = 1.5;
-  } else if (msg.type == CM_STOP_WALKING)
+  } else if (msg.type == Message::Type::stopWalking)
   {
     velocity.first = 0.0;
+  } else if (msg.type == Message::Type::stopMovingHorizontally)
+  {
+    velocity.first = 0.0;
+  } else if (msg.type == Message::Type::stopMovingVertically)
+  {
+    velocity.second = 0.0;
   }
 }
 
-void PhysicsBodyComponent::tick()
+void PhysicsBodyComponent::tick(Game&, Entity& entity)
 {
   velocity.first += accel.first;
   velocity.second += accel.second;
   
-  position.first += velocity.first;
-  position.second += velocity.second;
+  entity.position.first += velocity.first;
+  entity.position.second += velocity.second;
 }
 
-void PhysicsBodyComponent::detectCollision(Entity& player, Locatable& physics, std::pair<double, double> old_position)
+void PhysicsBodyComponent::detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position)
 {
   // If already colliding, do nothing!
-  if ((old_position.first + physics.size.first > this->position.first)
-    && (old_position.first < this->position.first + this->size.first)
-    && (old_position.second + physics.size.second > this->position.second)
-    && (old_position.second < this->position.second + this->size.second))
+  if ((old_position.first + collider.size.first > entity.position.first)
+    && (old_position.first < entity.position.first + entity.size.first)
+    && (old_position.second + collider.size.second > entity.position.second)
+    && (old_position.second < entity.position.second + entity.size.second))
   {
     return;
   }
   
   // If newly colliding, SHOCK AND HORROR!
-  if ((physics.position.first + physics.size.first > this->position.first)
-    && (physics.position.first < this->position.first + this->size.first)
-    && (physics.position.second + physics.size.second > this->position.second)
-    && (physics.position.second < this->position.second + this->size.second))
+  if ((collider.position.first + collider.size.first > entity.position.first)
+    && (collider.position.first < entity.position.first + entity.size.first)
+    && (collider.position.second + collider.size.second > entity.position.second)
+    && (collider.position.second < entity.position.second + entity.size.second))
   {
-    message_t msg;
-    msg.type = CM_COLLISION;
-    msg.collisionEntity = &player;
+    Message msg(Message::Type::collision);
+    msg.collisionEntity = &collider;
     
-    entity.send(msg);
+    entity.send(game, msg);
   }
 }
 
 // Render player
 
-PlayerSpriteComponent::PlayerSpriteComponent(Entity& entity, Locatable& physics) : Component(entity), physics(physics)
-{
-  sprite = loadTextureFromFile("../res/Starla.png");
-}
-
-PlayerSpriteComponent::~PlayerSpriteComponent()
-{
-  destroyTexture(sprite);
-}
-
-void PlayerSpriteComponent::render(Texture* buffer)
+void PlayerSpriteComponent::render(Game&, Entity& entity, Texture& buffer)
 {
   int frame = 0;
   if (isMoving)
@@ -162,28 +137,28 @@ void PlayerSpriteComponent::render(Texture* buffer)
   }
   if (facingLeft) frame++;
   
-  Rectangle src_rect(frame*10, 0, 10, 12);
-  Rectangle dst_rect((int) physics.position.first, (int) physics.position.second, physics.size.first, physics.size.second);
-  blitTexture(sprite, buffer, &src_rect, &dst_rect);
+  Rectangle src_rect {frame*10, 0, 10, 12};
+  Rectangle dst_rect {(int) entity.position.first, (int) entity.position.second, entity.size.first, entity.size.second};
+  buffer.blit(sprite, src_rect, dst_rect);
 }
 
-void PlayerSpriteComponent::receive(message_t msg)
+void PlayerSpriteComponent::receive(Game&, Entity&, Message& msg)
 {
-  if (msg.type == CM_WALK_LEFT)
+  if (msg.type == Message::Type::walkLeft)
   {
     facingLeft = true;
     isMoving = true;
-  } else if (msg.type == CM_WALK_RIGHT)
+  } else if (msg.type == Message::Type::walkRight)
   {
     facingLeft = false;
     isMoving = true;
-  } else if (msg.type == CM_STOP_WALKING)
+  } else if (msg.type == Message::Type::stopWalking)
   {
     isMoving = false;
   }
 }
 
-void PlayerSpriteComponent::tick()
+void PlayerSpriteComponent::tick(Game&, Entity&)
 {
   animFrame++;
   animFrame %= 20;
@@ -194,7 +169,7 @@ void PlayerSpriteComponent::tick()
 #define JUMP_VELOCITY(h, l) (-2 * (h) / (l))
 #define JUMP_GRAVITY(h, l) (2 * ((h) / (l)) / (l))
 
-PlayerPhysicsComponent::PlayerPhysicsComponent(Entity& entity) : Component(entity)
+PlayerPhysicsComponent::PlayerPhysicsComponent()
 {
   jump_velocity = JUMP_VELOCITY(TILE_HEIGHT*4.5, 0.3*FRAMES_PER_SECOND);
   jump_gravity = JUMP_GRAVITY(TILE_HEIGHT*4.5, 0.3*FRAMES_PER_SECOND);
@@ -203,46 +178,52 @@ PlayerPhysicsComponent::PlayerPhysicsComponent(Entity& entity) : Component(entit
   accel.second = jump_gravity_short;
 }
 
-void PlayerPhysicsComponent::receive(message_t msg)
+void PlayerPhysicsComponent::receive(Game&, Entity& entity, Message& msg)
 {
-  if (msg.type == CM_WALK_LEFT)
+  if (msg.type == Message::Type::walkLeft)
   {
     velocity.first = -1.5;
     direction = -1;
-  } else if (msg.type == CM_WALK_RIGHT)
+  } else if (msg.type == Message::Type::walkRight)
   {
     velocity.first = 1.5;
     direction = 1;
-  } else if (msg.type == CM_STOP_WALKING)
+  } else if (msg.type == Message::Type::stopWalking)
   {
     velocity.first = 0.0;
     direction = 0;
-  } else if (msg.type == CM_JUMP)
+  } else if (msg.type == Message::Type::stopMovingHorizontally)
+  {
+    velocity.first = 0.0;
+  } else if (msg.type == Message::Type::stopMovingVertically)
+  {
+    velocity.second = 0.0;
+  } else if (msg.type == Message::Type::jump)
   {
     velocity.second = jump_velocity;
     accel.second = jump_gravity;
-  } else if (msg.type == CM_STOP_JUMP)
+  } else if (msg.type == Message::Type::stopJump)
   {
     accel.second = jump_gravity_short;
-  } else if (msg.type == CM_CAN_DROP)
+  } else if (msg.type == Message::Type::canDrop)
   {
     canDrop = true;
-  } else if (msg.type == CM_CANT_DROP)
+  } else if (msg.type == Message::Type::cantDrop)
   {
     canDrop = false;
-  } else if (msg.type == CM_DROP)
+  } else if (msg.type == Message::Type::drop)
   {
     if (canDrop)
     {
       canDrop = false;
     } else {
-      position.second = msg.dropAxis - size.second;
+      entity.position.second = msg.dropAxis - entity.size.second;
       velocity.second = 0;
     }
   }
 }
 
-void PlayerPhysicsComponent::tick()
+void PlayerPhysicsComponent::tick(Game& game, Entity& entity)
 {
   // Continue walking even if blocked earlier
   if (velocity.first == 0)
@@ -273,80 +254,67 @@ void PlayerPhysicsComponent::tick()
   if (velocity.second > 16) velocity.second = 16;
   
   // Do the movement
-  std::pair<double, double> old_position = std::make_pair(position.first, position.second);
-  position.first += velocity.first;
-  position.second += velocity.second;
+  std::pair<double, double> old_position = entity.position;
+  entity.position.first += velocity.first;
+  entity.position.second += velocity.second;
   
   // Check for collisions
-  for (auto it = entity.world->bodies.begin(); it != entity.world->bodies.end(); it++)
-  {
-    auto poop = *it;
-    poop->detectCollision(entity, *this, old_position);
-  }
+  game.detectCollision(entity, old_position);
 }
 
 // Map rendering
 
-MapRenderComponent::MapRenderComponent(Entity& entity, Map* map) : Component(entity)
+MapRenderComponent::MapRenderComponent(Map& map)
 {
-  screen = createTexture(GAME_WIDTH, GAME_HEIGHT);
-  fillTexture(screen, NULL, 0, 0, 0);
+  screen.fill(screen.entirety(), 0, 0, 0);
   
-  Texture* tiles = loadTextureFromFile("../res/tiles.png");
+  Texture tiles("../res/tiles.png");
   
   for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
-    int tile = map->mapdata()[i];
+    int tile = map.mapdata()[i];
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;
-    Rectangle dst(x*TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-    Rectangle src(tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-    
+    Rectangle dst {x*TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT};
+    Rectangle src {tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT};
+
     if (tile > 0)
     {
-      blitTexture(tiles, screen, &src, &dst);
+      screen.blit(tiles, src, dst);
     }
   }
   
-  destroyTexture(tiles);
-  
-  Texture* font = loadTextureFromFile("../res/font.bmp");
-  const char* map_name = map->title();
+  Texture font("../res/font.bmp");
+  const char* map_name = map.title();
   int start_x = (40/2) - (strlen(map_name)/2);
   for (size_t i=0; i<strlen(map_name); i++)
   {
-    Rectangle srcRect(map_name[i] % 16 * 8, map_name[i] / 16 * 8, 8, 8);
-    Rectangle dstRect((start_x + i)*8, 24*8, 8, 8);
-    blitTexture(font, screen, &srcRect, &dstRect);
+    Rectangle srcRect {map_name[i] % 16 * 8, map_name[i] / 16 * 8, 8, 8};
+    Rectangle dstRect {(start_x + (int)i)*8, 24*8, 8, 8};
+    screen.blit(font, srcRect, dstRect);
   }
-  
-  destroyTexture(font);
 }
 
-MapRenderComponent::~MapRenderComponent()
+void MapRenderComponent::render(Game&, Entity&, Texture& buffer)
 {
-  destroyTexture(screen);
-}
-
-void MapRenderComponent::render(Texture* buffer)
-{
-  blitTexture(screen, buffer, NULL, NULL);
+  buffer.blit(screen, screen.entirety(), buffer.entirety());
 }
 
 // Map collision
 
-MapCollisionComponent::MapCollisionComponent(Entity& entity, Map* map) : Component(entity)
+MapCollisionComponent::MapCollisionComponent(Map& map)
 {
-  this->map = map;
+  leftMap = map.getLeftMap();
+  rightMap = map.getRightMap();
   
-  add_collision(-6, 0, GAME_WIDTH, left, (map->getLeftMap() == NULL) ? 1 : 2);
-  add_collision(GAME_WIDTH+6, 0, GAME_WIDTH, right, (map->getRightMap() == NULL) ? 3 : 2);
+  add_collision(-6, 0, GAME_WIDTH, left, (map.getLeftMap() == nullptr) ? 1 : 2);
+  add_collision(GAME_WIDTH+6, 0, GAME_WIDTH, right, (map.getRightMap() == nullptr) ? 3 : 2);
   
   for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;
-    int tile = map->mapdata()[i];
+    int tile = map.mapdata()[i];
     
     if ((tile > 0) && (!((tile >= 5) && (tile <= 7))))
     {
@@ -410,34 +378,36 @@ void MapCollisionComponent::add_collision(int axis, int lower, int upper, direct
   }
 }
 
-void MapCollisionComponent::detectCollision(Entity& player, Locatable& physics, std::pair<double, double> old_position)
+void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collider, std::pair<double, double> old_position)
 {
-  int fixed_x = (int) physics.position.first;
-  int fixed_y = (int) physics.position.second;
+  int fixed_x = (int) collider.position.first;
+  int fixed_y = (int) collider.position.second;
   int fixed_ox = (int) old_position.first;
   int fixed_oy = (int) old_position.second;
   
   if (fixed_x < fixed_ox)
   {
-    for (auto it=left_collisions.begin(); it!=left_collisions.end(); it++)
+    for (auto collision : left_collisions)
     {
-      if (it->axis > fixed_ox) continue;
-      if (it->axis < fixed_x) break;
+      if (collision.axis > fixed_ox) continue;
+      if (collision.axis < fixed_x) break;
   
-      if ((fixed_oy+physics.size.second > it->lower) && (fixed_oy < it->upper))
+      if ((fixed_oy+collider.size.second > collision.lower) && (fixed_oy < collision.upper))
       {
         // We have a collision!
-        if (it->type == 0)
+        if (collision.type == 0)
         {
-          physics.position.first = it->axis;
-          physics.velocity.first = 0;
-        } else if (it->type == 1)
+          collider.position.first = collision.axis;
+          
+          Message msg(Message::Type::stopMovingHorizontally);
+          collider.send(game, msg);
+        } else if (collision.type == 1)
         {
-          physics.position.first = GAME_WIDTH-physics.size.first/2;
-        } else if (it->type == 2)
+          collider.position.first = GAME_WIDTH-collider.size.first/2;
+        } else if (collision.type == 2)
         {
-          physics.position.first = GAME_WIDTH-physics.size.first/2;
-          Game::getInstance().loadMap(map->getLeftMap());
+          collider.position.first = GAME_WIDTH-collider.size.first/2;
+          game.loadMap(*leftMap);
         }
     
         break;
@@ -445,32 +415,33 @@ void MapCollisionComponent::detectCollision(Entity& player, Locatable& physics, 
     }
   } else if (fixed_x > fixed_ox)
   {
-    for (auto it=right_collisions.begin(); it!=right_collisions.end(); it++)
+    for (auto collision : right_collisions)
     {
-      if (it->axis < fixed_ox+physics.size.first) continue;
-      if (it->axis > fixed_x+physics.size.first) break;
+      if (collision.axis < fixed_ox+collider.size.first) continue;
+      if (collision.axis > fixed_x+collider.size.first) break;
   
-      if ((fixed_oy+physics.size.second > it->lower) && (fixed_oy < it->upper))
+      if ((fixed_oy+collider.size.second > collision.lower) && (fixed_oy < collision.upper))
       {
         // We have a collision!
-        if (it->type == 0)
+        if (collision.type == 0)
         {
-          physics.position.first = it->axis - physics.size.first;
-          physics.velocity.first = 0;
-        } else if (it->type == 1)
-        {
-          physics.position.first = -physics.size.first/2;
-        } else if (it->type == 2)
-        {
-          physics.position.first = -physics.size.first/2;
-          Game::getInstance().loadMap(map->getRightMap());
-        } else if (it->type == 3)
-        {
-          physics.position.first = it->axis - physics.size.first;
+          collider.position.first = collision.axis - collider.size.first;
           
-          message_t msg;
-          msg.type = CM_WALK_LEFT;
-          player.send(msg);
+          Message msg(Message::Type::stopMovingHorizontally);
+          collider.send(game, msg);
+        } else if (collision.type == 1)
+        {
+          collider.position.first = -collider.size.first/2;
+        } else if (collision.type == 2)
+        {
+          collider.position.first = -collider.size.first/2;
+          game.loadMap(*rightMap);
+        } else if (collision.type == 3)
+        {
+          collider.position.first = collision.axis - collider.size.first;
+          
+          Message msg(Message::Type::walkLeft);
+          collider.send(game, msg);
         }
     
         break;
@@ -478,26 +449,28 @@ void MapCollisionComponent::detectCollision(Entity& player, Locatable& physics, 
     }
   }
   
-  fixed_x = (int) physics.position.first;
-  fixed_y = (int) physics.position.second;
+  fixed_x = (int) collider.position.first;
+  fixed_y = (int) collider.position.second;
   
   if (fixed_y < fixed_oy)
   {
-    for (auto it=up_collisions.begin(); it!=up_collisions.end(); it++)
+    for (auto collision : up_collisions)
     {
-      if (it->axis > fixed_oy) continue;
-      if (it->axis < fixed_y) break;
+      if (collision.axis > fixed_oy) continue;
+      if (collision.axis < fixed_y) break;
   
-      if ((fixed_x+physics.size.first > it->lower) && (fixed_x < it->upper))
+      if ((fixed_x+collider.size.first > collision.lower) && (fixed_x < collision.upper))
       {
         // We have a collision!
-        if (it->type == 0)
+        if (collision.type == 0)
         {
-          physics.position.second = it->axis;
-          physics.velocity.second = 0;
-        } else if (it->type == 1)
+          collider.position.second = collision.axis;
+          
+          Message msg(Message::Type::stopMovingVertically);
+          collider.send(game, msg);
+        } else if (collision.type == 1)
         {
-          physics.position.second = GAME_HEIGHT-physics.size.second/2-1;
+          collider.position.second = GAME_HEIGHT-collider.size.second/2-1;
         }
     
         break;
@@ -505,29 +478,29 @@ void MapCollisionComponent::detectCollision(Entity& player, Locatable& physics, 
     }
   } else if (fixed_y > fixed_oy)
   {
-    for (auto it=down_collisions.begin(); it!=down_collisions.end(); it++)
+    for (auto collision : down_collisions)
     {
-      if (it->axis < fixed_oy+physics.size.second) continue;
-      if (it->axis > fixed_y+physics.size.second) break;
+      if (collision.axis < fixed_oy+collider.size.second) continue;
+      if (collision.axis > fixed_y+collider.size.second) break;
 
-      if ((fixed_x+physics.size.first > it->lower) && (fixed_x < it->upper))
+      if ((fixed_x+collider.size.first > collision.lower) && (fixed_x < collision.upper))
       {
         // We have a collision!
-        if (it->type == 0)
+        if (collision.type == 0)
         {
-          physics.position.second = it->axis - physics.size.second;
-          physics.velocity.second = 0;
-          //mob->onGround = true;
-        } else if (it->type == 1)
-        {
-          physics.position.second = -physics.size.second/2;
-        } else if (it->type == 3)
-        {
-          message_t msg;
-          msg.type = CM_DROP;
-          msg.dropAxis = it->axis;
+          collider.position.second = collision.axis - collider.size.second;
           
-          player.send(msg);
+          Message msg(Message::Type::stopMovingVertically);
+          collider.send(game, msg);
+        } else if (collision.type == 1)
+        {
+          collider.position.second = -collider.size.second/2;
+        } else if (collision.type == 3)
+        {
+          Message msg(Message::Type::drop);
+          msg.dropAxis = collision.axis;
+
+          collider.send(game, msg);
         }
         
         break;

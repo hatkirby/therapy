@@ -1,7 +1,11 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "components.h"
+class Game;
+
+#include "map.h"
+#include <memory>
+#include "entity.h"
 
 const int TILE_WIDTH = 8;
 const int TILE_HEIGHT = 8;
@@ -15,29 +19,21 @@ const double SECONDS_PER_FRAME = 1.0 / FRAMES_PER_SECOND;
 
 class Game {
   public:
-    static Game& getInstance()
-    {
-      static Game instance;
-  
-      return instance;
-    }
-    
-    ~Game();
-    void execute();
-    void loadMap(Map* map);
-    void input(int key, int action);
+    Game();
+    void execute(GLFWwindow* window);
+    void loadMap(Map& map);
+    void detectCollision(Entity& collider, std::pair<double, double> old_position);
     
     bool shouldQuit = false;
   private:
-    Game();
-    Game(Game const&);
-    void operator=(Game const&);
-    
-    GLFWwindow* window;
-    World* world;
-    World* nextWorld;
-    Map* m;
-    Map* m2;
+    friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+    std::list<std::shared_ptr<Entity>> entities;
+    std::list<std::shared_ptr<Entity>> nextEntities;
+    bool newWorld;
+    std::shared_ptr<Entity> player;
+    Map m{"../maps/embarass.txt"};
+    Map m2{"../maps/second.txt"};
 };
 
 #endif

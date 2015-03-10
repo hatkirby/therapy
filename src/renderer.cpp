@@ -6,6 +6,8 @@
 #include <cstring>
 #include <cstdlib>
 #include "game.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // include stb_image
 #define STB_IMAGE_IMPLEMENTATION
@@ -86,27 +88,27 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
     // Compile Vertex Shader
     printf("Compiling shader : %s\n", vertex_file_path);
     char const * VertexSourcePointer = VertexShaderCode.c_str();
-    glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
+    glShaderSource(VertexShaderID, 1, &VertexSourcePointer , nullptr);
     glCompileShader(VertexShaderID);
  
     // Check Vertex Shader
     glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
     glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
     std::vector<char> VertexShaderErrorMessage(InfoLogLength);
-    glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+    glGetShaderInfoLog(VertexShaderID, InfoLogLength, nullptr, &VertexShaderErrorMessage[0]);
     fprintf(stdout, "%s\n", &VertexShaderErrorMessage[0]);
  
     // Compile Fragment Shader
     printf("Compiling shader : %s\n", fragment_file_path);
     char const * FragmentSourcePointer = FragmentShaderCode.c_str();
-    glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
+    glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , nullptr);
     glCompileShader(FragmentShaderID);
  
     // Check Fragment Shader
     glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
     glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
     std::vector<char> FragmentShaderErrorMessage(InfoLogLength);
-    glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+    glGetShaderInfoLog(FragmentShaderID, InfoLogLength, nullptr, &FragmentShaderErrorMessage[0]);
     fprintf(stdout, "%s\n", &FragmentShaderErrorMessage[0]);
  
     // Link the program
@@ -120,7 +122,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
     glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
     glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
     std::vector<char> ProgramErrorMessage( glm::max(InfoLogLength, int(1)) );
-    glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+    glGetProgramInfoLog(ProgramID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
     fprintf(stdout, "%s\n", &ProgramErrorMessage[0]);
  
     glDeleteShader(VertexShaderID);
@@ -147,7 +149,7 @@ void flipImageData(unsigned char* data, int width, int height, int comps)
 void loadMesh(const char* filename, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals)
 {
   FILE* file = fopen(filename, "r");
-  if (file == NULL)
+  if (file == nullptr)
   {
     fprintf(stderr, "Could not open mesh file %s\n", filename);
     exit(1);
@@ -168,17 +170,17 @@ void loadMesh(const char* filename, std::vector<glm::vec3>& out_vertices, std::v
     
     if (!strncmp(lineHeader, "v", 2))
     {
-      vec3 vertex;
+      glm::vec3 vertex;
       fscanf(file, "%f %f %f\n", &vertex.x,&vertex.y,&vertex.z);
       temp_vertices.push_back(vertex);
     } else if (!strncmp(lineHeader, "vt", 3))
     {
-      vec2 uv;
+      glm::vec2 uv;
       fscanf(file, "%f %f\n", &uv.x, &uv.y);
       temp_uvs.push_back(uv);
     } else if (!strncmp(lineHeader, "vn", 3))
     {
-      vec3 normal;
+      glm::vec3 normal;
       fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
       temp_normals.push_back(normal);
     } else if (!strncmp(lineHeader, "f", 2))
@@ -265,8 +267,8 @@ GLFWwindow* initRenderer()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   
   // Create a window
-  window = glfwCreateWindow(1024, 768, "Aromatherapy", NULL, NULL);
-  if (window == NULL)
+  window = glfwCreateWindow(1024, 768, "Aromatherapy", nullptr, nullptr);
+  if (window == nullptr)
   {
     fprintf(stderr, "Failed to open GLFW window\n");
     glfwTerminate();
@@ -367,15 +369,15 @@ GLFWwindow* initRenderer()
   
   glGenBuffers(1, &mesh_vertexbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh_vertices.size() * sizeof(vec3), &mesh_vertices[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh_vertices.size() * sizeof(glm::vec3), &mesh_vertices[0], GL_STATIC_DRAW);
   
   glGenBuffers(1, &mesh_uvbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_uvbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh_uvs.size() * sizeof(vec3), &mesh_uvs[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh_uvs.size() * sizeof(glm::vec3), &mesh_uvs[0], GL_STATIC_DRAW);
   
   glGenBuffers(1, &mesh_normalbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_normalbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh_normals.size() * sizeof(vec3), &mesh_normals[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh_normals.size() * sizeof(glm::vec3), &mesh_normals[0], GL_STATIC_DRAW);
   
   // Load the vertices of a flat surface
   GLfloat g_quad_vertex_buffer_data[] = { 
@@ -471,7 +473,7 @@ void destroyRenderer()
   rendererInitialized = false;
 }
 
-Texture* createTexture(int width, int height)
+Texture::Texture(int width, int height)
 {
   if (!rendererInitialized)
   {
@@ -479,22 +481,19 @@ Texture* createTexture(int width, int height)
     exit(-1);
   }
   
-  Texture* tex = new Texture();
-  tex->width = width;
-  tex->height = height;
+  this->width = width;
+  this->height = height;
   
-  glGenTextures(1, &(tex->texID));
-  glBindTexture(GL_TEXTURE_2D, tex->texID);
+  glGenTextures(1, &texID);
+  glBindTexture(GL_TEXTURE_2D, texID);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  
-  return tex;
 }
 
-void destroyTexture(Texture* tex)
+Texture::Texture(const char* filename)
 {
   if (!rendererInitialized)
   {
@@ -502,35 +501,19 @@ void destroyTexture(Texture* tex)
     exit(-1);
   }
   
-  glDeleteTextures(1, &(tex->texID));
-  
-  delete tex;
-}
-
-Texture* loadTextureFromFile(char* filename)
-{
-  if (!rendererInitialized)
-  {
-    fprintf(stderr, "Renderer not initialized\n");
-    exit(-1);
-  }
-  
-  Texture* tex = new Texture();
-  glGenTextures(1, &(tex->texID));
-  glBindTexture(GL_TEXTURE_2D, tex->texID);
-  unsigned char* data = stbi_load(filename, &(tex->width), &(tex->height), 0, 4);
-  flipImageData(data, tex->width, tex->height, 4);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  glGenTextures(1, &texID);
+  glBindTexture(GL_TEXTURE_2D, texID);
+  unsigned char* data = stbi_load(filename, &width, &height, 0, 4);
+  flipImageData(data, width, height, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
   stbi_image_free(data);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  
-  return tex;
 }
 
-void saveTextureToBMP(Texture* tex, char* filename)
+Texture::Texture(Texture& tex)
 {
   if (!rendererInitialized)
   {
@@ -538,29 +521,55 @@ void saveTextureToBMP(Texture* tex, char* filename)
     exit(-1);
   }
   
-  int size = 54 + 3*tex->width*tex->height;
+  width = tex.width;
+  height = tex.height;
   
-  char* buf = (char*) calloc(size, sizeof(char));
-  buf[0x00] = 'B';
-  buf[0x01] = 'M';
-  *(int*)&(buf[0x0A]) = 54;
-  *(int*)&(buf[0x12]) = tex->width;
-  *(int*)&(buf[0x16]) = tex->height;
-  *(int*)&(buf[0x1C]) = 24;
-  *(int*)&(buf[0x1E]) = 0;
-  *(int*)&(buf[0x22]) = size;
+  unsigned char* data = (unsigned char*) malloc(4 * width * height);
+  glBindTexture(GL_TEXTURE_2D, tex.texID);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
   
-  glBindTexture(GL_TEXTURE_2D, tex->texID);
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, buf + 54);
+  glGenTextures(1, &texID);
+  glBindTexture(GL_TEXTURE_2D, texID);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   
-  FILE* f = fopen(filename, "wb");
-  fwrite(buf, sizeof(char), size, f);
-  fclose(f);
-  
-  free(buf);
+  free(data);
 }
 
-void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
+Texture::Texture(Texture&& tex) : Texture(0, 0)
+{
+  swap(*this, tex);
+}
+
+Texture::~Texture()
+{
+  if (!rendererInitialized)
+  {
+    fprintf(stderr, "Renderer not initialized\n");
+    exit(-1);
+  }
+  
+  glDeleteTextures(1, &texID);
+}
+
+Texture& Texture::operator= (Texture tex)
+{
+  swap(*this, tex);
+  
+  return *this;
+}
+
+void swap(Texture& tex1, Texture& tex2)
+{
+  std::swap(tex1.width, tex2.width);
+  std::swap(tex1.height, tex2.height);
+  std::swap(tex1.texID, tex2.texID);
+}
+
+void Texture::fill(Rectangle dstrect, int r, int g, int b)
 {
   if (!rendererInitialized)
   {
@@ -570,18 +579,13 @@ void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
   
   // Target the framebuffer
   glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex->texID, 0);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texID, 0);
   
   // Set up the vertex attributes
-  GLfloat minx = (dstrect == NULL) ? 0.0f : dstrect->x;
-  GLfloat miny = (dstrect == NULL) ? 0.0f : dstrect->y;
-  GLfloat maxx = (dstrect == NULL) ? tex->width : dstrect->x + dstrect->w;
-  GLfloat maxy = (dstrect == NULL) ? tex->height : dstrect->y + dstrect->h;
-  
-  minx = minx / tex->width * 2.0 - 1.0;
-  miny = -(miny / tex->height * 2.0 - 1.0);
-  maxx = maxx / tex->width * 2.0 - 1.0;
-  maxy = -(maxy / tex->height * 2.0 - 1.0);
+  GLfloat minx = (GLfloat) dstrect.x / width * 2.0 - 1.0;
+  GLfloat miny = -((GLfloat) dstrect.y / height * 2.0 - 1.0);
+  GLfloat maxx = (GLfloat) (dstrect.x + dstrect.w) / width * 2.0 - 1.0;
+  GLfloat maxy = -((GLfloat) (dstrect.y + dstrect.h) / height * 2.0 - 1.0);
   
   GLfloat vertexbuffer_data[] = {
     minx, miny,
@@ -598,7 +602,7 @@ void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
   
-  glViewport(0, 0, tex->width, tex->height);
+  glViewport(0, 0, width, height);
   glClear(GL_DEPTH_BUFFER_BIT);
   glUseProgram(fillShader);
   glUniform3f(glGetUniformLocation(fillShader, "vecColor"), r / 255.0, g / 255.0, b / 255.0);
@@ -609,7 +613,7 @@ void fillTexture(Texture* tex, Rectangle* dstrect, int r, int g, int b)
   glDeleteBuffers(1, &vertexbuffer);
 }
 
-void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle* dstrect)
+void Texture::blit(Texture& srctex, Rectangle srcrect, Rectangle dstrect)
 {
   if (!rendererInitialized)
   {
@@ -619,18 +623,13 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   
   // Target the framebuffer
   glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dsttex->texID, 0);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texID, 0);
   
   // Set up the vertex attributes
-  GLfloat minx = (dstrect == NULL) ? 0.0f : dstrect->x;
-  GLfloat miny = (dstrect == NULL) ? 0.0f : dstrect->y;
-  GLfloat maxx = (dstrect == NULL) ? dsttex->width : dstrect->x + dstrect->w;
-  GLfloat maxy = (dstrect == NULL) ? dsttex->height : dstrect->y + dstrect->h;
-  
-  minx = minx / dsttex->width * 2.0 - 1.0;
-  miny = -(miny / dsttex->height * 2.0 - 1.0);
-  maxx = maxx / dsttex->width * 2.0 - 1.0;
-  maxy = -(maxy / dsttex->height * 2.0 - 1.0);
+  GLfloat minx = (GLfloat) dstrect.x / width * 2.0 - 1.0;
+  GLfloat miny = -((GLfloat) dstrect.y / height * 2.0 - 1.0);
+  GLfloat maxx = (GLfloat) (dstrect.x + dstrect.w) / width * 2.0 - 1.0;
+  GLfloat maxy = -((GLfloat) (dstrect.y + dstrect.h) / height * 2.0 - 1.0);
   
   GLfloat vertexbuffer_data[] = {
     minx, miny,
@@ -645,15 +644,10 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
   
-  GLfloat minu = (srcrect == NULL) ? 0.0f : srcrect->x;
-  GLfloat minv = (srcrect == NULL) ? 0.0f : srcrect->y;
-  GLfloat maxu = (srcrect == NULL) ? srctex->width : srcrect->x + srcrect->w;
-  GLfloat maxv = (srcrect == NULL) ? srctex->height : srcrect->y + srcrect->h;
-  
-  minu = minu / srctex->width;
-  minv = 1 - (minv / srctex->height);
-  maxu = maxu / srctex->width;
-  maxv = 1 - (maxv / srctex->height);
+  GLfloat minu = (GLfloat) srcrect.x / srctex.width;
+  GLfloat minv = 1 - ((GLfloat) srcrect.y / srctex.height);
+  GLfloat maxu = (GLfloat) (srcrect.x + srcrect.w) / srctex.width;
+  GLfloat maxv = 1 - ((GLfloat) (srcrect.y + srcrect.h) / srctex.height);
   
   GLfloat texcoordbuffer_data[] = {
     minu, minv,
@@ -671,10 +665,10 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   // Set up the shader
   glUseProgram(blitShader);
   glClear(GL_DEPTH_BUFFER_BIT);
-  glViewport(0, 0, dsttex->width, dsttex->height);
+  glViewport(0, 0, width, height);
   
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, srctex->texID);
+  glBindTexture(GL_TEXTURE_2D, srctex.texID);
   glUniform1i(glGetUniformLocation(blitShader, "srctex"), 0);
   
   // Blit!
@@ -687,63 +681,7 @@ void blitTexture(Texture* srctex, Texture* dsttex, Rectangle* srcrect, Rectangle
   glDeleteBuffers(1, &vertexbuffer);
 }
 
-void renderWithoutEffects(Texture* tex)
-{
-  if (!rendererInitialized)
-  {
-    fprintf(stderr, "Renderer not initialized\n");
-    exit(-1);
-  }
-  
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glViewport(0, 0, buffer_width, buffer_height);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUseProgram(blitShader);
-  
-  const GLfloat fullBlitVertices_data[] = {
-    -1.0, -1.0,
-    1.0, -1.0,
-    -1.0, 1.0,
-    1.0, 1.0
-  };
-  
-  GLuint fullBlitVertices;
-  glGenBuffers(1, &fullBlitVertices);
-  glBindBuffer(GL_ARRAY_BUFFER, fullBlitVertices);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(fullBlitVertices_data), fullBlitVertices_data, GL_STATIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-  
-  const GLfloat fullBlitTex_data[] = {
-    0.0, 0.0,
-    1.0, 0.0,
-    0.0, 1.0,
-    1.0, 1.0
-  };
-  
-  GLuint fullBlitTex;
-  glGenBuffers(1, &fullBlitTex);
-  glBindBuffer(GL_ARRAY_BUFFER, fullBlitTex);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(fullBlitTex_data), fullBlitTex_data, GL_STATIC_DRAW);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-  
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex->texID);
-  glUniform1i(glGetUniformLocation(blitShader, "srctex"), 0);
-  
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-  
-  glDisableVertexAttribArray(1);
-  glDisableVertexAttribArray(0);
-  
-  glDeleteBuffers(1, &fullBlitTex);
-  glDeleteBuffers(1, &fullBlitVertices);
-  
-  glfwSwapBuffers(window);
-}
-
-void bloomPass1(GLuint srcTex, GLuint dstTex, bool horizontal, vec2 srcRes, vec2 dstRes)
+void bloomPass1(GLuint srcTex, GLuint dstTex, bool horizontal, glm::vec2 srcRes, glm::vec2 dstRes)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dstTex, 0);
@@ -755,7 +693,7 @@ void bloomPass1(GLuint srcTex, GLuint dstTex, bool horizontal, vec2 srcRes, vec2
   glBindTexture(GL_TEXTURE_2D, srcTex);
   glUniform1i(glGetUniformLocation(bloom1Shader, "inTex"), 0);
   
-  vec2 offset = vec2(0.0);
+  glm::vec2 offset = glm::vec2(0.0);
   if (horizontal)
   {
     offset.x = 1.2/srcRes.x;
@@ -772,7 +710,7 @@ void bloomPass1(GLuint srcTex, GLuint dstTex, bool horizontal, vec2 srcRes, vec2
   glDisableVertexAttribArray(0);
 }
 
-void renderScreen(Texture* tex)
+void Texture::renderScreen()
 {
   if (!rendererInitialized)
   {
@@ -792,7 +730,7 @@ void renderScreen(Texture* tex)
   
   // Use the current frame texture, nearest neighbor and clamped to edge
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex->texID);
+  glBindTexture(GL_TEXTURE_2D, texID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -832,7 +770,6 @@ void renderScreen(Texture* tex)
   // We're going to render the screen now
   glBindFramebuffer(GL_FRAMEBUFFER, bloom_framebuffer);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, preBloomTex, 0);
-  //glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0,0,buffer_width,buffer_height);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glUseProgram(finalShader);
@@ -855,11 +792,10 @@ void renderScreen(Texture* tex)
   glUniform1i(glGetUniformLocation(finalShader, "scanlinestex"), 1);
   
   // Initialize the MVP matrices
-  mat4 p_matrix = perspective(42.5f, (float) buffer_width / (float) buffer_height, 0.1f, 100.0f);
-  mat4 v_matrix = lookAt(vec3(2,0,0), vec3(0,0,0), vec3(0,1,0));
-  mat4 m_matrix = mat4(1.0);
-  mat4 mvp_matrix = p_matrix * v_matrix * m_matrix;
-  //mat4 mv_matrix = v_matrix * m_matrix;
+  glm::mat4 p_matrix = glm::perspective(42.5f, (float) buffer_width / (float) buffer_height, 0.1f, 100.0f);
+  glm::mat4 v_matrix = glm::lookAt(glm::vec3(2,0,0), glm::vec3(0,0,0), glm::vec3(0,1,0));
+  glm::mat4 m_matrix = glm::mat4(1.0);
+  glm::mat4 mvp_matrix = p_matrix * v_matrix * m_matrix;
   
   glUniformMatrix4fv(glGetUniformLocation(finalShader, "MVP"), 1, GL_FALSE, &mvp_matrix[0][0]);
   glUniformMatrix4fv(glGetUniformLocation(finalShader, "worldMat"), 1, GL_FALSE, &m_matrix[0][0]);
@@ -884,7 +820,7 @@ void renderScreen(Texture* tex)
   glDisableVertexAttribArray(0);
   
   // First pass of bloom!
-  vec2 buffer_size = vec2(buffer_width, buffer_height);
+  glm::vec2 buffer_size = glm::vec2(buffer_width, buffer_height);
   bloomPass1(preBloomTex, bloomPassTex1, true, buffer_size, buffer_size / 4.0f);
   bloomPass1(bloomPassTex1, bloomPassTex2, false, buffer_size / 4.0f, buffer_size / 4.0f);
   
@@ -903,7 +839,6 @@ void renderScreen(Texture* tex)
   glUniform1i(glGetUniformLocation(bloom2Shader, "blurTex"), 1);
   
   glUniform1f(glGetUniformLocation(bloom2Shader, "iGlobalTime"), glfwGetTime());
-//  glUniform2f(glGetUniformLocation(bloom2Shader, "resolution"), buffer_width, buffer_height);
   
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
@@ -914,4 +849,9 @@ void renderScreen(Texture* tex)
   glfwSwapBuffers(window);
   
   curBuf = (curBuf + 1) % 2;
+}
+
+Rectangle Texture::entirety()
+{
+  return {0, 0, width, height};
 }

@@ -1,124 +1,113 @@
 #include "game.h"
 #include "renderer.h"
+#include "components.h"
 
 Game::Game()
-{
-  window = initRenderer();
-  glfwSwapInterval(1);
+{ 
+  m.setLeftMap(&m2);
+  m2.setRightMap(&m);
   
-  m = new Map("../maps/embarass.txt");
-  m2 = new Map("../maps/second.txt");
+  player = std::make_shared<Entity>();
+  player->position = std::make_pair(100.0,100.0);
+  player->size = std::make_pair(10.0,12.0);
   
-  m->setLeftMap(m2);
-  m2->setRightMap(m);
-  
-  world = new World();
-  
-  auto player = std::make_shared<Entity>(world);
-  
-  auto player_input = std::make_shared<UserMovementComponent>(*player);
+  auto player_input = std::make_shared<UserMovementComponent>();
   player->addComponent(player_input);
   
-  auto player_physics = std::make_shared<PlayerPhysicsComponent>(*player);
-  player_physics->position = std::make_pair(100.0,100.0);
-  player_physics->size = std::make_pair(10.0,12.0);
+  auto player_physics = std::make_shared<PlayerPhysicsComponent>();
   player->addComponent(player_physics);
   
-  auto player_anim = std::make_shared<PlayerSpriteComponent>(*player, *player_physics);
+  auto player_anim = std::make_shared<PlayerSpriteComponent>();
   player->addComponent(player_anim);
-  
-  world->addEntity(player);
-  world->player = player;
   
   loadMap(m);
 }
 
-Game::~Game()
+void key_callback(GLFWwindow* window, int key, int, int action, int)
 {
-  if (world != 0)
-  {
-    delete world;
-  }
-  
-  if (nextWorld != 0)
-  {
-    delete nextWorld;
-  }
-  
-  delete m;
-  delete m2;
-  
-  destroyRenderer();
-}
-
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-  (void)window;
-  (void)scancode;
-  (void)mods;
+  Game* game = (Game*) glfwGetWindowUserPointer(window);
   
   if ((key == GLFW_KEY_ESCAPE) && (action == GLFW_PRESS))
   {
-    Game::getInstance().shouldQuit = true;
+    game->shouldQuit = true;
   }
   
-  Game::getInstance().input(key, action);
+  for (auto entity : game->entities)
+  {
+    entity->input(*game, key, action);
+  }
 }
 
-void Game::execute()
+void Game::execute(GLFWwindow* window)
 {
+  glfwSwapInterval(1);
+  glfwSetWindowUserPointer(window, this);
   glfwSetKeyCallback(window, key_callback);
   
-  Texture* buffer = createTexture(GAME_WIDTH, GAME_HEIGHT);
+  Texture buffer(GAME_WIDTH, GAME_HEIGHT);
 
+  double lastTime = glfwGetTime();
+  int nbFrames = 0;
   while (!(shouldQuit || glfwWindowShouldClose(window)))
   {
-    // Should we load a new world?
-    if (nextWorld != 0)
+    double currentTime = glfwGetTime();
+    nbFrames++;
+    if (currentTime - lastTime >= 1.0)
     {
-      delete world;
-      world = nextWorld;
-      world->player->world = world;
-      nextWorld = 0;
+      printf("%f ms/frame\n", 1000.0/double(nbFrames));
+      nbFrames = 0;
+      lastTime += 1.0;
+    }
+    
+    // Should we load a new world?
+    if (newWorld)
+    {
+      newWorld = false;
+      entities.clear();
+      entities = std::move(nextEntities);
     }
     
     // Handle input
     glfwPollEvents();
     
     // Tick!
-    world->tick();
+    for (auto entity : entities)
+    {
+      entity->tick(*this);
+    }
   
     // Do rendering
-    world->render(buffer);
-    renderScreen(buffer);
-  }
-  
-  destroyTexture(buffer);
-}
+    buffer.fill(buffer.entirety(), 0, 0, 0);
+    for (auto entity : entities)
+    {
+      entity->render(*this, buffer);
+    }
 
-void Game::input(int key, int action)
-{
-  if (world != NULL)
-  {
-    world->input(key, action);
+    buffer.renderScreen();
   }
 }
 
-void Game::loadMap(Map* map)
+void Game::loadMap(Map& map)
 {
-  nextWorld = new World();
+  auto mapEn = std::make_shared<Entity>();
   
-  nextWorld->player = world->player;
-  
-  auto mapEn = std::make_shared<Entity>(nextWorld);
-  
-  auto map_render = std::make_shared<MapRenderComponent>(*mapEn, map);
+  auto map_render = std::make_shared<MapRenderComponent>(map);
   mapEn->addComponent(map_render);
   
-  auto map_collision = std::make_shared<MapCollisionComponent>(*mapEn, map);
+  auto map_collision = std::make_shared<MapCollisionComponent>(map);
   mapEn->addComponent(map_collision);
-  nextWorld->bodies.push_back(map_collision.get());
   
-  nextWorld->addEntity(mapEn);
-  nextWorld->addEntity(nextWorld->player);
+  nextEntities.clear();
+  nextEntities.push_back(mapEn);
+  nextEntities.push_back(player);
+  
+  newWorld = true;
+}
+
+void Game::detectCollision(Entity& collider, std::pair<double, double> old_position)
+{
+  for (auto entity : entities)
+  {
+    entity->detectCollision(*this, collider, old_position);
+  }
 }

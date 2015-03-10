@@ -8,7 +8,15 @@ int main()
 {
   srand(time(NULL));
   
-  Game::getInstance().execute();
+  GLFWwindow* window = initRenderer();
+  
+  // Put this in a block so game goes out of scope before we destroy the renderer
+  {
+    Game game;
+    game.execute(window);
+  }
+  
+  destroyRenderer();
   
   return 0;
 }
