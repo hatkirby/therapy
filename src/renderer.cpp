@@ -613,7 +613,7 @@ void Texture::fill(Rectangle dstrect, int r, int g, int b)
   glDeleteBuffers(1, &vertexbuffer);
 }
 
-void Texture::blit(Texture& srctex, Rectangle srcrect, Rectangle dstrect)
+void Texture::blit(const Texture& srctex, Rectangle srcrect, Rectangle dstrect)
 {
   if (!rendererInitialized)
   {
@@ -710,7 +710,7 @@ void bloomPass1(GLuint srcTex, GLuint dstTex, bool horizontal, glm::vec2 srcRes,
   glDisableVertexAttribArray(0);
 }
 
-void Texture::renderScreen()
+void Texture::renderScreen() const
 {
   if (!rendererInitialized)
   {
@@ -851,7 +851,7 @@ void Texture::renderScreen()
   curBuf = (curBuf + 1) % 2;
 }
 
-Rectangle Texture::entirety()
+Rectangle Texture::entirety() const
 {
   return {0, 0, width, height};
 }

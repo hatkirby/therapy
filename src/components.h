@@ -83,7 +83,7 @@ class MapCollisionComponent : public Component {
     };
     
     void addCollision(int axis, int lower, int upper, Direction dir, int type);
-    void processCollision(Game& game, Entity& collider, Collision collision, Direction dir);
+    bool processCollision(Game& game, Entity& collider, Collision collision, Direction dir);
     
     std::list<Collision> left_collisions;
     std::list<Collision> right_collisions;

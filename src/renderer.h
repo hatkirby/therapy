@@ -21,9 +21,9 @@ class Texture {
     Texture& operator= (Texture tex);
     friend void swap(Texture& tex1, Texture& tex2);
     void fill(Rectangle loc, int r, int g, int b);
-    void blit(Texture& src, Rectangle srcrect, Rectangle dstrect);
-    void renderScreen();
-    Rectangle entirety();
+    void blit(const Texture& src, Rectangle srcrect, Rectangle dstrect);
+    void renderScreen() const;
+    Rectangle entirety() const;
     
   private:
     GLuint texID;

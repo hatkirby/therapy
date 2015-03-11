@@ -395,7 +395,12 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_oy+collider.size.second > collision.lower) && (fixed_oy < collision.upper))
       {
         // We have a collision!
-        processCollision(game, collider, collision, Direction::left);
+        if (processCollision(game, collider, collision, Direction::left))
+        {
+          collider.position.second = old_position.second;
+          
+          return;
+        }
     
         break;
       }
@@ -410,7 +415,12 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_oy+collider.size.second > collision.lower) && (fixed_oy < collision.upper))
       {
         // We have a collision!
-        processCollision(game, collider, collision, Direction::right);
+        if (processCollision(game, collider, collision, Direction::right))
+        {
+          collider.position.second = old_position.second;
+          
+          return;
+        }
     
         break;
       }
@@ -430,7 +440,10 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_x+collider.size.first > collision.lower) && (fixed_x < collision.upper))
       {
         // We have a collision!
-        processCollision(game, collider, collision, Direction::up);
+        if (processCollision(game, collider, collision, Direction::up))
+        {
+          return;
+        }
     
         break;
       }
@@ -445,7 +458,10 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
       if ((fixed_x+collider.size.first > collision.lower) && (fixed_x < collision.upper))
       {
         // We have a collision!
-        processCollision(game, collider, collision, Direction::down);
+        if (processCollision(game, collider, collision, Direction::down))
+        {
+          return;
+        }
         
         break;
       }
@@ -453,7 +469,7 @@ void MapCollisionComponent::detectCollision(Game& game, Entity&, Entity& collide
   }
 }
 
-void MapCollisionComponent::processCollision(Game& game, Entity& collider, Collision collision, Direction dir)
+bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Collision collision, Direction dir)
 {
   if (collision.type == 0)
   {
@@ -508,6 +524,8 @@ void MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
       collider.position.first = -collider.size.first/2;
       game.loadMap(*rightMap);
     }
+    
+    return true;
   } else if (collision.type == 3)
   {
     if (dir == Direction::right)
@@ -524,4 +542,6 @@ void MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
 
     collider.send(game, msg);
   }
+  
+  return false;
 }
