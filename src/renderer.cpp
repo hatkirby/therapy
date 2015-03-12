@@ -613,13 +613,15 @@ void Texture::fill(Rectangle dstrect, int r, int g, int b)
   glDeleteBuffers(1, &vertexbuffer);
 }
 
-void Texture::blit(const Texture& srctex, Rectangle srcrect, Rectangle dstrect)
+void Texture::blit(const Texture& srctex, Rectangle srcrect, Rectangle dstrect, double alpha)
 {
   if (!rendererInitialized)
   {
     fprintf(stderr, "Renderer not initialized\n");
     exit(-1);
   }
+  
+  alpha = glm::clamp(alpha, 0.0, 1.0);
   
   // Target the framebuffer
   glBindFramebuffer(GL_FRAMEBUFFER, generic_framebuffer);
@@ -670,6 +672,7 @@ void Texture::blit(const Texture& srctex, Rectangle srcrect, Rectangle dstrect)
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, srctex.texID);
   glUniform1i(glGetUniformLocation(blitShader, "srctex"), 0);
+  glUniform1f(glGetUniformLocation(blitShader, "alpha"), alpha);
   
   // Blit!
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

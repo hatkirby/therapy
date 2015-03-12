@@ -77,6 +77,19 @@ void Game::execute(GLFWwindow* window)
     {
       entity->tick(*this);
     }
+    
+    // Do any scheduled tasks
+    for (auto& task : scheduled)
+    {
+      task.first--;
+      
+      if (task.first == 0)
+      {
+        task.second();
+      }
+    }
+    
+    scheduled.remove_if([] (std::pair<int, std::function<void ()>> value) { return value.first == 0; });
   
     // Do rendering
     buffer.fill(buffer.entirety(), 0, 0, 0);
@@ -121,10 +134,31 @@ void Game::saveGame(const Map& map, std::pair<double, double> position)
 
 void Game::loadGame(const Map& curMap)
 {
+  if (&curMap == save.map)
+  {
+    entities.remove(player);
+  }
+  
+  player = std::make_shared<Entity>();
+  player->position = save.position;
+  player->size = std::make_pair(10.0,12.0);
+  
+  auto player_input = std::make_shared<UserMovementComponent>();
+  player->addComponent(player_input);
+  
+  auto player_physics = std::make_shared<PlayerPhysicsComponent>();
+  player->addComponent(player_physics);
+  
+  auto player_anim = std::make_shared<PlayerSpriteComponent>();
+  player->addComponent(player_anim);
+  
   if (&curMap != save.map)
   {
     loadMap(*(save.map));
   }
-  
-  player->position = save.position;
+}
+
+void Game::schedule(int frames, std::function<void ()>&& callback)
+{
+  scheduled.emplace(begin(scheduled), frames, callback);
 }

@@ -21,7 +21,8 @@ class Message {
       stopJump,
       drop,
       canDrop,
-      cantDrop
+      cantDrop,
+      die
     };
     
     Message(Type type) : type(type) {}

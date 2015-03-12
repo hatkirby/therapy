@@ -31,13 +31,13 @@ class PlayerSpriteComponent : public Component {
   public:
     void render(Game& game, Entity& entity, Texture& buffer);
     void receive(Game& game, Entity& entity, const Message& msg);
-    void tick(Game& game, Entity& entity);
     
   private:
     Texture sprite{"../res/Starla.png"};
     int animFrame = 0;
     bool facingLeft = false;
     bool isMoving = false;
+    bool dying = false;
 };
 
 class PlayerPhysicsComponent : public Component {
@@ -54,6 +54,7 @@ class PlayerPhysicsComponent : public Component {
     double jump_gravity_short;
     int direction = 0;
     bool canDrop = false;
+    bool frozen = false;
 };
 
 class MapRenderComponent : public Component {
@@ -89,8 +90,7 @@ class MapCollisionComponent : public Component {
     std::list<Collision> right_collisions;
     std::list<Collision> up_collisions;
     std::list<Collision> down_collisions;
-    const Map* leftMap;
-    const Map* rightMap;
+    const Map& map;
 };
 
 #endif

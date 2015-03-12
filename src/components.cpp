@@ -125,25 +125,42 @@ void PhysicsBodyComponent::detectCollision(Game& game, Entity& entity, Entity& c
 
 void PlayerSpriteComponent::render(Game&, Entity& entity, Texture& buffer)
 {
+  animFrame++;
+  
   int frame = 0;
   if (isMoving)
   {
     frame += 2;
     
-    if (animFrame < 10)
+    if (animFrame % 20 < 10)
     {
       frame += 2;
     }
   }
-  if (facingLeft) frame++;
+  
+  if (facingLeft)
+  {
+    frame++;
+  }
+  
+  double alpha = 1.0;
+  if (dying && (animFrame % 4 < 2))
+  {
+    alpha = 0.0;
+  }
   
   Rectangle src_rect {frame*10, 0, 10, 12};
   Rectangle dst_rect {(int) entity.position.first, (int) entity.position.second, entity.size.first, entity.size.second};
-  buffer.blit(sprite, src_rect, dst_rect);
+  buffer.blit(sprite, src_rect, dst_rect, alpha);
 }
 
 void PlayerSpriteComponent::receive(Game&, Entity&, const Message& msg)
 {
+  if (dying)
+  {
+    return;
+  }
+  
   if (msg.type == Message::Type::walkLeft)
   {
     facingLeft = true;
@@ -155,13 +172,11 @@ void PlayerSpriteComponent::receive(Game&, Entity&, const Message& msg)
   } else if (msg.type == Message::Type::stopWalking)
   {
     isMoving = false;
+  } else if (msg.type == Message::Type::die)
+  {
+    dying = true;
+    isMoving = false;
   }
-}
-
-void PlayerSpriteComponent::tick(Game&, Entity&)
-{
-  animFrame++;
-  animFrame %= 20;
 }
 
 // Player physics
@@ -220,11 +235,20 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
       entity.position.second = msg.dropAxis - entity.size.second;
       velocity.second = 0;
     }
+  } else if (msg.type == Message::Type::die)
+  {
+    frozen = true;
   }
 }
 
 void PlayerPhysicsComponent::tick(Game& game, Entity& entity)
 {
+  // If frozen, do nothing
+  if (frozen)
+  {
+    return;
+  }
+  
   // Continue walking even if blocked earlier
   if (velocity.first == 0)
   {
@@ -302,13 +326,10 @@ void MapRenderComponent::render(Game&, Entity&, Texture& buffer)
 
 // Map collision
 
-MapCollisionComponent::MapCollisionComponent(const Map& map)
+MapCollisionComponent::MapCollisionComponent(const Map& map) : map(map)
 {
-  leftMap = map.getLeftMap();
-  rightMap = map.getRightMap();
-  
-  addCollision(-6, 0, GAME_WIDTH, Direction::left, (leftMap == nullptr) ? 1 : 2);
-  addCollision(GAME_WIDTH+6, 0, GAME_WIDTH, Direction::right, (rightMap == nullptr) ? 3 : 2);
+  addCollision(-6, 0, GAME_WIDTH, Direction::left, (map.getLeftMap() == nullptr) ? 1 : 2);
+  addCollision(GAME_WIDTH+6, 0, GAME_WIDTH, Direction::right, (map.getRightMap() == nullptr) ? 3 : 2);
   
   for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
@@ -316,7 +337,7 @@ MapCollisionComponent::MapCollisionComponent(const Map& map)
     int y = i / MAP_WIDTH;
     int tile = map.mapdata()[i];
     
-    if ((tile > 0) && (!((tile >= 5) && (tile <= 7))))
+    if ((tile > 0) && (tile < 28) && (!((tile >= 5) && (tile <= 7))))
     {
       addCollision(x*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, Direction::right, 0);
       addCollision((x+1)*TILE_WIDTH, y*TILE_HEIGHT, (y+1)*TILE_HEIGHT, Direction::left, 0);
@@ -325,6 +346,9 @@ MapCollisionComponent::MapCollisionComponent(const Map& map)
     } else if ((tile >= 5) && (tile <= 7))
     {
       addCollision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, Direction::down, 4);
+    } else if (tile == 42)
+    {
+      addCollision(y*TILE_HEIGHT, x*TILE_WIDTH, (x+1)*TILE_WIDTH, Direction::down, 5);
     }
   }
 }
@@ -518,11 +542,11 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     if (dir == Direction::left)
     {
       collider.position.first = GAME_WIDTH-collider.size.first/2;
-      game.loadMap(*leftMap);
+      game.loadMap(*(map.getLeftMap()));
     } else if (dir == Direction::right)
     {
       collider.position.first = -collider.size.first/2;
-      game.loadMap(*rightMap);
+      game.loadMap(*(map.getRightMap()));
     }
     
     return true;
@@ -541,6 +565,14 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     msg.dropAxis = collision.axis;
 
     collider.send(game, msg);
+  } else if (collision.type == 5)
+  {
+    Message msg(Message::Type::die);
+    collider.send(game, msg);
+    
+    game.schedule(FRAMES_PER_SECOND * 0.75, [&] () {
+      game.loadGame(map);
+    });
   }
   
   return false;

@@ -6,6 +6,7 @@ class Game;
 #include "map.h"
 #include <memory>
 #include "entity.h"
+#include <functional>
 
 const int TILE_WIDTH = 8;
 const int TILE_HEIGHT = 8;
@@ -30,6 +31,7 @@ class Game {
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
     void saveGame(const Map& map, std::pair<double, double> position);
     void loadGame(const Map& curMap);
+    void schedule(int frames, std::function<void ()>&& callback);
     
     bool shouldQuit = false;
   private:
@@ -42,6 +44,7 @@ class Game {
     Map m{"../maps/embarass.txt"};
     Map m2{"../maps/second.txt"};
     Savefile save;
+    std::list<std::pair<int, std::function<void ()>>> scheduled;
 };
 
 #endif
