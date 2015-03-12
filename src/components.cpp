@@ -573,6 +573,8 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     Message msg(Message::Type::die);
     collider.send(game, msg);
     
+    playSound("../res/Hit_Hurt5.wav");
+    
     game.schedule(FRAMES_PER_SECOND * 0.75, [&] () {
       game.loadGame(map);
     });

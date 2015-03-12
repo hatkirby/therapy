@@ -33,7 +33,6 @@ class Game {
     void loadGame(const Map& curMap);
     void schedule(int frames, std::function<void ()>&& callback);
     
-    bool shouldQuit = false;
   private:
     friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
@@ -45,6 +44,7 @@ class Game {
     Map m2{"../maps/second.txt"};
     Savefile save;
     std::list<std::pair<int, std::function<void ()>>> scheduled;
+    bool shouldQuit = false;
 };
 
 #endif
