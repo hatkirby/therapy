@@ -1,5 +1,6 @@
 #include "components.h"
 #include "game.h"
+#include "muxer.h"
 
 // User movement component
 
@@ -215,6 +216,8 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
     velocity.second = 0.0;
   } else if (msg.type == Message::Type::jump)
   {
+    playSound("../res/Randomize87.wav");
+    
     velocity.second = jump_velocity;
     accel.second = jump_gravity;
   } else if (msg.type == Message::Type::stopJump)

@@ -160,5 +160,5 @@ void Game::loadGame(const Map& curMap)
 
 void Game::schedule(int frames, std::function<void ()>&& callback)
 {
-  scheduled.emplace(begin(scheduled), frames, callback);
+  scheduled.emplace_front(frames, callback);
 }
