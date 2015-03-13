@@ -120,6 +120,29 @@ void Game::loadMap(const Map& map)
   nextEntities.push_back(mapEn);
   nextEntities.push_back(player);
   
+  // this is cheating but is just for testing
+  if (&map == &m2)
+  {
+    auto saveEn = std::make_shared<Entity>();
+    saveEn->position = std::make_pair(257.0, 160.0);
+    saveEn->size = std::make_pair(8.0, 11.0);
+    
+    auto save_render = std::make_shared<StaticImageComponent>("../res/keyring.png");
+    saveEn->addComponent(save_render);
+    
+    auto save_physics = std::make_shared<PhysicsBodyComponent>();
+    saveEn->addComponent(save_physics);
+    
+    auto save_collide = std::make_shared<SimpleColliderComponent>([&] (Entity& collider) {
+      playSound("../res/Pickup_Coin23.wav", 0.25);
+      
+      saveGame(map, collider.position);
+    });
+    saveEn->addComponent(save_collide);
+    
+    nextEntities.push_back(saveEn);
+  }
+  
   newWorld = true;
 }
 

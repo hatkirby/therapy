@@ -585,3 +585,30 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
   
   return false;
 }
+
+// Static image
+
+StaticImageComponent::StaticImageComponent(const char* filename) : sprite(Texture(filename))
+{
+  
+}
+
+void StaticImageComponent::render(Game&, Entity& entity, Texture& buffer)
+{
+  buffer.blit(sprite, sprite.entirety(), {(int) entity.position.first, (int) entity.position.second, entity.size.first, entity.size.second});
+}
+
+// Simple collision
+
+SimpleColliderComponent::SimpleColliderComponent(std::function<void (Entity& collider)> callback) : callback(callback)
+{
+  
+}
+
+void SimpleColliderComponent::receive(Game&, Entity&, const Message& msg)
+{
+  if (msg.type == Message::Type::collision)
+  {
+    callback(*(msg.collisionEntity));
+  }
+}

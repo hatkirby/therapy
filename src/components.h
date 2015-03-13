@@ -100,4 +100,22 @@ class MapCollisionComponent : public Component {
     const Map& map;
 };
 
+class StaticImageComponent : public Component {
+  public:
+    StaticImageComponent(const char* filename);
+    void render(Game& game, Entity& entity, Texture& buffer);
+    
+  private:
+    Texture sprite;
+};
+
+class SimpleColliderComponent : public Component {
+  public:
+    SimpleColliderComponent(std::function<void (Entity& collider)> callback);
+    void receive(Game& game, Entity& entity, const Message& msg);
+    
+  private:
+    std::function<void (Entity& collider)> callback;
+};
+
 #endif
