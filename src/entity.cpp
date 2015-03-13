@@ -13,11 +13,11 @@ void Entity::send(Game& game, const Message& msg)
   }
 }
 
-void Entity::tick(Game& game)
+void Entity::tick(Game& game, double dt)
 {
   for (auto component : components)
   {
-    component->tick(game, *this);
+    component->tick(game, *this, dt);
   }
 }
 

@@ -73,10 +73,10 @@ void PhysicsBodyComponent::receive(Game&, Entity&, const Message& msg)
 {
   if (msg.type == Message::Type::walkLeft)
   {
-    velocity.first = -1.5;
+    velocity.first = -90;
   } else if (msg.type == Message::Type::walkRight)
   {
-    velocity.first = 1.5;
+    velocity.first = 90;
   } else if (msg.type == Message::Type::stopWalking)
   {
     velocity.first = 0.0;
@@ -89,13 +89,30 @@ void PhysicsBodyComponent::receive(Game&, Entity&, const Message& msg)
   }
 }
 
-void PhysicsBodyComponent::tick(Game&, Entity& entity)
+void PhysicsBodyComponent::tick(Game&, Entity& entity, double dt)
 {
-  velocity.first += accel.first;
-  velocity.second += accel.second;
+  // RK4 integration
+  auto a = std::make_pair(velocity.first, velocity.second);
+  auto b = std::make_pair(velocity.first + a.first*dt*0.5, velocity.second + a.second*dt*0.5);
+  auto c = std::make_pair(velocity.first + b.first*dt*0.5, velocity.second + b.second*dt*0.5);
+  auto d = std::make_pair(velocity.first + c.first*dt, velocity.second + c.second*dt);
   
-  entity.position.first += velocity.first;
-  entity.position.second += velocity.second;
+  double dxxdt = 1.0 / 6.0 * (a.first + 2.0*(b.first + c.first) + d.first);
+  double dxydt = 1.0 / 6.0 * (a.second + 2.0*(b.second + c.second) + d.second);
+  
+  entity.position.first += dxxdt * dt;
+  entity.position.second += dxydt * dt;
+  
+  velocity.first += accel.first * dt;
+  velocity.second += accel.second * dt;
+  
+  // Terminal velocity
+#define TERMINAL_VELOCITY_X (2 * TILE_WIDTH * FRAMES_PER_SECOND)
+#define TERMINAL_VELOCITY_Y (2 * TILE_HEIGHT * FRAMES_PER_SECOND)
+  if (velocity.first < -TERMINAL_VELOCITY_X) velocity.first = -TERMINAL_VELOCITY_X;
+  if (velocity.first > TERMINAL_VELOCITY_X) velocity.first = TERMINAL_VELOCITY_X;
+  if (velocity.second < -TERMINAL_VELOCITY_Y) velocity.second = -TERMINAL_VELOCITY_Y;
+  if (velocity.second > TERMINAL_VELOCITY_Y) velocity.second = TERMINAL_VELOCITY_Y;
 }
 
 void PhysicsBodyComponent::detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position)
@@ -192,9 +209,9 @@ void PlayerSpriteComponent::receive(Game&, Entity&, const Message& msg)
 
 PlayerPhysicsComponent::PlayerPhysicsComponent()
 {
-  jump_velocity = JUMP_VELOCITY(TILE_HEIGHT*4.5, 0.3*FRAMES_PER_SECOND);
-  jump_gravity = JUMP_GRAVITY(TILE_HEIGHT*4.5, 0.3*FRAMES_PER_SECOND);
-  jump_gravity_short = JUMP_GRAVITY(TILE_HEIGHT*3.5, 0.233*FRAMES_PER_SECOND);
+  jump_velocity = JUMP_VELOCITY(TILE_HEIGHT*4.5, 0.3);
+  jump_gravity = JUMP_GRAVITY(TILE_HEIGHT*4.5, 0.3);
+  jump_gravity_short = JUMP_GRAVITY(TILE_HEIGHT*3.5, 0.233);
   
   accel.second = jump_gravity_short;
 }
@@ -203,11 +220,11 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
 {
   if (msg.type == Message::Type::walkLeft)
   {
-    velocity.first = -1.5;
+    velocity.first = -90;
     direction = -1;
   } else if (msg.type == Message::Type::walkRight)
   {
-    velocity.first = 1.5;
+    velocity.first = 90;
     direction = 1;
   } else if (msg.type == Message::Type::stopWalking)
   {
@@ -255,7 +272,7 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
   }
 }
 
-void PlayerPhysicsComponent::tick(Game& game, Entity& entity)
+void PlayerPhysicsComponent::tick(Game& game, Entity& entity, double dt)
 {
   // If frozen, do nothing
   if (frozen)
@@ -268,10 +285,10 @@ void PlayerPhysicsComponent::tick(Game& game, Entity& entity)
   {
     if (direction < 0)
     {
-      velocity.first = -1.5;
+      velocity.first = -90;
     } else if (direction > 0)
     {
-      velocity.first = 1.5;
+      velocity.first = 90;
     }
   }
   
@@ -281,21 +298,10 @@ void PlayerPhysicsComponent::tick(Game& game, Entity& entity)
     accel.second = jump_gravity_short;
   }
   
-  // Apply acceleration
-  velocity.first += accel.first;
-  velocity.second += accel.second;
-  
-  // Terminal velocity
-  if (velocity.first < -16) velocity.first = -16;
-  if (velocity.first > 16) velocity.first = 16;
-  if (velocity.second < -16) velocity.second = -16;
-  if (velocity.second > 16) velocity.second = 16;
-  
   // Do the movement
   std::pair<double, double> old_position = entity.position;
-  entity.position.first += velocity.first;
-  entity.position.second += velocity.second;
-  
+  PhysicsBodyComponent::tick(game, entity, dt);
+    
   // Check for collisions
   game.detectCollision(entity, old_position);
 }

@@ -37,7 +37,7 @@ class Entity {
   public:
     void addComponent(std::shared_ptr<Component> c);
     void send(Game& game, const Message& msg);
-    void tick(Game& game);
+    void tick(Game& game, double dt);
     void input(Game& game, int key, int action);
     void render(Game& game, Texture& buffer);
     void detectCollision(Game& game, Entity& collider, std::pair<double, double> old_position);
@@ -53,7 +53,7 @@ class Component {
   public:
     virtual void receive(Game&, Entity&, const Message&) {}
     virtual void render(Game&, Entity&, Texture&) {}
-    virtual void tick(Game&, Entity&) {}
+    virtual void tick(Game&, Entity&, double) {}
     virtual void input(Game&, Entity&, int, int) {}
     virtual void detectCollision(Game&, Entity&, Entity&, std::pair<double, double>) {}
 };

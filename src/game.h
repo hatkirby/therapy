@@ -30,7 +30,7 @@ class Game {
     void loadMap(const Map& map);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
     void saveGame(const Map& map, std::pair<double, double> position);
-    void schedule(int frames, std::function<void ()>&& callback);
+    void schedule(double time, std::function<void ()>&& callback);
     void playerDie(Entity& player, const Map& curMap);
     
   private:
@@ -43,7 +43,7 @@ class Game {
     Map m{"../maps/embarass.txt"};
     Map m2{"../maps/second.txt"};
     Savefile save;
-    std::list<std::pair<int, std::function<void ()>>> scheduled;
+    std::list<std::pair<double, std::function<void ()>>> scheduled;
     bool shouldQuit = false;
 };
 

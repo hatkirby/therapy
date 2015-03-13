@@ -50,17 +50,14 @@ void Game::execute(GLFWwindow* window)
   Texture buffer(GAME_WIDTH, GAME_HEIGHT);
 
   double lastTime = glfwGetTime();
-  int nbFrames = 0;
+  const double dt = 0.01;
+  double accumulator = 0.0;
+  
   while (!(shouldQuit || glfwWindowShouldClose(window)))
   {
     double currentTime = glfwGetTime();
-    nbFrames++;
-    if (currentTime - lastTime >= 1.0)
-    {
-      printf("%f ms/frame\n", 1000.0/double(nbFrames));
-      nbFrames = 0;
-      lastTime += 1.0;
-    }
+    double frameTime = currentTime - lastTime;
+    lastTime = currentTime;
     
     // Should we load a new world?
     if (newWorld)
@@ -74,23 +71,29 @@ void Game::execute(GLFWwindow* window)
     glfwPollEvents();
     
     // Tick!
-    for (auto entity : entities)
+    accumulator += frameTime;
+    while (accumulator >= dt)
     {
-      entity->tick(*this);
+      for (auto entity : entities)
+      {
+        entity->tick(*this, dt);
+      }
+      
+      accumulator -= dt;
     }
     
     // Do any scheduled tasks
     for (auto& task : scheduled)
     {
-      task.first--;
+      task.first -= frameTime;
       
-      if (task.first == 0)
+      if (task.first <= 0)
       {
         task.second();
       }
     }
     
-    scheduled.remove_if([] (std::pair<int, std::function<void ()>> value) { return value.first == 0; });
+    scheduled.remove_if([] (std::pair<double, std::function<void ()>> value) { return value.first <= 0; });
   
     // Do rendering
     buffer.fill(buffer.entirety(), 0, 0, 0);
@@ -133,9 +136,9 @@ void Game::saveGame(const Map& map, std::pair<double, double> position)
   save = {&map, position};
 }
 
-void Game::schedule(int frames, std::function<void ()>&& callback)
+void Game::schedule(double time, std::function<void ()>&& callback)
 {
-  scheduled.emplace_front(frames, callback);
+  scheduled.emplace_front(time, callback);
 }
 
 void Game::playerDie(Entity& player, const Map& curMap)
@@ -145,7 +148,7 @@ void Game::playerDie(Entity& player, const Map& curMap)
   
   playSound("../res/Hit_Hurt5.wav", 0.25);
   
-  schedule(FRAMES_PER_SECOND * 0.75, [&] () {
+  schedule(0.75, [&] () {
     if (&curMap != save.map)
     {
       loadMap(*(save.map));

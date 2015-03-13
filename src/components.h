@@ -19,10 +19,10 @@ class UserMovementComponent : public Component {
 class PhysicsBodyComponent : public Component {
   public:
     void receive(Game& game, Entity& entity, const Message& msg);
-    void tick(Game& game, Entity& entity);
+    void tick(Game& game, Entity& entity, double dt);
     void detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position);
     
-  private:    
+  protected:    
     std::pair<double, double> velocity;
     std::pair<double, double> accel;
 };
@@ -40,15 +40,13 @@ class PlayerSpriteComponent : public Component {
     bool dying = false;
 };
 
-class PlayerPhysicsComponent : public Component {
+class PlayerPhysicsComponent : public PhysicsBodyComponent {
   public:
     PlayerPhysicsComponent();
-    void tick(Game& game, Entity& entity);
+    void tick(Game& game, Entity& entity, double dt);
     void receive(Game& game, Entity& entity, const Message& msg);
     
   private:
-    std::pair<double, double> velocity;
-    std::pair<double, double> accel;
     double jump_velocity;
     double jump_gravity;
     double jump_gravity_short;
