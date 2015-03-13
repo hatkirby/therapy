@@ -1,6 +1,7 @@
 #include "game.h"
 #include "renderer.h"
 #include "components.h"
+#include "muxer.h"
 
 Game::Game()
 { 
@@ -132,33 +133,27 @@ void Game::saveGame(const Map& map, std::pair<double, double> position)
   save = {&map, position};
 }
 
-void Game::loadGame(const Map& curMap)
-{
-  if (&curMap == save.map)
-  {
-    entities.remove(player);
-  }
-  
-  player = std::make_shared<Entity>();
-  player->position = save.position;
-  player->size = std::make_pair(10.0,12.0);
-  
-  auto player_input = std::make_shared<UserMovementComponent>();
-  player->addComponent(player_input);
-  
-  auto player_physics = std::make_shared<PlayerPhysicsComponent>();
-  player->addComponent(player_physics);
-  
-  auto player_anim = std::make_shared<PlayerSpriteComponent>();
-  player->addComponent(player_anim);
-  
-  if (&curMap != save.map)
-  {
-    loadMap(*(save.map));
-  }
-}
-
 void Game::schedule(int frames, std::function<void ()>&& callback)
 {
   scheduled.emplace_front(frames, callback);
+}
+
+void Game::playerDie(Entity& player, const Map& curMap)
+{
+  Message msg(Message::Type::die);
+  player.send(*this, msg);
+  
+  playSound("../res/Hit_Hurt5.wav", 0.25);
+  
+  schedule(FRAMES_PER_SECOND * 0.75, [&] () {
+    if (&curMap != save.map)
+    {
+      loadMap(*(save.map));
+    }
+    
+    player.position = save.position;
+    
+    Message msg2(Message::Type::stopDying);
+    player.send(*this, msg2);
+  });
 }

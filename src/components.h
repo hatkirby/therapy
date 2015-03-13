@@ -77,13 +77,22 @@ class MapCollisionComponent : public Component {
     };
 
     struct Collision {
+      enum class Type {
+        wall,
+        wrap,
+        teleport,
+        reverse,
+        platform,
+        danger
+      };
+      
       int axis;
       int lower;
       int upper;
-      int type;
+      Type type;
     };
     
-    void addCollision(int axis, int lower, int upper, Direction dir, int type);
+    void addCollision(int axis, int lower, int upper, Direction dir, Collision::Type type);
     bool processCollision(Game& game, Entity& collider, Collision collision, Direction dir);
     
     std::list<Collision> left_collisions;

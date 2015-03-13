@@ -30,8 +30,8 @@ class Game {
     void loadMap(const Map& map);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
     void saveGame(const Map& map, std::pair<double, double> position);
-    void loadGame(const Map& curMap);
     void schedule(int frames, std::function<void ()>&& callback);
+    void playerDie(Entity& player, const Map& curMap);
     
   private:
     friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
