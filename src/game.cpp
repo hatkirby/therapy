@@ -118,7 +118,6 @@ void Game::loadMap(const Map& map)
   
   nextEntities.clear();
   nextEntities.push_back(mapEn);
-  nextEntities.push_back(player);
   
   // this is cheating but is just for testing
   if (&map == &m2)
@@ -142,6 +141,8 @@ void Game::loadMap(const Map& map)
     
     nextEntities.push_back(saveEn);
   }
+  
+  nextEntities.push_back(player);
   
   newWorld = true;
 }
