@@ -3,6 +3,6 @@
 
 void initMuxer();
 void destroyMuxer();
-void playSound(const char* filename);
+void playSound(const char* filename, float vol);
 
 #endif

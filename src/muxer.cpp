@@ -3,17 +3,19 @@
 #include <sndfile.h>
 #include <portaudio.h>
 #include <list>
+#include <cmath>
 
 #define SAMPLE_RATE (44100)
 
 class Sound {
   public:
-    Sound(const char* filename);
+    Sound(const char* filename, float vol);
     ~Sound();
     
     float* ptr;
     unsigned long pos;
     unsigned long len;
+    float vol;
 };
 
 struct Muxer {
@@ -44,9 +46,7 @@ int paMuxerCallback(const void*, void* outputBuffer, unsigned long framesPerBuff
     {
       if (sound.pos < sound.len)
       {
-        *out *= curAmount++;
-        *out += sound.ptr[sound.pos++];
-        *out /= (float) curAmount;
+        *out += sound.ptr[sound.pos++] * sound.vol;
       }
     }
     
@@ -77,16 +77,16 @@ void destroyMuxer()
   muxer = 0;
 }
 
-void playSound(const char* filename)
+void playSound(const char* filename, float vol)
 {
   // First, clear out any sounds that have finished playing
   muxer->playing.remove_if([] (Sound& value) { return value.pos >= value.len; });
   
   // Then, add the new sound
-  muxer->playing.emplace_back(filename);
+  muxer->playing.emplace_back(filename, vol);
 }
 
-Sound::Sound(const char* filename)
+Sound::Sound(const char* filename, float vol)
 {
   SF_INFO info;
   SNDFILE* file = sf_open(filename, SFM_READ, &info);
@@ -99,6 +99,7 @@ Sound::Sound(const char* filename)
   ptr = (float*) malloc(info.frames * info.channels * sizeof(float));
   len = info.frames * info.channels;
   pos = 0;
+  this->vol = vol;
   
   sf_readf_float(file, ptr, info.frames);
   

@@ -216,7 +216,7 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
     velocity.second = 0.0;
   } else if (msg.type == Message::Type::jump)
   {
-    playSound("../res/Randomize87.wav");
+    playSound("../res/Randomize87.wav", 0.25);
     
     velocity.second = jump_velocity;
     accel.second = jump_gravity;
@@ -573,7 +573,7 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     Message msg(Message::Type::die);
     collider.send(game, msg);
     
-    playSound("../res/Hit_Hurt5.wav");
+    playSound("../res/Hit_Hurt5.wav", 0.25);
     
     game.schedule(FRAMES_PER_SECOND * 0.75, [&] () {
       game.loadGame(map);
