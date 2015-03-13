@@ -91,18 +91,7 @@ void PhysicsBodyComponent::receive(Game&, Entity&, const Message& msg)
 
 void PhysicsBodyComponent::tick(Game&, Entity& entity, double dt)
 {
-  // RK4 integration
-  auto a = std::make_pair(velocity.first, velocity.second);
-  auto b = std::make_pair(velocity.first + a.first*dt*0.5, velocity.second + a.second*dt*0.5);
-  auto c = std::make_pair(velocity.first + b.first*dt*0.5, velocity.second + b.second*dt*0.5);
-  auto d = std::make_pair(velocity.first + c.first*dt, velocity.second + c.second*dt);
-  
-  double dxxdt = 1.0 / 6.0 * (a.first + 2.0*(b.first + c.first) + d.first);
-  double dxydt = 1.0 / 6.0 * (a.second + 2.0*(b.second + c.second) + d.second);
-  
-  entity.position.first += dxxdt * dt;
-  entity.position.second += dxydt * dt;
-  
+  // Accelerate
   velocity.first += accel.first * dt;
   velocity.second += accel.second * dt;
   
@@ -113,6 +102,10 @@ void PhysicsBodyComponent::tick(Game&, Entity& entity, double dt)
   if (velocity.first > TERMINAL_VELOCITY_X) velocity.first = TERMINAL_VELOCITY_X;
   if (velocity.second < -TERMINAL_VELOCITY_Y) velocity.second = -TERMINAL_VELOCITY_Y;
   if (velocity.second > TERMINAL_VELOCITY_Y) velocity.second = TERMINAL_VELOCITY_Y;
+  
+  // Do the movement
+  entity.position.first += velocity.first * dt;
+  entity.position.second += velocity.second * dt;
 }
 
 void PhysicsBodyComponent::detectCollision(Game& game, Entity& entity, Entity& collider, std::pair<double, double> old_position)
