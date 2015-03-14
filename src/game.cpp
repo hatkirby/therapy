@@ -3,6 +3,7 @@
 #include "components.h"
 #include "muxer.h"
 #include "entityfactory.h"
+#include "map.h"
 
 Game::Game()
 { 

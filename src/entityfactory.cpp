@@ -3,6 +3,7 @@
 #include "components.h"
 #include "muxer.h"
 #include <cstdio>
+#include <map>
 
 struct EntityData {
   char* sprite;

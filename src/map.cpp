@@ -5,6 +5,7 @@
 #include <libxml/parser.h>
 #include <map>
 #include "entityfactory.h"
+#include "entity.h"
 
 static std::map<std::string, Map> maps;
 

@@ -1,11 +1,13 @@
 #ifndef COMPONENTS_H
 #define COMPONENTS_H
 
-#include "entity.h"
 #include <utility>
 #include <list>
-#include "map.h"
-#include <memory>
+#include "renderer.h"
+#include "entity.h"
+#include "game.h"
+
+class Map;
 
 class UserMovementComponent : public Component {
   public:
@@ -33,7 +35,7 @@ class PlayerSpriteComponent : public Component {
     void receive(Game& game, Entity& entity, const Message& msg);
     
   private:
-    Texture sprite{"../res/Starla.png"};
+    Texture sprite {"../res/Starla.png"};
     int animFrame = 0;
     bool facingLeft = false;
     bool isMoving = false;

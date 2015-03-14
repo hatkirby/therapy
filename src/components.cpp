@@ -1,6 +1,7 @@
 #include "components.h"
 #include "game.h"
 #include "muxer.h"
+#include "map.h"
 
 // User movement component
 

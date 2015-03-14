@@ -1,12 +1,13 @@
 #ifndef GAME_H
 #define GAME_H
 
-class Game;
-
-#include "map.h"
 #include <memory>
-#include "entity.h"
 #include <functional>
+#include "renderer.h"
+#include <list>
+
+class Entity;
+class Map;
 
 const int TILE_WIDTH = 8;
 const int TILE_HEIGHT = 8;

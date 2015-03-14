@@ -1,13 +1,13 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
-class Entity;
-class Component;
-
 #include <list>
 #include "renderer.h"
-#include "game.h"
-#include "map.h"
+
+class Game;
+class Map;
+class Entity;
+class Component;
 
 class Message {
   public:

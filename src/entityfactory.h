@@ -1,11 +1,10 @@
 #ifndef ENTITYFACTORY_H
 #define ENTITYFACTORY_H
 
-#include "entity.h"
-#include <memory>
 #include <string>
-#include <map>
-#include "map.h"
+
+class Entity;
+class Map;
 
 class EntityFactory {
   public:
