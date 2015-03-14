@@ -6,6 +6,13 @@
 #include <cmath>
 
 #define SAMPLE_RATE (44100)
+#define DELAY_IN_SECS (0.075)
+#define GAIN (1.0)
+#define FEEDBACK (0.2)
+#define DRY (1.0)
+#define WET (0.5)
+
+const int delaySize = SAMPLE_RATE * DELAY_IN_SECS;
 
 class Sound {
   public:
@@ -21,6 +28,8 @@ class Sound {
 struct Muxer {
   std::list<Sound> playing;
   PaStream* stream;
+  float* delay;
+  unsigned long delayPos;
 };
 
 inline void dealWithPaError(PaError err)
@@ -39,18 +48,24 @@ int paMuxerCallback(const void*, void* outputBuffer, unsigned long framesPerBuff
   
   for (unsigned long i = 0; i<framesPerBuffer; i++)
   {
-    unsigned long curAmount = 0;
-    *out = 0;
+    float in = 0.0;
     
     for (auto& sound : muxer->playing)
     {
       if (sound.pos < sound.len)
       {
-        *out += sound.ptr[sound.pos++] * sound.vol;
+        in += sound.ptr[sound.pos++] * sound.vol;
       }
     }
     
-    out++;
+    if (in >  1) in = 1;
+    if (in < -1) in = -1;
+    
+    float sample = muxer->delay[muxer->delayPos] * GAIN;
+    muxer->delay[muxer->delayPos] = in + (muxer->delay[muxer->delayPos] * FEEDBACK);
+    muxer->delayPos++;
+    if (muxer->delayPos > delaySize) muxer->delayPos = 0;
+    *out++ = (in * DRY) + (sample * WET);
   }
   
   return 0;
@@ -63,8 +78,10 @@ void initMuxer()
   muxer = new Muxer();
   
   dealWithPaError(Pa_Initialize());
-  dealWithPaError(Pa_OpenDefaultStream(&(muxer->stream), 0, 1, paFloat32, SAMPLE_RATE, paFramesPerBufferUnspecified, paMuxerCallback, muxer));
+  dealWithPaError(Pa_OpenDefaultStream(&muxer->stream, 0, 1, paFloat32, SAMPLE_RATE, paFramesPerBufferUnspecified, paMuxerCallback, muxer));
   dealWithPaError(Pa_StartStream(muxer->stream));
+  
+  muxer->delay = (float*) calloc(delaySize, sizeof(float));
 }
 
 void destroyMuxer()
@@ -73,6 +90,7 @@ void destroyMuxer()
   dealWithPaError(Pa_CloseStream(muxer->stream));
   dealWithPaError(Pa_Terminate());
   
+  free(muxer->delay);
   delete muxer;
   muxer = 0;
 }

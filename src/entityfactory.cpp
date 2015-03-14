@@ -59,7 +59,7 @@ std::shared_ptr<Entity> EntityFactory::createNamedEntity(const std::string name,
       {
         xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
         data.hasPhysics = true;
-        sscanf((char*) key, "%d,%d", &(data.width), &(data.height));
+        sscanf((char*) key, "%d,%d", &data.width, &data.height);
         xmlFree(key);
       }
     }

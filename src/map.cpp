@@ -74,7 +74,7 @@ Map::Map(const std::string name)
             } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
             {
               xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              sscanf((char*) key, "%lf,%lf", &(data.position.first), &(data.position.second));
+              sscanf((char*) key, "%lf,%lf", &data.position.first, &data.position.second);
               xmlFree(key);
             }
           }

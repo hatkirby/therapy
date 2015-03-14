@@ -556,11 +556,11 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     if (dir == Direction::left)
     {
       collider.position.first = GAME_WIDTH-collider.size.first/2;
-      game.loadMap(*(map.getLeftMap()));
+      game.loadMap(*map.getLeftMap());
     } else if (dir == Direction::right)
     {
       collider.position.first = -collider.size.first/2;
-      game.loadMap(*(map.getRightMap()));
+      game.loadMap(*map.getRightMap());
     }
     
     return true;
@@ -610,6 +610,6 @@ void SimpleColliderComponent::receive(Game& game, Entity&, const Message& msg)
 {
   if (msg.type == Message::Type::collision)
   {
-    callback(game, *(msg.collisionEntity));
+    callback(game, *msg.collisionEntity);
   }
 }

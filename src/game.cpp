@@ -151,9 +151,9 @@ void Game::playerDie(Entity& player, const Map& curMap)
   playSound("../res/Hit_Hurt5.wav", 0.25);
   
   schedule(0.75, [&] () {
-    if (curMap != *(save.map))
+    if (curMap != *save.map)
     {
-      loadMap(*(save.map));
+      loadMap(*save.map);
     }
     
     player.position = save.position;
