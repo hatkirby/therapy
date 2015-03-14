@@ -13,22 +13,30 @@ void UserMovementComponent::input(Game& game, Entity& entity, int key, int actio
     {
       holdingLeft = true;
       
-      Message msg(Message::Type::walkLeft);
-      entity.send(game, msg);
+      if (!frozen)
+      {
+        entity.send(game, Message::Type::walkLeft);
+      }
     } else if (key == GLFW_KEY_RIGHT)
     {
       holdingRight = true;
       
-      Message msg(Message::Type::walkRight);
-      entity.send(game, msg);
+      if (!frozen)
+      {
+        entity.send(game, Message::Type::walkRight);
+      }
     } else if (key == GLFW_KEY_UP)
     {
-      Message msg(Message::Type::jump);
-      entity.send(game, msg);
+      if (!frozen)
+      {
+        entity.send(game, Message::Type::jump);
+      }
     } else if (key == GLFW_KEY_DOWN)
     {
-      Message msg(Message::Type::canDrop);
-      entity.send(game, msg);
+      if (!frozen)
+      {
+        entity.send(game, Message::Type::canDrop);
+      }
     }
   } else if (action == GLFW_RELEASE)
   {
@@ -36,34 +44,61 @@ void UserMovementComponent::input(Game& game, Entity& entity, int key, int actio
     {
       holdingLeft = false;
       
-      if (holdingRight)
+      if (!frozen)
       {
-        Message msg(Message::Type::walkRight);
-        entity.send(game, msg);
-      } else {
-        Message msg(Message::Type::stopWalking);
-        entity.send(game, msg);
+        if (holdingRight)
+        {
+          entity.send(game, Message::Type::walkRight);
+        } else {
+          entity.send(game, Message::Type::stopWalking);
+        }
       }
     } else if (key == GLFW_KEY_RIGHT)
     {
       holdingRight = false;
       
-      if (holdingLeft)
+      if (!frozen)
       {
-        Message msg(Message::Type::walkLeft);
-        entity.send(game, msg);
-      } else {
-        Message msg(Message::Type::stopWalking);
-        entity.send(game, msg);
+        if (holdingLeft)
+        {
+          entity.send(game, Message::Type::walkLeft);
+        } else {
+          entity.send(game, Message::Type::stopWalking);
+        }
       }
     } else if (key == GLFW_KEY_DOWN)
     {
-      Message msg(Message::Type::cantDrop);
-      entity.send(game, msg);
+      if (!frozen)
+      {
+        entity.send(game, Message::Type::cantDrop);
+      }
     } else if (key == GLFW_KEY_UP)
     {
-      Message msg(Message::Type::stopJump);
-      entity.send(game, msg);
+      if (!frozen)
+      {
+        entity.send(game, Message::Type::stopJump);
+      }
+    }
+  }
+}
+
+void UserMovementComponent::receive(Game& game, Entity& entity, const Message& msg)
+{
+  if (msg.type == Message::Type::die)
+  {
+    frozen = true;
+    
+    entity.send(game, Message::Type::stopWalking);
+  } else if (msg.type == Message::Type::stopDying)
+  {
+    frozen = false;
+    
+    if (holdingLeft)
+    {
+      entity.send(game, Message::Type::walkLeft);
+    } else if (holdingRight)
+    {
+      entity.send(game, Message::Type::walkRight);
     }
   }
 }
@@ -168,16 +203,6 @@ void PlayerSpriteComponent::render(Game&, Entity& entity, Texture& buffer)
 
 void PlayerSpriteComponent::receive(Game&, Entity&, const Message& msg)
 {
-  if (msg.type == Message::Type::stopDying)
-  {
-    dying = false;
-  }
-  
-  if (dying)
-  {
-    return;
-  }
-  
   if (msg.type == Message::Type::walkLeft)
   {
     facingLeft = true;
@@ -193,6 +218,9 @@ void PlayerSpriteComponent::receive(Game&, Entity&, const Message& msg)
   {
     dying = true;
     isMoving = false;
+  } else if (msg.type == Message::Type::stopDying)
+  {
+    dying = false;
   }
 }
 
@@ -232,10 +260,7 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
     velocity.second = 0.0;
   } else if (msg.type == Message::Type::jump)
   {
-    if (!frozen)
-    {
-      playSound("../res/Randomize87.wav", 0.25);
-    }
+    playSound("../res/Randomize87.wav", 0.25);
     
     velocity.second = jump_velocity;
     accel.second = jump_gravity;
@@ -514,27 +539,19 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     if (dir == Direction::left)
     {
       collider.position.first = collision.axis;
-    
-      Message msg(Message::Type::stopMovingHorizontally);
-      collider.send(game, msg);
+      collider.send(game, Message::Type::stopMovingHorizontally);
     } else if (dir == Direction::right)
     {
       collider.position.first = collision.axis - collider.size.first;
-    
-      Message msg(Message::Type::stopMovingHorizontally);
-      collider.send(game, msg);
+      collider.send(game, Message::Type::stopMovingHorizontally);
     } else if (dir == Direction::up)
     {
       collider.position.second = collision.axis;
-      
-      Message msg(Message::Type::stopMovingVertically);
-      collider.send(game, msg);
+      collider.send(game, Message::Type::stopMovingVertically);
     } else if (dir == Direction::down)
     {
       collider.position.second = collision.axis - collider.size.second;
-      
-      Message msg(Message::Type::stopMovingVertically);
-      collider.send(game, msg);
+      collider.send(game, Message::Type::stopMovingVertically);
     }
   } else if (collision.type == Collision::Type::wrap)
   {
@@ -569,9 +586,7 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     if (dir == Direction::right)
     {
       collider.position.first = collision.axis - collider.size.first;
-    
-      Message msg(Message::Type::walkLeft);
-      collider.send(game, msg);
+      collider.send(game, Message::Type::walkLeft);
     }
   } else if (collision.type == Collision::Type::platform)
   {

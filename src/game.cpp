@@ -145,8 +145,7 @@ void Game::schedule(double time, std::function<void ()> callback)
 
 void Game::playerDie(Entity& player, const Map& curMap)
 {
-  Message msg(Message::Type::die);
-  player.send(*this, msg);
+  player.send(*this, Message::Type::die);
   
   playSound("../res/Hit_Hurt5.wav", 0.25);
   
@@ -157,8 +156,6 @@ void Game::playerDie(Entity& player, const Map& curMap)
     }
     
     player.position = save.position;
-    
-    Message msg2(Message::Type::stopDying);
-    player.send(*this, msg2);
+    player.send(*this, Message::Type::stopDying);
   });
 }

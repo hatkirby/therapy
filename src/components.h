@@ -12,10 +12,12 @@ class Map;
 class UserMovementComponent : public Component {
   public:
     void input(Game& game, Entity& entity, int key, int action);
+    void receive(Game&, Entity&, const Message& msg);
       
   private:
     bool holdingLeft = false;
     bool holdingRight = false;
+    bool frozen = false;
 };
 
 class PhysicsBodyComponent : public Component {
