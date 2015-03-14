@@ -19,9 +19,10 @@ Game::Game()
   auto player_anim = std::make_shared<PlayerSpriteComponent>();
   player->addComponent(player_anim);
   
-  save = {&m, player->position};
+  Map& startingMap = Map::getNamedMap("embarass");
+  save = {&startingMap, player->position};
   
-  loadMap(m);
+  loadMap(startingMap);
 }
 
 void key_callback(GLFWwindow* window, int key, int, int action, int)

@@ -40,8 +40,6 @@ class Game {
     std::list<std::shared_ptr<Entity>> nextEntities;
     bool newWorld;
     std::shared_ptr<Entity> player;
-    Map m {Map::getNamedMap("embarass")};
-    Map m2 {Map::getNamedMap("second")};
     Savefile save;
     std::list<std::pair<double, std::function<void ()>>> scheduled;
     bool shouldQuit = false;
