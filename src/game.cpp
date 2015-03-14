@@ -2,12 +2,10 @@
 #include "renderer.h"
 #include "components.h"
 #include "muxer.h"
+#include "entityfactory.h"
 
 Game::Game()
 { 
-  m.setLeftMap(&m2);
-  m2.setRightMap(&m);
-  
   player = std::make_shared<Entity>();
   player->position = std::make_pair(100.0,100.0);
   player->size = std::make_pair(10.0,12.0);
@@ -116,32 +114,10 @@ void Game::loadMap(const Map& map)
   auto map_collision = std::make_shared<MapCollisionComponent>(map);
   mapEn->addComponent(map_collision);
   
+  // Map in the back, player on top, rest of entities in between
   nextEntities.clear();
   nextEntities.push_back(mapEn);
-  
-  // this is cheating but is just for testing
-  if (&map == &m2)
-  {
-    auto saveEn = std::make_shared<Entity>();
-    saveEn->position = std::make_pair(257.0, 160.0);
-    saveEn->size = std::make_pair(8.0, 11.0);
-    
-    auto save_render = std::make_shared<StaticImageComponent>("../res/keyring.png");
-    saveEn->addComponent(save_render);
-    
-    auto save_physics = std::make_shared<PhysicsBodyComponent>();
-    saveEn->addComponent(save_physics);
-    
-    auto save_collide = std::make_shared<SimpleColliderComponent>([&] (Entity& collider) {
-      playSound("../res/Pickup_Coin23.wav", 0.25);
-      
-      saveGame(map, collider.position);
-    });
-    saveEn->addComponent(save_collide);
-    
-    nextEntities.push_back(saveEn);
-  }
-  
+  map.createEntities(nextEntities);
   nextEntities.push_back(player);
   
   newWorld = true;
@@ -160,9 +136,9 @@ void Game::saveGame(const Map& map, std::pair<double, double> position)
   save = {&map, position};
 }
 
-void Game::schedule(double time, std::function<void ()>&& callback)
+void Game::schedule(double time, std::function<void ()> callback)
 {
-  scheduled.emplace_front(time, callback);
+  scheduled.emplace_front(time, std::move(callback));
 }
 
 void Game::playerDie(Entity& player, const Map& curMap)

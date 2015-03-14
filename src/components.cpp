@@ -309,7 +309,7 @@ MapRenderComponent::MapRenderComponent(const Map& map)
   
   for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
   {
-    int tile = map.mapdata()[i];
+    int tile = map.getMapdata()[i];
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;
     Rectangle dst {x*TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT};
@@ -322,7 +322,7 @@ MapRenderComponent::MapRenderComponent(const Map& map)
   }
   
   Texture font("../res/font.bmp");
-  const char* map_name = map.title();
+  const char* map_name = map.getTitle();
   int start_x = (40/2) - (strlen(map_name)/2);
   for (size_t i=0; i<strlen(map_name); i++)
   {
@@ -348,7 +348,7 @@ MapCollisionComponent::MapCollisionComponent(const Map& map) : map(map)
   {
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;
-    int tile = map.mapdata()[i];
+    int tile = map.getMapdata()[i];
     
     if ((tile > 0) && (tile < 28) && (!((tile >= 5) && (tile <= 7))))
     {
@@ -600,15 +600,15 @@ void StaticImageComponent::render(Game&, Entity& entity, Texture& buffer)
 
 // Simple collision
 
-SimpleColliderComponent::SimpleColliderComponent(std::function<void (Entity& collider)> callback) : callback(callback)
+SimpleColliderComponent::SimpleColliderComponent(std::function<void (Game& game, Entity& collider)> callback) : callback(callback)
 {
   
 }
 
-void SimpleColliderComponent::receive(Game&, Entity&, const Message& msg)
+void SimpleColliderComponent::receive(Game& game, Entity&, const Message& msg)
 {
   if (msg.type == Message::Type::collision)
   {
-    callback(*(msg.collisionEntity));
+    callback(game, *(msg.collisionEntity));
   }
 }

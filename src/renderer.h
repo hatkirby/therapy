@@ -15,7 +15,7 @@ class Texture {
   public:
     Texture(int width, int height);
     Texture(const char* file);
-    Texture(Texture& tex);
+    Texture(const Texture& tex);
     Texture(Texture&& tex);
     ~Texture();
     Texture& operator= (Texture tex);

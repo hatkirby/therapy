@@ -1,4 +1,7 @@
 #include "entity.h"
+#include <libxml/parser.h>
+#include "components.h"
+#include "muxer.h"
 
 void Entity::addComponent(std::shared_ptr<Component> c)
 {

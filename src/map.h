@@ -1,28 +1,41 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include <string>
+#include <list>
+
+class Entity;
+
 class Map {
   public:
-    Map(const char* filename);
-    Map(Map& map);
+    Map();
+    Map(const std::string name);
+    Map(const Map& map);
     Map(Map&& map);
     ~Map();
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
-    const int* mapdata() const;
-    const char* title() const;
+    static Map& getNamedMap(const std::string name);
+    
+    const int* getMapdata() const;
+    const char* getTitle() const;
     const Map* getLeftMap() const;
     const Map* getRightMap() const;
     void setLeftMap(const Map* m);
     void setRightMap(const Map* m);
+    void createEntities(std::list<std::shared_ptr<Entity>>& entities) const;
   private:
-    Map();
+    struct EntityData {
+      std::string name;
+      std::pair<double, double> position;
+    };
     
-    int* m_mapdata;
-    char* m_title;
-    const Map* m_leftMap = nullptr;
-    const Map* m_rightMap = nullptr;
+    int* mapdata;
+    char* title;
+    const Map* leftMap = nullptr;
+    const Map* rightMap = nullptr;
+    std::list<EntityData> entities;
 };
 
 #endif

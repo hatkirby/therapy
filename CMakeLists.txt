@@ -27,6 +27,7 @@ find_package(GLEW REQUIRED)
 find_package(GLFW REQUIRED)
 find_package(portaudio REQUIRED)
 find_package(libsndfile REQUIRED)
+find_package(libxml2 REQUIRED)
 
 set(ALL_LIBS
   ${OPENGL_LIBRARY}
@@ -34,10 +35,15 @@ set(ALL_LIBS
   ${GLFW_LIBRARY}
   ${PORTAUDIO_LIBRARIES}
   ${LIBSNDFILE_LIBRARY}
+  ${LIBXML2_LIBRARIES}
+)
+
+include_directories(
+  ${LIBXML2_INCLUDE_DIR}
 )
 
 # include_directories(${SDL2_INCLUDE_DIR})
 set(CMAKE_BUILD_TYPE Debug)
-add_executable(Aromatherapy src/main.cpp src/map.cpp src/renderer.cpp src/entity.cpp src/components.cpp src/game.cpp src/muxer.cpp)
+add_executable(Aromatherapy src/main.cpp src/map.cpp src/renderer.cpp src/entity.cpp src/components.cpp src/game.cpp src/muxer.cpp src/entityfactory.cpp)
 target_link_libraries(Aromatherapy ${ALL_LIBS})
 install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})

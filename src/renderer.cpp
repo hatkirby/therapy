@@ -513,7 +513,7 @@ Texture::Texture(const char* filename)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-Texture::Texture(Texture& tex)
+Texture::Texture(const Texture& tex)
 {
   if (!rendererInitialized)
   {

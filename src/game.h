@@ -30,7 +30,7 @@ class Game {
     void loadMap(const Map& map);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
     void saveGame(const Map& map, std::pair<double, double> position);
-    void schedule(double time, std::function<void ()>&& callback);
+    void schedule(double time, std::function<void ()> callback);
     void playerDie(Entity& player, const Map& curMap);
     
   private:
@@ -40,8 +40,8 @@ class Game {
     std::list<std::shared_ptr<Entity>> nextEntities;
     bool newWorld;
     std::shared_ptr<Entity> player;
-    Map m{"../maps/embarass.txt"};
-    Map m2{"../maps/second.txt"};
+    Map m {Map::getNamedMap("embarass")};
+    Map m2 {Map::getNamedMap("second")};
     Savefile save;
     std::list<std::pair<double, std::function<void ()>>> scheduled;
     bool shouldQuit = false;

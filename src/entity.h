@@ -7,6 +7,7 @@ class Component;
 #include <list>
 #include "renderer.h"
 #include "game.h"
+#include "map.h"
 
 class Message {
   public:

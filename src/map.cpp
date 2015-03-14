@@ -2,43 +2,111 @@
 #include "game.h"
 #include <cstdlib>
 #include <cstring>
+#include <libxml/parser.h>
+#include <map>
+#include "entityfactory.h"
+
+static std::map<std::string, Map> maps;
 
 Map::Map()
 {
-  
+  title = (char*) calloc(1, sizeof(char));
+  mapdata = (int*) calloc(1, sizeof(int));
 }
 
-Map::Map(const char* filename)
+Map::Map(const std::string name)
 {
-  FILE* f = fopen(filename, "r");
-  
-  m_mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
-  for (int i=0; i<MAP_HEIGHT-1; i++)
+  xmlDocPtr doc = xmlParseFile(("../maps/" + name + ".xml").c_str());
+  if (doc == nullptr)
   {
-    for (int j=0; j<MAP_WIDTH; j++)
-    {
-      fscanf(f, "%d,", &(m_mapdata[i*MAP_WIDTH + j]));
-    }
-    
-    fgetc(f);
+    fprintf(stderr, "Error reading map %s\n", name.c_str());
+    exit(-1);
   }
   
-  m_title = (char*) calloc(41, sizeof(char));
-  fgets(m_title, 41, f);
+  xmlNodePtr top = xmlDocGetRootElement(doc);
+  if (top == nullptr)
+  {
+    fprintf(stderr, "Empty map %s\n", name.c_str());
+    exit(-1);
+  }
   
-  fclose(f);
+  if (xmlStrcmp(top->name, (const xmlChar*) "map-def"))
+  {
+    fprintf(stderr, "Invalid map definition %s\n", name.c_str());
+    exit(-1);
+  }
+  
+  for (xmlNodePtr node = top->xmlChildrenNode; node != NULL; node = node->next)
+  {
+    if (!xmlStrcmp(node->name, (const xmlChar*) "name"))
+    {
+      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
+      title = (char*) calloc(xmlStrlen(key) + 1, sizeof(char));
+      strcpy(title, (char*) key);
+      xmlFree(key);
+    } else if (!xmlStrcmp(node->name, (const xmlChar*) "environment"))
+    {
+      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
+      mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
+      mapdata[0] = atoi(strtok((char*) key, ",\n"));
+      for (int i=1; i<(MAP_WIDTH*(MAP_HEIGHT-1)); i++)
+      {
+        mapdata[i] = atoi(strtok(NULL, ",\n"));
+      }
+      xmlFree(key);
+    } else if (!xmlStrcmp(node->name, (const xmlChar*) "entities"))
+    {
+      for (xmlNodePtr entityNode = node->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
+      {
+        if (!xmlStrcmp(entityNode->name, (const xmlChar*) "entity"))
+        {
+          EntityData data;
+          for (xmlNodePtr entityDataNode = entityNode->xmlChildrenNode; entityDataNode != NULL; entityDataNode = entityDataNode->next)
+          {
+            if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
+            {
+              xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
+              data.name = std::string((char*) key);
+              xmlFree(key);
+            } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
+            {
+              xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
+              sscanf((char*) key, "%lf,%lf", &(data.position.first), &(data.position.second));
+              xmlFree(key);
+            }
+          }
+        
+          entities.push_back(data);
+        }
+      }
+    } else if (!xmlStrcmp(node->name, (const xmlChar*) "leftmap"))
+    {
+      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
+      leftMap = &Map::getNamedMap(std::string((char*) key));
+      xmlFree(key);
+    } else if (!xmlStrcmp(node->name, (const xmlChar*) "rightmap"))
+    {
+      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
+      rightMap = &Map::getNamedMap(std::string((char*) key));
+      xmlFree(key);
+    }
+  }
+  
+  xmlFreeDoc(doc);
 }
 
-Map::Map(Map& map)
+Map::Map(const Map& map)
 {
-  m_mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
-  memcpy(m_mapdata, map.m_mapdata, MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
+  mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
+  memcpy(mapdata, map.mapdata, MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
   
-  m_title = (char*) malloc((MAP_WIDTH+1)*sizeof(char));
-  strncpy(m_title, map.m_title, MAP_WIDTH+1);
+  title = (char*) malloc((MAP_WIDTH+1)*sizeof(char));
+  strncpy(title, map.title, MAP_WIDTH+1);
   
-  m_leftMap = map.m_leftMap;
-  m_rightMap = map.m_rightMap;
+  leftMap = map.leftMap;
+  rightMap = map.rightMap;
+  
+  entities = map.entities;
 }
 
 Map::Map(Map&& map) : Map()
@@ -48,8 +116,8 @@ Map::Map(Map&& map) : Map()
 
 Map::~Map()
 {
-  free(m_mapdata);
-  free(m_title);
+  free(mapdata);
+  free(title);
 }
 
 Map& Map::operator= (Map map)
@@ -61,38 +129,60 @@ Map& Map::operator= (Map map)
 
 void swap(Map& first, Map& second)
 {
-  std::swap(first.m_mapdata, second.m_mapdata);
-  std::swap(first.m_title, second.m_title);
-  std::swap(first.m_leftMap, second.m_leftMap);
-  std::swap(first.m_rightMap, second.m_rightMap);
+  std::swap(first.mapdata, second.mapdata);
+  std::swap(first.title, second.title);
+  std::swap(first.leftMap, second.leftMap);
+  std::swap(first.rightMap, second.rightMap);
+  std::swap(first.entities, second.entities);
 }
 
-const int* Map::mapdata() const
+const int* Map::getMapdata() const
 {
-  return m_mapdata;
+  return mapdata;
 }
 
-const char* Map::title() const
+const char* Map::getTitle() const
 {
-  return m_title;
+  return title;
 }
 
 const Map* Map::getLeftMap() const
 {
-  return m_leftMap;
+  return leftMap;
 }
 
 const Map* Map::getRightMap() const
 {
-  return m_rightMap;
+  return rightMap;
 }
 
 void Map::setLeftMap(const Map* m)
 {
-  m_leftMap = m;
+  leftMap = m;
 }
 
 void Map::setRightMap(const Map* m)
 {
-  m_rightMap = m;
+  rightMap = m;
+}
+
+void Map::createEntities(std::list<std::shared_ptr<Entity>>& entities) const
+{
+  for (auto data : this->entities)
+  {
+    auto entity = EntityFactory::createNamedEntity(data.name, *this);
+    entity->position = data.position;
+    
+    entities.push_back(entity);
+  }
+}
+
+Map& Map::getNamedMap(const std::string name)
+{
+  if (maps.count(name) == 0)
+  {
+    maps[name] = Map {name};
+  }
+  
+  return maps[name];
 }

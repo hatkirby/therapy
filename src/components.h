@@ -111,11 +111,11 @@ class StaticImageComponent : public Component {
 
 class SimpleColliderComponent : public Component {
   public:
-    SimpleColliderComponent(std::function<void (Entity& collider)> callback);
+    SimpleColliderComponent(std::function<void (Game& game, Entity& collider)> callback);
     void receive(Game& game, Entity& entity, const Message& msg);
     
   private:
-    std::function<void (Entity& collider)> callback;
+    std::function<void (Game& game, Entity& collider)> callback;
 };
 
 #endif
