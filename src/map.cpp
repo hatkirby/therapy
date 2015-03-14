@@ -17,6 +17,8 @@ Map::Map()
 
 Map::Map(const std::string name)
 {
+  this->name = name;
+  
   xmlDocPtr doc = xmlParseFile(("../maps/" + name + ".xml").c_str());
   if (doc == nullptr)
   {
@@ -108,6 +110,8 @@ Map::Map(const Map& map)
   rightMap = map.rightMap;
   
   entities = map.entities;
+  
+  name = map.name;
 }
 
 Map::Map(Map&& map) : Map()
@@ -135,6 +139,7 @@ void swap(Map& first, Map& second)
   std::swap(first.leftMap, second.leftMap);
   std::swap(first.rightMap, second.rightMap);
   std::swap(first.entities, second.entities);
+  std::swap(first.name, second.name);
 }
 
 const int* Map::getMapdata() const
@@ -176,6 +181,16 @@ void Map::createEntities(std::list<std::shared_ptr<Entity>>& entities) const
     
     entities.push_back(entity);
   }
+}
+
+bool Map::operator==(const Map& other) const
+{
+  return name == other.name;
+}
+
+bool Map::operator!=(const Map& other) const
+{
+  return name != other.name;
 }
 
 Map& Map::getNamedMap(const std::string name)

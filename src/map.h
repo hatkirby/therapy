@@ -25,6 +25,8 @@ class Map {
     void setLeftMap(const Map* m);
     void setRightMap(const Map* m);
     void createEntities(std::list<std::shared_ptr<Entity>>& entities) const;
+    bool operator==(const Map& other) const;
+    bool operator!=(const Map& other) const;
   private:
     struct EntityData {
       std::string name;
@@ -33,6 +35,7 @@ class Map {
     
     int* mapdata;
     char* title;
+    std::string name;
     const Map* leftMap = nullptr;
     const Map* rightMap = nullptr;
     std::list<EntityData> entities;
