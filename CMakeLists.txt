@@ -40,10 +40,27 @@ set(ALL_LIBS
 
 include_directories(
   ${LIBXML2_INCLUDE_DIR}
+  src
 )
 
 # include_directories(${SDL2_INCLUDE_DIR})
 set(CMAKE_BUILD_TYPE Debug)
-add_executable(Aromatherapy src/main.cpp src/map.cpp src/renderer.cpp src/entity.cpp src/components.cpp src/game.cpp src/muxer.cpp src/entityfactory.cpp)
+add_executable(Aromatherapy
+  src/main.cpp
+  src/map.cpp
+  src/renderer.cpp
+  src/entity.cpp
+  src/game.cpp
+  src/muxer.cpp
+  src/entityfactory.cpp
+  src/components/map_collision.cpp
+  src/components/map_render.cpp
+  src/components/physics_body.cpp
+  src/components/player_physics.cpp
+  src/components/player_sprite.cpp
+  src/components/simple_collider.cpp
+  src/components/static_image.cpp
+  src/components/user_movement.cpp
+)
 target_link_libraries(Aromatherapy ${ALL_LIBS})
 install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})

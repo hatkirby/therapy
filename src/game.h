@@ -28,7 +28,7 @@ class Game {
   public:
     Game();
     void execute(GLFWwindow* window);
-    void loadMap(const Map& map);
+    void loadMap(const Map& map, std::pair<double, double> position);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
     void saveGame();
     void schedule(double time, std::function<void ()> callback);
@@ -39,6 +39,7 @@ class Game {
 
     std::list<std::shared_ptr<Entity>> entities;
     std::list<std::shared_ptr<Entity>> nextEntities;
+    std::pair<double, double> nextPosition;
     bool newWorld;
     std::shared_ptr<Entity> player;
     const Map* currentMap;

@@ -1,9 +1,12 @@
 #include "entityfactory.h"
 #include <libxml/parser.h>
-#include "components.h"
 #include "muxer.h"
 #include <cstdio>
 #include <map>
+#include "components/static_image.h"
+#include "components/simple_collider.h"
+#include "components/physics_body.h"
+#include "game.h"
 
 struct EntityData {
   char* sprite;

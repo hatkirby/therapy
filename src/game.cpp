@@ -1,9 +1,12 @@
 #include "game.h"
 #include "renderer.h"
-#include "components.h"
 #include "muxer.h"
-#include "entityfactory.h"
 #include "map.h"
+#include "components/user_movement.h"
+#include "components/player_physics.h"
+#include "components/player_sprite.h"
+#include "components/map_render.h"
+#include "components/map_collision.h"
 
 Game::Game()
 { 
@@ -23,7 +26,7 @@ Game::Game()
   Map& startingMap = Map::getNamedMap("embarass");
   save = {&startingMap, player->position};
   
-  loadMap(startingMap);
+  loadMap(startingMap, player->position);
 }
 
 void key_callback(GLFWwindow* window, int key, int, int action, int)
@@ -65,6 +68,8 @@ void Game::execute(GLFWwindow* window)
       newWorld = false;
       entities.clear();
       entities = std::move(nextEntities);
+      
+      player->position = nextPosition;
     }
     
     // Handle input
@@ -106,7 +111,7 @@ void Game::execute(GLFWwindow* window)
   }
 }
 
-void Game::loadMap(const Map& map)
+void Game::loadMap(const Map& map, std::pair<double, double> position)
 {
   auto mapEn = std::make_shared<Entity>();
   
@@ -125,6 +130,7 @@ void Game::loadMap(const Map& map)
   newWorld = true;
   
   currentMap = &map;
+  nextPosition = position;
 }
 
 void Game::detectCollision(Entity& collider, std::pair<double, double> old_position)
@@ -154,10 +160,11 @@ void Game::playerDie()
   schedule(0.75, [&] () {
     if (*currentMap != *save.map)
     {
-      loadMap(*save.map);
+      loadMap(*save.map, save.position);
+    } else {
+      player->position = save.position;
     }
     
-    player->position = save.position;
     player->send(*this, Message::Type::stopDying);
   });
 }
