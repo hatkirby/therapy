@@ -123,6 +123,8 @@ void Game::loadMap(const Map& map)
   nextEntities.push_back(player);
   
   newWorld = true;
+  
+  currentMap = &map;
 }
 
 void Game::detectCollision(Entity& collider, std::pair<double, double> old_position)
@@ -133,9 +135,9 @@ void Game::detectCollision(Entity& collider, std::pair<double, double> old_posit
   }
 }
 
-void Game::saveGame(const Map& map, std::pair<double, double> position)
+void Game::saveGame()
 {
-  save = {&map, position};
+  save = {currentMap, player->position};
 }
 
 void Game::schedule(double time, std::function<void ()> callback)
@@ -143,19 +145,19 @@ void Game::schedule(double time, std::function<void ()> callback)
   scheduled.emplace_front(time, std::move(callback));
 }
 
-void Game::playerDie(Entity& player, const Map& curMap)
+void Game::playerDie()
 {
-  player.send(*this, Message::Type::die);
+  player->send(*this, Message::Type::die);
   
   playSound("../res/Hit_Hurt5.wav", 0.25);
   
   schedule(0.75, [&] () {
-    if (curMap != *save.map)
+    if (*currentMap != *save.map)
     {
       loadMap(*save.map);
     }
     
-    player.position = save.position;
-    player.send(*this, Message::Type::stopDying);
+    player->position = save.position;
+    player->send(*this, Message::Type::stopDying);
   });
 }

@@ -8,7 +8,7 @@ class Map;
 
 class EntityFactory {
   public:
-    static std::shared_ptr<Entity> createNamedEntity(const std::string name, const Map& map);
+    static std::shared_ptr<Entity> createNamedEntity(const std::string name);
 };
 
 #endif

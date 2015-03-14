@@ -30,9 +30,9 @@ class Game {
     void execute(GLFWwindow* window);
     void loadMap(const Map& map);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
-    void saveGame(const Map& map, std::pair<double, double> position);
+    void saveGame();
     void schedule(double time, std::function<void ()> callback);
-    void playerDie(Entity& player, const Map& curMap);
+    void playerDie();
     
   private:
     friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -41,6 +41,7 @@ class Game {
     std::list<std::shared_ptr<Entity>> nextEntities;
     bool newWorld;
     std::shared_ptr<Entity> player;
+    const Map* currentMap;
     Savefile save;
     std::list<std::pair<double, std::function<void ()>>> scheduled;
     bool shouldQuit = false;

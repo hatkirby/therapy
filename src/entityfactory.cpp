@@ -15,7 +15,7 @@ struct EntityData {
 
 static std::map<std::string, EntityData> factories;
 
-std::shared_ptr<Entity> EntityFactory::createNamedEntity(const std::string name, const Map& map)
+std::shared_ptr<Entity> EntityFactory::createNamedEntity(const std::string name)
 {
   auto it = factories.find(name);
   EntityData data = factories[name];
@@ -81,10 +81,10 @@ std::shared_ptr<Entity> EntityFactory::createNamedEntity(const std::string name,
   {
     if (!strcmp(data.action, "save"))
     {
-      auto component = std::make_shared<SimpleColliderComponent>([&] (Game& game, Entity& collider) {
+      auto component = std::make_shared<SimpleColliderComponent>([&] (Game& game, Entity&) {
         playSound("../res/Pickup_Coin23.wav", 0.25);
   
-        game.saveGame(map, collider.position);
+        game.saveGame();
       });
       entity->addComponent(component);
     }

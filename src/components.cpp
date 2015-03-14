@@ -596,7 +596,7 @@ bool MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     collider.send(game, msg);
   } else if (collision.type == Collision::Type::danger)
   {
-    game.playerDie(collider, map);
+    game.playerDie();
   }
   
   return false;
