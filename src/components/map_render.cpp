@@ -23,9 +23,9 @@ MapRenderComponent::MapRenderComponent(const Map& map) : screen(GAME_WIDTH, GAME
   }
   
   Texture font("../res/font.bmp");
-  const char* map_name = map.getTitle();
-  int start_x = (40/2) - (strlen(map_name)/2);
-  for (size_t i=0; i<strlen(map_name); i++)
+  std::string map_name = map.getTitle();
+  int start_x = (40/2) - (map_name.length()/2);
+  for (size_t i=0; i<map_name.length(); i++)
   {
     Rectangle srcRect {map_name[i] % 16 * 8, map_name[i] / 16 * 8, 8, 8};
     Rectangle dstRect {(start_x + (int)i)*8, 24*8, 8, 8};

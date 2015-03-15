@@ -11,7 +11,6 @@ static std::map<std::string, Map> maps;
 
 Map::Map()
 {
-  title = (char*) calloc(1, sizeof(char));
   mapdata = (int*) calloc(1, sizeof(int));
 }
 
@@ -44,14 +43,7 @@ Map::Map(const std::string name)
     if (!xmlStrcmp(node->name, (const xmlChar*) "name"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      int len = xmlStrlen(key);
-      title = (char*) calloc(len + 1, sizeof(char));
-      
-      if (len > 0)
-      {
-        strcpy(title, (char*) key);
-      }
-      
+      title = (char*) key;
       xmlFree(key);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "environment"))
     {
@@ -91,13 +83,23 @@ Map::Map(const std::string name)
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "leftmap"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      leftMap = &Map::getNamedMap(std::string((char*) key));
+      std::string mapname = (char*) key;
       xmlFree(key);
+      
+      if (mapname.length() > 0)
+      {
+        leftMap = &Map::getNamedMap(mapname);
+      }
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "rightmap"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      rightMap = &Map::getNamedMap(std::string((char*) key));
+      std::string mapname = (char*) key;
       xmlFree(key);
+      
+      if (mapname.length() > 0)
+      {
+        rightMap = &Map::getNamedMap(mapname);
+      }
     }
   }
   
@@ -109,9 +111,7 @@ Map::Map(const Map& map)
   mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
   memcpy(mapdata, map.mapdata, MAP_WIDTH*MAP_HEIGHT*sizeof(int));
   
-  title = (char*) malloc((MAP_WIDTH+1)*sizeof(char));
-  strncpy(title, map.title, MAP_WIDTH+1);
-  
+  title = map.title;
   leftMap = map.leftMap;
   rightMap = map.rightMap;
   
@@ -128,7 +128,6 @@ Map::Map(Map&& map) : Map()
 Map::~Map()
 {
   free(mapdata);
-  free(title);
 }
 
 Map& Map::operator= (Map map)
@@ -153,7 +152,7 @@ const int* Map::getMapdata() const
   return mapdata;
 }
 
-const char* Map::getTitle() const
+std::string Map::getTitle() const
 {
   return title;
 }

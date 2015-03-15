@@ -9,17 +9,17 @@ class Entity;
 class Map {
   public:
     Map();
-    Map(const std::string name);
+    Map(std::string name);
     Map(const Map& map);
     Map(Map&& map);
     ~Map();
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
-    static Map& getNamedMap(const std::string name);
+    static Map& getNamedMap(std::string name);
     
     const int* getMapdata() const;
-    const char* getTitle() const;
+    std::string getTitle() const;
     const Map* getLeftMap() const;
     const Map* getRightMap() const;
     void setLeftMap(const Map* m);
@@ -34,7 +34,7 @@ class Map {
     };
     
     int* mapdata;
-    char* title;
+    std::string title;
     std::string name;
     const Map* leftMap = nullptr;
     const Map* rightMap = nullptr;
