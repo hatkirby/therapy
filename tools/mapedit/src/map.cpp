@@ -6,7 +6,6 @@
 Map::Map()
 {
   mapdata = (int*) calloc(MAP_WIDTH * MAP_HEIGHT, sizeof(int));
-  dirty = true;
 }
 
 Map::Map(std::string filename)
@@ -59,8 +58,6 @@ Map::Map(std::string filename)
   }
   
   xmlFreeDoc(doc);
-  
-  dirty = false;
 }
 
 Map::Map(const Map& map)
@@ -171,4 +168,15 @@ void Map::setTileAt(int x, int y, int tile)
 int Map::getTileAt(int x, int y) const
 {
   return mapdata[x+y*MAP_WIDTH];
+}
+
+std::string Map::getTitle() const
+{
+  return title;
+}
+
+void Map::setTitle(std::string title)
+{
+  dirty = true;
+  this->title = title;
 }

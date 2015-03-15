@@ -9,7 +9,7 @@
 
 #include "map.h"
 
-class TileWidget : public wxScrolledWindow {
+class TileWidget : public wxScrolledCanvas {
   public:
     TileWidget();
     TileWidget(wxWindow* parent, wxWindowID winid, int width, int scale, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);

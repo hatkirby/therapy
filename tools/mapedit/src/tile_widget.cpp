@@ -1,9 +1,9 @@
 #include "tile_widget.h"
 #include "map.h"
 
-IMPLEMENT_DYNAMIC_CLASS(TileWidget,wxScrolledWindow)
+IMPLEMENT_DYNAMIC_CLASS(TileWidget,wxScrolledCanvas)
 
-BEGIN_EVENT_TABLE(TileWidget, wxScrolledWindow)
+BEGIN_EVENT_TABLE(TileWidget, wxScrolledCanvas)
 	EVT_PAINT(TileWidget::OnPaint)
   EVT_LEFT_DOWN(TileWidget::OnClick)
 END_EVENT_TABLE()
@@ -14,7 +14,7 @@ TileWidget::TileWidget()
 }
 
 TileWidget::TileWidget(wxWindow* parent, wxWindowID winid, int width, int scale, const wxPoint& pos, const wxSize& size)
-  : wxScrolledWindow(parent, winid, pos, size), numTilesWidth(width), scale(scale)
+  : wxScrolledCanvas(parent, winid, pos, size), numTilesWidth(width), scale(scale)
 {
   Init();
 }

@@ -27,10 +27,12 @@ class MapeditFrame : public wxFrame {
     void OnClose(wxCommandEvent& event);
     void OnExit(wxCloseEvent& event);
     void OnQuit(wxCommandEvent& event);
+    void OnTitleChange(wxCommandEvent& event);
     
     Map map;
     MapeditWidget* mapEditor;
     TileWidget* tileEditor;
+    wxTextCtrl* titleBox;
     std::string filename;
     
     wxDECLARE_EVENT_TABLE();

@@ -49,6 +49,8 @@ class Map {
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
+    std::string getTitle() const;
+    void setTitle(std::string title);
     void save(std::string name);
     bool hasUnsavedChanges() const;
     void setTileAt(int x, int y, int tile);
