@@ -50,9 +50,9 @@ Map::Map(const std::string name)
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "environment"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
+      mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
       mapdata[0] = atoi(strtok((char*) key, ",\n"));
-      for (int i=1; i<(MAP_WIDTH*(MAP_HEIGHT-1)); i++)
+      for (int i=1; i<(MAP_WIDTH*MAP_HEIGHT); i++)
       {
         mapdata[i] = atoi(strtok(NULL, ",\n"));
       }
@@ -100,8 +100,8 @@ Map::Map(const std::string name)
 
 Map::Map(const Map& map)
 {
-  mapdata = (int*) malloc(MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
-  memcpy(mapdata, map.mapdata, MAP_WIDTH*(MAP_HEIGHT-1)*sizeof(int));
+  mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
+  memcpy(mapdata, map.mapdata, MAP_WIDTH*MAP_HEIGHT*sizeof(int));
   
   title = (char*) malloc((MAP_WIDTH+1)*sizeof(char));
   strncpy(title, map.title, MAP_WIDTH+1);

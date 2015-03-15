@@ -7,7 +7,7 @@ MapCollisionComponent::MapCollisionComponent(const Map& map) : map(map)
   addCollision(-6, 0, GAME_WIDTH, Direction::left, (map.getLeftMap() == nullptr) ? Collision::Type::wrap : Collision::Type::teleport);
   addCollision(GAME_WIDTH+6, 0, GAME_WIDTH, Direction::right, (map.getRightMap() == nullptr) ? Collision::Type::reverse : Collision::Type::teleport);
   
-  for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
+  for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
   {
     int x = i % MAP_WIDTH;
     int y = i / MAP_WIDTH;

@@ -8,7 +8,7 @@ MapRenderComponent::MapRenderComponent(const Map& map) : screen(GAME_WIDTH, GAME
   
   Texture tiles("../res/tiles.png");
   
-  for (int i=0; i<MAP_WIDTH*(MAP_HEIGHT-1); i++)
+  for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
   {
     int tile = map.getMapdata()[i];
     int x = i % MAP_WIDTH;
