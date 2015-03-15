@@ -3,6 +3,9 @@
 #include "tile_widget.h"
 #include <wx/splitter.h>
 #include "panel.h"
+#include <list>
+
+static std::list<wxWindow*> openWindows;
 
 enum {
   MENU_VIEW_ZOOM_IN,
@@ -102,6 +105,8 @@ void MapeditFrame::OnExit(wxCloseEvent& event)
     }
   }
   
+  *closer = nullptr;
+  
   event.Skip();
 }
 
@@ -122,8 +127,7 @@ void MapeditFrame::ZoomOut(wxCommandEvent& event)
 
 void MapeditFrame::OnNew(wxCommandEvent& event)
 {
-  MapeditFrame* frame = new MapeditFrame();
-  frame->Show(true);
+  NewMap();
 }
 
 void MapeditFrame::OnOpen(wxCommandEvent& event)
@@ -134,9 +138,7 @@ void MapeditFrame::OnOpen(wxCommandEvent& event)
     return;
   }
   
-  std::string filename = openFileDialog.GetPath().ToStdString();
-  MapeditFrame* frame = new MapeditFrame(Map(filename), filename);
-  frame->Show(true);
+  OpenMap(openFileDialog.GetPath().c_str());
 }
 
 void MapeditFrame::OnSave(wxCommandEvent& event)
@@ -162,10 +164,33 @@ void MapeditFrame::OnClose(wxCommandEvent& event)
 
 void MapeditFrame::OnQuit(wxCommandEvent& event)
 {
-  // TODO
+  for (auto window : openWindows)
+  {
+    if (window != nullptr)
+    {
+      window->Close(false);
+    }
+  }
 }
 
 void MapeditFrame::OnTitleChange(wxCommandEvent& event)
 {
   map.setTitle(titleBox->GetLineText(0).ToStdString());
+}
+
+void MapeditFrame::NewMap()
+{
+  LaunchWindow(Map(), "");
+}
+
+void MapeditFrame::OpenMap(const char* filename)
+{
+  LaunchWindow(Map(filename), filename);
+}
+
+void MapeditFrame::LaunchWindow(Map map, const char* filename)
+{
+  MapeditFrame* frame = new MapeditFrame(map, filename);
+  frame->closer = openWindows.insert(end(openWindows), frame);
+  frame->Show(true);
 }

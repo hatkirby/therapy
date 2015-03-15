@@ -10,15 +10,23 @@
 #include "map.h"
 #include "widget.h"
 #include "tile_widget.h"
+#include <list>
 
 class MapeditFrame : public wxFrame {
   public:
-    MapeditFrame() : MapeditFrame(Map(), "") {}
+    MapeditFrame() {}
     MapeditFrame(Map map, std::string filename);
     
     MapeditWidget* GetMapEditor();
+    
+    static void NewMap();
+    static void OpenMap(const char* filename);
+    
+    std::list<wxWindow*>::iterator closer;
 
   private:
+    static void LaunchWindow(Map map, const char* filename);
+      
     void ZoomIn(wxCommandEvent& event);
     void ZoomOut(wxCommandEvent& event);
     void OnNew(wxCommandEvent& event);
