@@ -1,12 +1,15 @@
 #include "map.h"
 #include <libxml/parser.h>
+#include <libxml/xmlwriter.h>
+#include <sstream>
 
 Map::Map()
 {
   mapdata = (int*) calloc(MAP_WIDTH * MAP_HEIGHT, sizeof(int));
+  dirty = true;
 }
 
-Map::Map(const std::string filename)
+Map::Map(std::string filename)
 {
   xmlDocPtr doc = xmlParseFile(filename.c_str());
   if (doc == nullptr)
@@ -56,6 +59,8 @@ Map::Map(const std::string filename)
   }
   
   xmlFreeDoc(doc);
+  
+  dirty = false;
 }
 
 Map::Map(const Map& map)
@@ -66,6 +71,7 @@ Map::Map(const Map& map)
   title = map.title;
   leftmap = map.leftmap;
   rightmap = map.rightmap;
+  dirty = map.dirty;
 }
 
 Map::Map(Map&& map) : Map()
@@ -91,4 +97,78 @@ void swap(Map& first, Map& second)
   std::swap(first.title, second.title);
   std::swap(first.leftmap, second.leftmap);
   std::swap(first.rightmap, second.rightmap);
+  std::swap(first.dirty, second.dirty);
+}
+
+#define MY_ENCODING "ISO-8859-1"
+
+void Map::save(std::string name)
+{
+  if (!dirty) return;
+  
+  int rc;
+  
+  xmlTextWriterPtr writer = xmlNewTextWriterFilename(name.c_str(), 0);
+  if (writer == NULL) throw MapWriteException(name);
+
+  rc = xmlTextWriterStartDocument(writer, NULL, MY_ENCODING, NULL);
+  if (rc < 0) throw MapWriteException(name);
+  
+  rc = xmlTextWriterStartElement(writer, (xmlChar*) "map-def");
+  if (rc < 0) throw MapWriteException(name);
+  
+  rc = xmlTextWriterWriteElement(writer, (xmlChar*) "name", (xmlChar*) title.c_str());
+  if (rc < 0) throw MapWriteException(name);
+  
+  std::ostringstream mapdata_out;
+  for (int y=0; y<MAP_HEIGHT; y++)
+  {
+    for (int x=0; x<MAP_WIDTH; x++)
+    {
+      mapdata_out << mapdata[x+y*MAP_WIDTH] << ",";
+    }
+    
+    mapdata_out << std::endl;
+  }
+  
+  rc = xmlTextWriterWriteElement(writer, (xmlChar*) "environment", (xmlChar*) mapdata_out.str().c_str());
+  if (rc < 0) throw MapWriteException(name);
+  
+  if (leftmap != "")
+  {
+    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "leftmap", (xmlChar*) leftmap.c_str());
+    if (rc < 0) throw MapWriteException(name);
+  }
+  
+  if (rightmap != "")
+  {
+    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "rightmap", (xmlChar*) rightmap.c_str());
+    if (rc < 0) throw MapWriteException(name);
+  }
+  
+  rc = xmlTextWriterEndElement(writer);
+  if (rc < 0) throw MapWriteException(name);
+  
+  rc = xmlTextWriterEndDocument(writer);
+  if (rc < 0) throw MapWriteException(name);
+  
+  xmlFreeTextWriter(writer);
+  
+  dirty = false;
+}
+
+bool Map::hasUnsavedChanges() const
+{
+  return dirty;
+}
+
+void Map::setTileAt(int x, int y, int tile)
+{
+  dirty = true;
+  mapdata[x+y*MAP_WIDTH] = tile;
+}
+
+int Map::getTileAt(int x, int y) const
+{
+  return mapdata[x+y*MAP_WIDTH];
 }

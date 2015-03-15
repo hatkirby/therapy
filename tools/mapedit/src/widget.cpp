@@ -48,7 +48,7 @@ void MapeditWidget::OnPaint(wxPaintEvent& event)
   {
     for (int x=0; x<MAP_WIDTH; x++)
     {
-      int tile = map->mapdata[x+y*MAP_WIDTH];
+      int tile = map->getTileAt(x, y);
       dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     }
   }
@@ -76,7 +76,7 @@ void MapeditWidget::SetTile(wxPoint pos)
   int x = (pos.x + vX) / (TILE_WIDTH * scale);
   int y = (pos.y + vY) / (TILE_HEIGHT * scale);
   
-  map->mapdata[x+y*MAP_WIDTH] = tileWidget->getSelected();
+  map->setTileAt(x, y, tileWidget->getSelected());
   Refresh();
 }
 

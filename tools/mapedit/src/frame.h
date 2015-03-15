@@ -13,21 +13,25 @@
 
 class MapeditFrame : public wxFrame {
   public:
-    MapeditFrame() : MapeditFrame(Map()) {}
-    MapeditFrame(Map map);
+    MapeditFrame() : MapeditFrame(Map(), "") {}
+    MapeditFrame(Map map, std::string filename);
     
     MapeditWidget* GetMapEditor();
 
-  protected:
+  private:
     void ZoomIn(wxCommandEvent& event);
     void ZoomOut(wxCommandEvent& event);
-    
-  private:
-    void OnExit(wxCommandEvent& event);
+    void OnNew(wxCommandEvent& event);
+    void OnOpen(wxCommandEvent& event);
+    void OnSave(wxCommandEvent& event);
+    void OnClose(wxCommandEvent& event);
+    void OnExit(wxCloseEvent& event);
+    void OnQuit(wxCommandEvent& event);
     
     Map map;
     MapeditWidget* mapEditor;
     TileWidget* tileEditor;
+    std::string filename;
     
     wxDECLARE_EVENT_TABLE();
 };

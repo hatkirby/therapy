@@ -25,20 +25,41 @@ class MapLoadException: public std::exception
     std::string mapname;
 };
 
+class MapWriteException: public std::exception
+{
+  public:
+    MapWriteException(std::string mapname) : mapname(mapname) {}
+    
+    virtual const char* what() const throw()
+    {
+      return ("An error occured writing map " + mapname).c_str();
+    }
+    
+  private:
+    std::string mapname;
+};
+
 class Map {
   public:
     Map();
-    Map(const std::string name);
+    Map(std::string name);
     Map(const Map& map);
     Map(Map&& map);
     ~Map();
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
+    void save(std::string name);
+    bool hasUnsavedChanges() const;
+    void setTileAt(int x, int y, int tile);
+    int getTileAt(int x, int y) const;
+    
+  private:
     int* mapdata;
     std::string title;
     std::string leftmap;
     std::string rightmap;
+    bool dirty;
 };
 
 #endif
