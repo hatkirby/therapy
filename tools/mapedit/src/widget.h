@@ -25,6 +25,7 @@ class MapeditWidget : public wxScrolledWindow {
     void OnClick(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseUp(wxMouseEvent& event);
+    void OnMouseOut(wxMouseEvent& event);
     
   private:
     void SetTile(wxPoint pos);
@@ -35,6 +36,8 @@ class MapeditWidget : public wxScrolledWindow {
     TileWidget* tileWidget;
     bool mouseIsDown = false;
     int scale;
+    wxPoint mousePos;
+    bool mouseIsIn = false;
     
     DECLARE_DYNAMIC_CLASS(MapeditWidget);
     DECLARE_EVENT_TABLE();

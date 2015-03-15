@@ -7,6 +7,7 @@ BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledWindow)
   EVT_LEFT_DOWN(MapeditWidget::OnClick)
   EVT_LEFT_UP(MapeditWidget::OnMouseUp)
   EVT_MOTION(MapeditWidget::OnMouseMove)
+  EVT_LEAVE_WINDOW(MapeditWidget::OnMouseOut)
 END_EVENT_TABLE()
 
 MapeditWidget::MapeditWidget()
@@ -51,6 +52,20 @@ void MapeditWidget::OnPaint(wxPaintEvent& event)
       dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     }
   }
+  
+  if (mouseIsIn)
+  {
+    int tile = tileWidget->getSelected();
+    int x = (mousePos.x + vX) / (TILE_WIDTH * scale);
+    int y = (mousePos.y + vY) / (TILE_HEIGHT * scale);
+    
+    dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+    
+    wxPen pen(*wxGREEN, 2);
+    dc.SetPen(pen);
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.DrawRectangle(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale);
+  }
 }
 
 void MapeditWidget::SetTile(wxPoint pos)
@@ -80,11 +95,22 @@ void MapeditWidget::OnMouseMove(wxMouseEvent& event)
   {
     SetTile(event.GetPosition());
   }
+  
+  mouseIsIn = true;
+  mousePos = event.GetPosition();
+  Refresh();
 }
 
 void MapeditWidget::OnMouseUp(wxMouseEvent& event)
 {
   mouseIsDown = false;
+}
+
+void MapeditWidget::OnMouseOut(wxMouseEvent& event)
+{
+  mouseIsIn = false;
+  
+  Refresh();
 }
 
 void MapeditWidget::ZoomIn()
