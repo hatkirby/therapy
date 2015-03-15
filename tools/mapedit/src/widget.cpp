@@ -1,8 +1,8 @@
 #include "widget.h"
 
-IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxControl)
+IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxScrolledWindow)
 
-BEGIN_EVENT_TABLE(MapeditWidget, wxControl)
+BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledWindow)
 	EVT_PAINT(MapeditWidget::OnPaint)
   EVT_LEFT_DOWN(MapeditWidget::OnClick)
   EVT_LEFT_UP(MapeditWidget::OnMouseUp)
@@ -15,7 +15,7 @@ MapeditWidget::MapeditWidget()
 }
 
 MapeditWidget::MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileWidget* tileWidget, const wxPoint& pos, const wxSize& size)
-  : wxControl(parent, winid, pos, size), map(map), tileWidget(tileWidget)
+  : wxScrolledWindow(parent, winid, pos, size), map(map), tileWidget(tileWidget)
 {
   Init();
 }
@@ -23,6 +23,11 @@ MapeditWidget::MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileW
 void MapeditWidget::Init()
 {
   tiles = wxBitmap(wxImage("../../../res/tiles.png"));
+  
+  this->FitInside();
+  this->SetScrollRate(5, 5);
+  
+  SetZoomSize(2);
 }
 
 wxSize MapeditWidget::DoGetBestSize() const
@@ -35,34 +40,26 @@ void MapeditWidget::OnPaint(wxPaintEvent& event)
   wxPaintDC dc(this);
   wxMemoryDC tiles_dc;
   tiles_dc.SelectObject(tiles);
-  wxRegionIterator upd(GetUpdateRegion());
-  int vW = upd.GetW();
-  int vH = upd.GetH();
+  int vX, vY;
+  GetViewStart(&vX, &vY);
 
-  double endWidth = TILE_WIDTH * ((double) vW / (double) GAME_WIDTH);
-  double endHeight = TILE_HEIGHT * ((double) vH / (double) GAME_HEIGHT);
-  
   for (int y=0; y<MAP_HEIGHT; y++)
   {
     for (int x=0; x<MAP_WIDTH; x++)
     {
       int tile = map->mapdata[x+y*MAP_WIDTH];
-      dc.StretchBlit(x*endWidth, y*endHeight, endWidth, endHeight, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+      dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     }
   }
 }
 
 void MapeditWidget::SetTile(wxPoint pos)
 {
-  wxRegionIterator upd(GetUpdateRegion());
-  int vW = upd.GetW();
-  int vH = upd.GetH();
+  int vX, vY;
+  GetViewStart(&vX, &vY);
 
-  double endWidth = TILE_WIDTH * ((double) vW / (double) GAME_WIDTH);
-  double endHeight = TILE_HEIGHT * ((double) vH / (double) GAME_HEIGHT);
-  
-  int x = pos.x / endWidth;
-  int y = pos.y / endHeight;
+  int x = (pos.x + vX) / (TILE_WIDTH * scale);
+  int y = (pos.y + vY) / (TILE_HEIGHT * scale);
   
   map->mapdata[x+y*MAP_WIDTH] = tileWidget->getSelected();
   Refresh();
@@ -88,4 +85,23 @@ void MapeditWidget::OnMouseMove(wxMouseEvent& event)
 void MapeditWidget::OnMouseUp(wxMouseEvent& event)
 {
   mouseIsDown = false;
+}
+
+void MapeditWidget::ZoomIn()
+{
+  SetZoomSize(scale+1);
+}
+
+void MapeditWidget::ZoomOut()
+{
+  SetZoomSize(scale-1);
+}
+
+void MapeditWidget::SetZoomSize(int zoom)
+{
+  scale = zoom;
+  
+  SetVirtualSize(MAP_WIDTH*TILE_WIDTH*scale, MAP_HEIGHT*TILE_HEIGHT*scale);
+  
+  GetParent()->Refresh();
 }

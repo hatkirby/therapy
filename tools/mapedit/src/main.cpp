@@ -19,6 +19,8 @@ bool MapeditApp::OnInit()
   wxInitAllImageHandlers();
   
   MapeditFrame* frame = new MapeditFrame();
+  SetTopWindow(frame);
   frame->Show(true);
+  
   return true;
 }

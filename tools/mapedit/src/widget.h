@@ -10,10 +10,13 @@
 #include "map.h"
 #include "tile_widget.h"
 
-class MapeditWidget : public wxControl {
+class MapeditWidget : public wxScrolledWindow {
   public:
     MapeditWidget();
     MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileWidget* tileWidget, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
+    
+    void ZoomIn();
+    void ZoomOut();
     
   protected:
     void Init();
@@ -25,11 +28,13 @@ class MapeditWidget : public wxControl {
     
   private:
     void SetTile(wxPoint pos);
+    void SetZoomSize(int zoom);
       
     Map* const map = nullptr;
     wxBitmap tiles;
     TileWidget* tileWidget;
     bool mouseIsDown = false;
+    int scale;
     
     DECLARE_DYNAMIC_CLASS(MapeditWidget);
     DECLARE_EVENT_TABLE();

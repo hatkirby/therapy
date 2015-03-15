@@ -7,10 +7,12 @@
 #include <wx/wx.h>
 #endif
 
-class TileWidget : public wxControl {
+#include "map.h"
+
+class TileWidget : public wxScrolledWindow {
   public:
     TileWidget();
-    TileWidget(wxWindow* parent, wxWindowID winid, int numTilesWidth = 8, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
+    TileWidget(wxWindow* parent, wxWindowID winid, int width, int scale, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
     
     int getSelected();
     
@@ -22,8 +24,9 @@ class TileWidget : public wxControl {
   private:
     int numTilesWidth;
     wxBitmap tiles;
-    int numTiles;
+    int numTiles = 50;
     int selected = 0;
+    int scale;
     
     DECLARE_DYNAMIC_CLASS(MapeditWidget);
     DECLARE_EVENT_TABLE();
