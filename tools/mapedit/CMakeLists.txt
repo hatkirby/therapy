@@ -40,6 +40,9 @@ set(CMAKE_BUILD_TYPE Debug)
 add_executable(AromatherapyMapEditor
   src/main.cpp
   src/map.cpp
+  src/frame.cpp
+  src/widget.cpp
+  src/tile_widget.cpp
 )
 target_link_libraries(AromatherapyMapEditor ${ALL_LIBS})
 install(TARGETS AromatherapyMapEditor RUNTIME DESTINATION ${BIN_DIR})
