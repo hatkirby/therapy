@@ -44,8 +44,14 @@ Map::Map(const std::string name)
     if (!xmlStrcmp(node->name, (const xmlChar*) "name"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      title = (char*) calloc(xmlStrlen(key) + 1, sizeof(char));
-      strcpy(title, (char*) key);
+      int len = xmlStrlen(key);
+      title = (char*) calloc(len + 1, sizeof(char));
+      
+      if (len > 0)
+      {
+        strcpy(title, (char*) key);
+      }
+      
       xmlFree(key);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "environment"))
     {
