@@ -9,6 +9,7 @@ World::World()
   newMap();
   
   rootChildren.push_back(0);
+  empty = true;
 }
 
 World::World(std::string filename)
@@ -170,6 +171,7 @@ std::shared_ptr<Map> World::getMap(int id) const
 
 void World::setDirty(bool dirty)
 {
+  if (dirty) empty = false;
   this->dirty = dirty;
   parent->MapDirtyDidChange(dirty);
 }
@@ -371,4 +373,9 @@ const std::map<int, std::shared_ptr<Map>> World::getMaps() const
 void World::setLastMap(Map* map)
 {
   lastmap = map->getID();
+}
+
+bool World::getEmpty() const
+{
+  return empty;
 }

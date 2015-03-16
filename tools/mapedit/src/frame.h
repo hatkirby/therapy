@@ -33,7 +33,7 @@ class MapeditFrame : public wxFrame {
     void MapDirtyDidChange(bool dirty);
     
     static void NewWorld();
-    static void OpenWorld(std::string filename);
+    static bool OpenWorld(std::string filename);
     
     std::list<wxWindow*>::iterator closer;
 

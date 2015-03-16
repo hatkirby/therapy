@@ -265,7 +265,13 @@ void MapeditFrame::OnOpen(wxCommandEvent&)
     return;
   }
   
-  OpenWorld(openFileDialog.GetPath().ToStdString());
+  if (OpenWorld(openFileDialog.GetPath().ToStdString()))
+  {
+    if (world->getEmpty())
+    {
+      Close(true);
+    }
+  }
 }
 
 void MapeditFrame::OnSave(wxCommandEvent&)
@@ -429,17 +435,21 @@ void MapeditFrame::NewWorld()
   LaunchWindow(std::unique_ptr<World>(new World()));
 }
 
-void MapeditFrame::OpenWorld(std::string filename)
+bool MapeditFrame::OpenWorld(std::string filename)
 {
   try
   {
     auto world = std::unique_ptr<World>(new World(filename));
     
     LaunchWindow(std::move(world));
+    
+    return true;
   } catch (std::exception& ex)
   {
     wxMessageBox(ex.what(), "Error loading world", wxOK | wxCENTRE | wxICON_ERROR);
   }
+  
+  return false;
 }
 
 void MapeditFrame::LaunchWindow(std::unique_ptr<World> world)

@@ -32,6 +32,7 @@ class World {
     void setLastMap(Map* map);
     std::list<std::shared_ptr<Map>> getRootMaps() const;
     const std::map<int, std::shared_ptr<Map>> getMaps() const;
+    bool getEmpty() const;
     
   private:
     MapeditFrame* parent;
@@ -41,6 +42,7 @@ class World {
     std::string filename;
     int lastmap = 0;
     std::list<int> rootChildren;
+    bool empty = false;
 };
 
 #endif
