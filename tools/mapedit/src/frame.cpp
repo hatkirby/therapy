@@ -14,7 +14,10 @@ enum {
   MENU_FILE_NEW,
   MENU_FILE_OPEN,
   MENU_FILE_SAVE,
-  MENU_FILE_CLOSE
+  MENU_FILE_CLOSE,
+  TOOL_FILE_NEW,
+  TOOL_FILE_OPEN,
+  TOOL_FILE_SAVE
 };
 
 wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
@@ -24,12 +27,17 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_MENU(MENU_FILE_NEW, MapeditFrame::OnNew)
   EVT_MENU(MENU_FILE_OPEN, MapeditFrame::OnOpen)
   EVT_MENU(MENU_FILE_SAVE, MapeditFrame::OnSave)
+  EVT_TOOL(TOOL_FILE_NEW, MapeditFrame::OnNew)
+  EVT_TOOL(TOOL_FILE_OPEN, MapeditFrame::OnOpen)
+  EVT_TOOL(TOOL_FILE_SAVE, MapeditFrame::OnSave)
   EVT_MENU(MENU_FILE_CLOSE, MapeditFrame::OnClose)
   EVT_CLOSE(MapeditFrame::OnExit)
 wxEND_EVENT_TABLE()
 
 MapeditFrame::MapeditFrame(Map map, std::string filename) : wxFrame(NULL, wxID_ANY, "Map Editor", wxDefaultPosition, wxSize(GAME_WIDTH*3, GAME_HEIGHT*2)), map(map), filename(filename)
 {
+  this->map.frame = this;
+  
   wxMenu* menuFile = new wxMenu;
   menuFile->Append(MENU_FILE_NEW, "New\tCtrl-N");
   menuFile->Append(MENU_FILE_OPEN, "Open\tCtrl-O");
@@ -137,6 +145,14 @@ MapeditFrame::MapeditFrame(Map map, std::string filename) : wxFrame(NULL, wxID_A
   splitterSizer->Add(propertyEditor, 0, wxALIGN_TOP, wxALIGN_LEFT, 0);
   layout3->SetSizer(splitterSizer);
   splitterSizer->SetSizeHints(layout3);
+  
+  // Toolbar time!
+  toolbar = CreateToolBar();
+  toolbar->AddTool(TOOL_FILE_NEW, "New", wxBitmap(wxImage("res/page_add.png")));
+  toolbar->AddTool(TOOL_FILE_OPEN, "Open", wxBitmap(wxImage("res/folder_page.png")));
+  toolbar->AddTool(TOOL_FILE_SAVE, "Save", wxBitmap(wxImage("res/disk.png")));
+  toolbar->EnableTool(TOOL_FILE_SAVE, this->map.getDirty());
+  toolbar->Realize();
 }
 
 void MapeditFrame::OnExit(wxCloseEvent& event)
@@ -313,4 +329,9 @@ void MapeditFrame::FinishAddingEntity()
   addingEntity = false;
   addEntityButton->Enable();
   cancelEntityButton->Disable();
+}
+
+void MapeditFrame::MapDirtyDidChange(bool dirty)
+{
+  toolbar->EnableTool(TOOL_FILE_SAVE, dirty);
 }

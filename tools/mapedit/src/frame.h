@@ -21,6 +21,7 @@ class MapeditFrame : public wxFrame {
     MapeditWidget* GetMapEditor();
     void StartAddingEntity();
     void FinishAddingEntity();
+    void MapDirtyDidChange(bool dirty);
     
     static void NewMap();
     static void OpenMap(const char* filename);
@@ -53,6 +54,7 @@ class MapeditFrame : public wxFrame {
     wxChoice* entityTypeBox;
     wxButton* addEntityButton;
     wxButton* cancelEntityButton;
+    wxToolBar* toolbar;
     
     bool addingEntity = false;
     

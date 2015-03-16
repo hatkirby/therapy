@@ -8,6 +8,8 @@
 #include "object.h"
 #include <memory>
 
+class MapeditFrame;
+
 const int TILE_WIDTH = 8;
 const int TILE_HEIGHT = 8;
 const int GAME_WIDTH = 320;
@@ -72,8 +74,13 @@ class Map {
     const std::list<std::shared_ptr<MapObjectEntry>>& getObjects() const;
     void addObject(std::shared_ptr<MapObjectEntry>& obj);
     void removeObject(std::shared_ptr<MapObjectEntry>& obj);
+    bool getDirty() const;
+    
+    MapeditFrame* frame;
     
   private:
+    void setDirty(bool dirty);
+    
     std::list<std::shared_ptr<MapObjectEntry>> objects;
     int* mapdata;
     std::string title;

@@ -2,6 +2,7 @@
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>
 #include <sstream>
+#include "frame.h"
 
 Map::Map()
 {
@@ -96,6 +97,7 @@ Map::Map(const Map& map)
   rightmap = map.rightmap;
   dirty = map.dirty;
   objects = map.objects;
+  frame = map.frame;
 }
 
 Map::Map(Map&& map) : Map()
@@ -123,6 +125,7 @@ void swap(Map& first, Map& second)
   std::swap(first.rightmap, second.rightmap);
   std::swap(first.dirty, second.dirty);
   std::swap(first.objects, second.objects);
+  std::swap(first.frame, second.frame);
 }
 
 #define MY_ENCODING "ISO-8859-1"
@@ -197,7 +200,7 @@ void Map::save(std::string name)
   
   xmlFreeTextWriter(writer);
   
-  dirty = false;
+  setDirty(false);
 }
 
 bool Map::hasUnsavedChanges() const
@@ -207,7 +210,7 @@ bool Map::hasUnsavedChanges() const
 
 void Map::setTileAt(int x, int y, int tile)
 {
-  dirty = true;
+  setDirty(true);
   mapdata[x+y*MAP_WIDTH] = tile;
 }
 
@@ -223,7 +226,7 @@ std::string Map::getTitle() const
 
 void Map::setTitle(std::string title)
 {
-  dirty = true;
+  setDirty(true);
   this->title = title;
 }
 
@@ -234,12 +237,27 @@ const std::list<std::shared_ptr<MapObjectEntry>>& Map::getObjects() const
 
 void Map::addObject(std::shared_ptr<MapObjectEntry>& obj)
 {
-  dirty = true;
+  setDirty(true);
   objects.push_back(obj);
 }
 
 void Map::removeObject(std::shared_ptr<MapObjectEntry>& obj)
 {
-  dirty = true;
+  setDirty(true);
   objects.remove(obj);
+}
+
+bool Map::getDirty() const
+{
+  return dirty;
+}
+
+void Map::setDirty(bool dirty)
+{
+  this->dirty = dirty;
+  
+  if (frame != nullptr)
+  {
+    frame->MapDirtyDidChange(dirty);
+  }
 }
