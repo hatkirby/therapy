@@ -52,6 +52,7 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_TREE_SEL_CHANGED(MAP_EDITOR_TREE, MapeditFrame::OnDidSelectMap)
   EVT_TREE_BEGIN_DRAG(MAP_EDITOR_TREE, MapeditFrame::OnWillDragMap)
   EVT_TREE_END_DRAG(MAP_EDITOR_TREE, MapeditFrame::OnDidDragMap)
+  EVT_TREE_ITEM_RIGHT_CLICK(MAP_EDITOR_TREE, MapeditFrame::OnRightClickTree)
   EVT_TEXT(MAP_TITLE_TEXTBOX, MapeditFrame::OnTitleChange)
   EVT_BUTTON(ADD_ENTITY_BUTTON, MapeditFrame::OnAddEntity)
   EVT_BUTTON(CANCEL_ENTITY_BUTTON, MapeditFrame::OnCancelAddEntity)
@@ -83,6 +84,10 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   menuBar->Append(menuView, "&View");
   
   SetMenuBar(menuBar);
+  
+  mapTreePopup = new wxMenu;
+  mapTreePopup->Append(MENU_MAP_ADD_ROOT, "Add Sibling Map");
+  mapTreePopup->Append(MENU_MAP_ADD_CHILD, "Add Child Map");
   
   // Layout 1: Splitter between map tree and layout 2
   // Layout 2: Non-splitter between layout 3 and notebook
@@ -409,6 +414,14 @@ void MapeditFrame::OnDidDragMap(wxTreeEvent& event)
   wxTreeItemId newChild = MoveTreeNode(dragMap, newParent);
   dragMap.Unset();
   mapTree->SelectItem(newChild);
+}
+
+void MapeditFrame::OnRightClickTree(wxTreeEvent& event)
+{
+  if (event.GetItem().IsOk())
+  {
+    PopupMenu(mapTreePopup);
+  }
 }
 
 void MapeditFrame::NewWorld()

@@ -62,6 +62,7 @@ class MapeditFrame : public wxFrame {
     void OnWillSelectMap(wxTreeEvent& event);
     void OnWillDragMap(wxTreeEvent& event);
     void OnDidDragMap(wxTreeEvent& event);
+    void OnRightClickTree(wxTreeEvent& event);
     
     std::unique_ptr<World> world;
     Map* currentMap;
@@ -77,6 +78,7 @@ class MapeditFrame : public wxFrame {
     wxMenu* menuFile;
     wxTreeCtrl* mapTree;
     wxTreeItemId dragMap;
+    wxMenu* mapTreePopup;
     
     bool addingEntity = false;
     
