@@ -367,3 +367,8 @@ const std::map<int, std::shared_ptr<Map>> World::getMaps() const
 {
   return maps;
 }
+
+void World::setLastMap(Map* map)
+{
+  lastmap = map->getID();
+}

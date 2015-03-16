@@ -513,6 +513,7 @@ void MapeditFrame::SelectMap(Map* map)
   currentMap = map;
   mapEditor->SetMap(map);
   titleBox->ChangeValue(map->getTitle());
+  world->setLastMap(map);
 }
 
 wxTreeItemId MapeditFrame::MoveTreeNode(wxTreeItemId toCopy, wxTreeItemId newParent)

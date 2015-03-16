@@ -29,6 +29,7 @@ class World {
     void setParent(MapeditFrame* parent);
     void save(std::string filename, wxTreeCtrl* mapTree);
     Map* getLastMap() const;
+    void setLastMap(Map* map);
     std::list<std::shared_ptr<Map>> getRootMaps() const;
     const std::map<int, std::shared_ptr<Map>> getMaps() const;
     
