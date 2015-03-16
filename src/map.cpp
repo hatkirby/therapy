@@ -43,7 +43,11 @@ Map::Map(const std::string name)
     if (!xmlStrcmp(node->name, (const xmlChar*) "name"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      title = (char*) key;
+      if (key != 0)
+      {
+        title = (char*) key;
+      }
+      
       xmlFree(key);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "environment"))
     {
@@ -67,7 +71,11 @@ Map::Map(const std::string name)
             if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
             {
               xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              data.name = std::string((char*) key);
+              if (key != 0)
+              {
+                data.name = (char*) key;
+              }
+
               xmlFree(key);
             } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
             {
@@ -83,23 +91,21 @@ Map::Map(const std::string name)
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "leftmap"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      std::string mapname = (char*) key;
-      xmlFree(key);
-      
-      if (mapname.length() > 0)
+      if (key != 0)
       {
-        leftMap = &Map::getNamedMap(mapname);
+        leftMap = &Map::getNamedMap((char*) key);
       }
+
+      xmlFree(key);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "rightmap"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      std::string mapname = (char*) key;
-      xmlFree(key);
-      
-      if (mapname.length() > 0)
+      if (key != 0)
       {
-        rightMap = &Map::getNamedMap(mapname);
+        rightMap = &Map::getNamedMap((char*) key);
       }
+
+      xmlFree(key);
     }
   }
   
