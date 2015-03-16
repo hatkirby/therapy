@@ -301,6 +301,13 @@ void MapeditFrame::OnCancelAddEntity(wxCommandEvent&)
   mapEditor->CancelAddingEntity();
 }
 
+void MapeditFrame::StartAddingEntity()
+{
+  addingEntity = true;
+  addEntityButton->Disable();
+  cancelEntityButton->Enable();
+}
+
 void MapeditFrame::FinishAddingEntity()
 {
   addingEntity = false;

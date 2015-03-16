@@ -19,6 +19,7 @@ class MapeditFrame : public wxFrame {
     MapeditFrame(Map map, std::string filename);
     
     MapeditWidget* GetMapEditor();
+    void StartAddingEntity();
     void FinishAddingEntity();
     
     static void NewMap();

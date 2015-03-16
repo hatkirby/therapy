@@ -10,7 +10,7 @@ const std::map<std::string, std::shared_ptr<MapObject>> MapObject::getAllObjects
 {
   if (!objsInit)
   {
-    DIR* dir = opendir("../../../entities/");
+    DIR* dir = opendir("entities/");
     if (dir != NULL)
     {
       struct dirent* ent;
@@ -37,7 +37,7 @@ MapObject::MapObject(const char* filename)
 {
   type = filename;
   
-  xmlDocPtr doc = xmlParseFile(("../../../entities/" + std::string(filename) + ".xml").c_str());
+  xmlDocPtr doc = xmlParseFile(("entities/" + std::string(filename) + ".xml").c_str());
   if (doc == nullptr) throw MapObjectLoadException(filename);
 
   xmlNodePtr top = xmlDocGetRootElement(doc);
@@ -56,7 +56,7 @@ MapObject::MapObject(const char* filename)
       std::string spriteFile = (char*) key;
       xmlFree(key);
       
-      sprite = wxImage("../../" + spriteFile);
+      sprite = wxImage(spriteFile);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "action"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);

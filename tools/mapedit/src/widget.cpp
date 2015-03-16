@@ -6,6 +6,7 @@ IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxScrolledWindow)
 BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledWindow)
 	EVT_PAINT(MapeditWidget::OnPaint)
   EVT_LEFT_DOWN(MapeditWidget::OnClick)
+  EVT_RIGHT_DOWN(MapeditWidget::OnRightClick)
   EVT_LEFT_UP(MapeditWidget::OnMouseUp)
   EVT_MOTION(MapeditWidget::OnMouseMove)
   EVT_LEAVE_WINDOW(MapeditWidget::OnMouseOut)
@@ -24,7 +25,7 @@ MapeditWidget::MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileW
 
 void MapeditWidget::Init()
 {
-  tiles = wxBitmap(wxImage("../../../res/tiles.png"));
+  tiles = wxBitmap(wxImage("res/tiles.png"));
   
   this->FitInside();
   this->SetScrollRate(5, 5);
@@ -62,10 +63,18 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
   {
     tiles_dc.SelectObject(wxNullBitmap);
     
-    wxBitmap sprite = object.object->getSprite();
+    wxBitmap sprite = object->object->getSprite();
     tiles_dc.SelectObject(sprite);
     
-    dc.StretchBlit(object.position.first*scale-vX, object.position.second*scale-vY, object.object->getWidth()*scale, object.object->getHeight()*scale, &tiles_dc, 0, 0, object.object->getWidth(), object.object->getHeight());
+    dc.StretchBlit(object->position.first*scale-vX, object->position.second*scale-vY, object->object->getWidth()*scale, object->object->getHeight()*scale, &tiles_dc, 0, 0, object->object->getWidth(), object->object->getHeight());
+    
+    if ((editMode == EditEntities) && (selectedEntity) && (object == selectedEntity))
+    {
+      wxPen pen(*wxGREEN, 2);
+      dc.SetPen(pen);
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.DrawRectangle(object->position.first*scale-vX, object->position.second*scale-vY, object->object->getWidth()*scale, object->object->getHeight()*scale);
+    }
   }
   
   if (editMode == EditTiles)
@@ -140,20 +149,85 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
       int x = (event.GetPosition().x + vX) / scale - (addingEntity->getWidth() / 2);
       int y = (event.GetPosition().y + vY) / scale - (addingEntity->getHeight() / 2);
 
-      MapObjectEntry data;
-      data.object = addingEntity;
-      data.position = std::make_pair(x,y);
-      map->getObjects().push_back(data);
+      auto data = std::make_shared<MapObjectEntry>();
+      data->object = addingEntity;
+      data->position = std::make_pair(x,y);
+      map->addObject(data);
       
       addingEntity = nullptr;
       
       frame->FinishAddingEntity();
       
       Refresh();
+    } else {
+      int vX, vY;
+      GetViewStart(&vX, &vY);
+      int vXX, vYX;
+      GetScrollPixelsPerUnit(&vXX, &vYX);
+      vX *= vXX;
+      vY *= vYX;
+      
+      int x = (event.GetPosition().x + vX) / scale;
+      int y = (event.GetPosition().y + vY) / scale;
+      
+      if (selectedEntity)
+      {
+        if ((x > selectedEntity->position.first) && (x < selectedEntity->position.first + selectedEntity->object->getWidth())
+          && (y > selectedEntity->position.second) && (y < selectedEntity->position.second + selectedEntity->object->getHeight()))
+        {
+          addingEntity = selectedEntity->object;
+          map->removeObject(selectedEntity);
+          selectedEntity.reset();
+          frame->StartAddingEntity();
+        } else {
+          selectedEntity.reset();
+        }
+        
+        Refresh();
+      } else {
+        for (auto object : map->getObjects())
+        {
+          if ((x >= object->position.first) && (x <= object->position.first + object->object->getWidth())
+            && (y >= object->position.second) && (y <= object->position.second + object->object->getHeight()))
+          {
+            selectedEntity = object;
+            
+            Refresh();
+            
+            break;
+          }
+        }
+      }
     }
   }
   
   event.Skip();
+}
+
+void MapeditWidget::OnRightClick(wxMouseEvent& event)
+{
+  if (editMode == EditEntities)
+  {
+    if (selectedEntity)
+    {
+      int vX, vY;
+      GetViewStart(&vX, &vY);
+      int vXX, vYX;
+      GetScrollPixelsPerUnit(&vXX, &vYX);
+      vX *= vXX;
+      vY *= vYX;
+      
+      int x = (event.GetPosition().x + vX) / scale;
+      int y = (event.GetPosition().y + vY) / scale;
+      
+      if ((x > selectedEntity->position.first) && (x < selectedEntity->position.first + selectedEntity->object->getWidth())
+        && (y > selectedEntity->position.second) && (y < selectedEntity->position.second + selectedEntity->object->getHeight()))
+      {
+        map->removeObject(selectedEntity);
+        selectedEntity.reset();
+      }
+    }
+  }
 }
 
 void MapeditWidget::OnMouseMove(wxMouseEvent& event)
@@ -216,6 +290,7 @@ void MapeditWidget::SetEditMode(EditMode editMode)
 void MapeditWidget::StartAddingEntity(MapObject* object)
 {
   addingEntity = object;
+  selectedEntity = nullptr;
 }
 
 void MapeditWidget::CancelAddingEntity()

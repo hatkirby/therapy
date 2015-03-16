@@ -60,18 +60,19 @@ Map::Map(std::string filename)
       {
         if (!xmlStrcmp(entityNode->name, (const xmlChar*) "entity"))
         {
-          MapObjectEntry data;
+          auto data = std::make_shared<MapObjectEntry>();
+          
           for (xmlNodePtr entityDataNode = entityNode->xmlChildrenNode; entityDataNode != NULL; entityDataNode = entityDataNode->next)
           {
             if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
             {
               xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              data.object = MapObject::getAllObjects().at((char*) key).get();
+              data->object = MapObject::getAllObjects().at((char*) key).get();
               xmlFree(key);
             } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
             {
               xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              sscanf((char*) key, "%lf,%lf", &data.position.first, &data.position.second);
+              sscanf((char*) key, "%lf,%lf", &data->position.first, &data->position.second);
               xmlFree(key);
             }
           }
@@ -172,11 +173,11 @@ void Map::save(std::string name)
     rc = xmlTextWriterStartElement(writer, (xmlChar*) "entity");
     if (rc < 0) throw MapWriteException(name);
     
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-type", (xmlChar*) object.object->getType().c_str());
+    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-type", (xmlChar*) object->object->getType().c_str());
     if (rc < 0) throw MapWriteException(name);
     
     std::ostringstream entpos_out;
-    entpos_out << object.position.first << "," << object.position.second;
+    entpos_out << object->position.first << "," << object->position.second;
     
     rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-position", (xmlChar*) entpos_out.str().c_str());
     if (rc < 0) throw MapWriteException(name);
@@ -226,7 +227,19 @@ void Map::setTitle(std::string title)
   this->title = title;
 }
 
-std::list<MapObjectEntry>& Map::getObjects()
+const std::list<std::shared_ptr<MapObjectEntry>>& Map::getObjects() const
 {
   return objects;
+}
+
+void Map::addObject(std::shared_ptr<MapObjectEntry>& obj)
+{
+  dirty = true;
+  objects.push_back(obj);
+}
+
+void Map::removeObject(std::shared_ptr<MapObjectEntry>& obj)
+{
+  dirty = true;
+  objects.remove(obj);
 }

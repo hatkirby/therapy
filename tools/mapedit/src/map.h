@@ -46,6 +46,11 @@ class MapWriteException: public std::exception
 struct MapObjectEntry {
   MapObject* object;
   std::pair<double, double> position;
+  
+  bool operator==(MapObjectEntry& other) const
+  {
+    return (object == other.object) && (position == other.position);
+  }
 };
 
 class Map {
@@ -64,10 +69,12 @@ class Map {
     bool hasUnsavedChanges() const;
     void setTileAt(int x, int y, int tile);
     int getTileAt(int x, int y) const;
-    std::list<MapObjectEntry>& getObjects();
+    const std::list<std::shared_ptr<MapObjectEntry>>& getObjects() const;
+    void addObject(std::shared_ptr<MapObjectEntry>& obj);
+    void removeObject(std::shared_ptr<MapObjectEntry>& obj);
     
   private:
-    std::list<MapObjectEntry> objects;
+    std::list<std::shared_ptr<MapObjectEntry>> objects;
     int* mapdata;
     std::string title;
     std::string leftmap;

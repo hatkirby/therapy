@@ -9,6 +9,8 @@
 
 #include "map.h"
 #include "tile_widget.h"
+#include <list>
+#include <memory>
 
 class MapeditFrame;
 
@@ -35,6 +37,7 @@ class MapeditWidget : public wxScrolledWindow {
     virtual wxSize DoGetBestSize() const;
     void OnPaint(wxPaintEvent& event);
     void OnClick(wxMouseEvent& event);
+    void OnRightClick(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseUp(wxMouseEvent& event);
     void OnMouseOut(wxMouseEvent& event);
@@ -53,6 +56,7 @@ class MapeditWidget : public wxScrolledWindow {
     EditMode editMode = EditTiles;
     
     MapObject* addingEntity = nullptr;
+    std::shared_ptr<MapObjectEntry> selectedEntity;
     
     DECLARE_DYNAMIC_CLASS(MapeditWidget)
     DECLARE_EVENT_TABLE()

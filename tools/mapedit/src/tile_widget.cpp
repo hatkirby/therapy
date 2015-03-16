@@ -26,7 +26,7 @@ int TileWidget::getSelected()
 
 void TileWidget::Init()
 {
-  tiles = wxBitmap(wxImage("../../../res/tiles.png"));
+  tiles = wxBitmap(wxImage("res/tiles.png"));
   
   this->FitInside();
   this->SetScrollRate(5, 5);
