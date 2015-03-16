@@ -2,6 +2,7 @@
 #include "widget.h"
 #include "tile_widget.h"
 #include <wx/splitter.h>
+#include <wx/statline.h>
 #include "panel.h"
 #include <list>
 
@@ -101,6 +102,8 @@ MapeditFrame::MapeditFrame(Map map, std::string filename) : wxFrame(NULL, wxID_A
   cancelEntityButton->Disable();
   cancelEntityButton->Bind(wxEVT_BUTTON, &MapeditFrame::OnCancelAddEntity, this);
   
+  wxStaticText* entityInfoLabel = new wxStaticText(entityEditor, wxID_ANY, "Click and drag an entity to move it.\nRight click an entity to delete it.");
+  
   wxBoxSizer* entitySizer = new wxBoxSizer(wxVERTICAL);
   entitySizer->Add(entityHeader, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
   wxBoxSizer* entitySizer1 = new wxBoxSizer(wxHORIZONTAL);
@@ -111,6 +114,8 @@ MapeditFrame::MapeditFrame(Map map, std::string filename) : wxFrame(NULL, wxID_A
   entitySizer2->Add(addEntityButton, 1, wxEXPAND | wxRIGHT, 2);
   entitySizer2->Add(cancelEntityButton, 1, wxEXPAND | wxLEFT, 2);
   entitySizer->Add(entitySizer2, 0, wxEXPAND | wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
+  entitySizer->Add(new wxStaticLine(entityEditor), 0, wxEXPAND | wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
+  entitySizer->Add(entityInfoLabel, 0, wxEXPAND | wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
   entityEditor->SetSizer(entitySizer);
   entitySizer->SetSizeHints(entityEditor);
   
@@ -122,9 +127,16 @@ MapeditFrame::MapeditFrame(Map map, std::string filename) : wxFrame(NULL, wxID_A
   
   wxBoxSizer* sizer2 = new wxBoxSizer(wxHORIZONTAL);
   sizer2->Add(layout3, 1, wxEXPAND, 0);
-  sizer2->Add(notebook, 0, wxALIGN_TOP | wxALIGN_CENTER_HORIZONTAL | wxLEFT, 2);
+  sizer2->Add(notebook, 0, wxALIGN_TOP | wxALIGN_CENTER_HORIZONTAL | wxLEFT | wxEXPAND, 2);
   this->SetSizer(sizer2);
   sizer2->SetSizeHints(this);
+  
+  wxBoxSizer* splitterSizer = new wxBoxSizer(wxVERTICAL);
+  splitterSizer->Add(layout3, 1, wxEXPAND, 0);
+  splitterSizer->Add(mapEditor, 1, wxEXPAND, 0);
+  splitterSizer->Add(propertyEditor, 0, wxALIGN_TOP, wxALIGN_LEFT, 0);
+  layout3->SetSizer(splitterSizer);
+  splitterSizer->SetSizeHints(layout3);
 }
 
 void MapeditFrame::OnExit(wxCloseEvent& event)

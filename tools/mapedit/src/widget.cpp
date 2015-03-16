@@ -139,7 +139,7 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
       
       int x = (event.GetPosition().x + vX) / scale - (addingEntity->getWidth() / 2);
       int y = (event.GetPosition().y + vY) / scale - (addingEntity->getHeight() / 2);
-      printf("%d,%d\n",x,y);
+
       MapObjectEntry data;
       data.object = addingEntity;
       data.position = std::make_pair(x,y);
