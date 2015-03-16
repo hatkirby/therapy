@@ -12,24 +12,36 @@
 #include "tile_widget.h"
 #include <list>
 #include <wx/notebook.h>
+#include <memory>
+#include <wx/treectrl.h>
+
+class MapPtrCtr : public wxTreeItemData {
+  public:
+    Map* map;
+  
+    MapPtrCtr(Map* map) : map(map) {}
+};
 
 class MapeditFrame : public wxFrame {
   public:
     MapeditFrame() {}
-    MapeditFrame(Map map, std::string filename);
+    MapeditFrame(std::unique_ptr<World> world);
     
     MapeditWidget* GetMapEditor();
     void StartAddingEntity();
     void FinishAddingEntity();
     void MapDirtyDidChange(bool dirty);
     
-    static void NewMap();
-    static void OpenMap(const char* filename);
+    static void NewWorld();
+    static void OpenWorld(std::string filename);
     
     std::list<wxWindow*>::iterator closer;
 
   private:
-    static void LaunchWindow(Map map, const char* filename);
+    static void LaunchWindow(std::unique_ptr<World> world);
+    void populateMapTree(wxTreeItemId node, std::list<std::shared_ptr<Map>> maps);
+    void SelectMap(Map* map);
+    wxTreeItemId MoveTreeNode(wxTreeItemId toCopy, wxTreeItemId newParent);
       
     void ZoomIn(wxCommandEvent& event);
     void ZoomOut(wxCommandEvent& event);
@@ -44,8 +56,15 @@ class MapeditFrame : public wxFrame {
     void OnTabChanging(wxBookCtrlEvent& event);
     void OnAddEntity(wxCommandEvent& event);
     void OnCancelAddEntity(wxCommandEvent& event);
+    void OnAddRoot(wxCommandEvent& event);
+    void OnAddChild(wxCommandEvent& event);
+    void OnDidSelectMap(wxTreeEvent& event);
+    void OnWillSelectMap(wxTreeEvent& event);
+    void OnWillDragMap(wxTreeEvent& event);
+    void OnDidDragMap(wxTreeEvent& event);
     
-    Map map;
+    std::unique_ptr<World> world;
+    Map* currentMap;
     MapeditWidget* mapEditor;
     TileWidget* tileEditor;
     wxTextCtrl* titleBox;
@@ -55,6 +74,9 @@ class MapeditFrame : public wxFrame {
     wxButton* addEntityButton;
     wxButton* cancelEntityButton;
     wxToolBar* toolbar;
+    wxMenu* menuFile;
+    wxTreeCtrl* mapTree;
+    wxTreeItemId dragMap;
     
     bool addingEntity = false;
     

@@ -29,6 +29,7 @@ class MapeditWidget : public wxScrolledWindow {
     void SetEditMode(EditMode editMode);
     void StartAddingEntity(MapObject* object);
     void CancelAddingEntity();
+    void SetMap(Map* map);
     
     MapeditFrame* frame;
     
@@ -46,7 +47,7 @@ class MapeditWidget : public wxScrolledWindow {
     void SetTile(wxPoint pos);
     void SetZoomSize(int zoom);
       
-    Map* const map = nullptr;
+    Map* map = nullptr;
     wxBitmap tiles;
     TileWidget* tileWidget;
     bool mouseIsDown = false;

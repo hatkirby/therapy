@@ -18,7 +18,7 @@ bool MapeditApp::OnInit()
 {
   wxInitAllImageHandlers();
   
-  MapeditFrame::NewMap();
+  MapeditFrame::NewWorld();
   
   return true;
 }

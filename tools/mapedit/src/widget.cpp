@@ -297,3 +297,10 @@ void MapeditWidget::CancelAddingEntity()
 {
   addingEntity = nullptr;
 }
+
+void MapeditWidget::SetMap(Map* map)
+{
+  this->map = map;
+  
+  Refresh();
+}

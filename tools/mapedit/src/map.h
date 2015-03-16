@@ -1,12 +1,16 @@
 #ifndef MAP_H
 #define MAP_H
 
+class Map;
+
 #include <string>
 #include <exception>
 #include <utility>
 #include <list>
 #include "object.h"
 #include <memory>
+#include "world.h"
+#include <wx/treectrl.h>
 
 class MapeditFrame;
 
@@ -57,36 +61,45 @@ struct MapObjectEntry {
 
 class Map {
   public:
-    Map();
-    Map(std::string name);
+    Map(int id, World* world);
     Map(const Map& map);
     Map(Map&& map);
     ~Map();
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
+    int getID() const;
     std::string getTitle() const;
-    void setTitle(std::string title);
-    void save(std::string name);
-    bool hasUnsavedChanges() const;
-    void setTileAt(int x, int y, int tile);
     int getTileAt(int x, int y) const;
     const std::list<std::shared_ptr<MapObjectEntry>>& getObjects() const;
-    void addObject(std::shared_ptr<MapObjectEntry>& obj);
-    void removeObject(std::shared_ptr<MapObjectEntry>& obj);
-    bool getDirty() const;
+    std::shared_ptr<Map> getLeftmap() const;
+    std::shared_ptr<Map> getRightmap() const;
+    wxTreeItemId getTreeItemId() const;
+    std::list<std::shared_ptr<Map>> getChildren() const;
+    bool getExpanded() const;
     
-    MapeditFrame* frame;
+    void setTitle(std::string title, bool dirty = true);
+    void setTileAt(int x, int y, int tile, bool dirty = true);
+    void setMapdata(int* mapdata, bool dirty = true);
+    void addObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty = true);
+    void removeObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty = true);
+    void setLeftmap(int id, bool dirty = true);
+    void setRightmap(int id, bool dirty = true);
+    void setTreeItemId(wxTreeItemId id);
+    void addChild(int id);
+    void setExpanded(bool exp);
     
   private:
-    void setDirty(bool dirty);
-    
+    int id;
+    World* world;
     std::list<std::shared_ptr<MapObjectEntry>> objects;
     int* mapdata;
-    std::string title;
-    std::string leftmap;
-    std::string rightmap;
-    bool dirty;
+    std::string title {"Untitled Map"};
+    std::list<int> children;
+    int leftmap = -1;
+    int rightmap = -1;
+    wxTreeItemId treeItemId;
+    bool expanded = false;
 };
 
 #endif
