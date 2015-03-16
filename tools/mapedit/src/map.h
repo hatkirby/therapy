@@ -3,6 +3,10 @@
 
 #include <string>
 #include <exception>
+#include <utility>
+#include <list>
+#include "object.h"
+#include <memory>
 
 const int TILE_WIDTH = 8;
 const int TILE_HEIGHT = 8;
@@ -39,6 +43,11 @@ class MapWriteException: public std::exception
     std::string mapname;
 };
 
+struct MapObjectEntry {
+  std::shared_ptr<MapObject> object;
+  std::pair<double, double> position;
+};
+
 class Map {
   public:
     Map();
@@ -55,8 +64,10 @@ class Map {
     bool hasUnsavedChanges() const;
     void setTileAt(int x, int y, int tile);
     int getTileAt(int x, int y) const;
+    std::list<MapObjectEntry> getObjects();
     
   private:
+    std::list<MapObjectEntry> objects;
     int* mapdata;
     std::string title;
     std::string leftmap;

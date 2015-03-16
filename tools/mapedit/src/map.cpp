@@ -54,6 +54,31 @@ Map::Map(std::string filename)
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
       rightmap = (char*) key;
       xmlFree(key);
+    } else if (!xmlStrcmp(node->name, (const xmlChar*) "entities"))
+    {
+      for (xmlNodePtr entityNode = node->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
+      {
+        if (!xmlStrcmp(entityNode->name, (const xmlChar*) "entity"))
+        {
+          MapObjectEntry data;
+          for (xmlNodePtr entityDataNode = entityNode->xmlChildrenNode; entityDataNode != NULL; entityDataNode = entityDataNode->next)
+          {
+            if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
+            {
+              xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
+              data.object = MapObject::getAllObjects().at((char*) key);
+              xmlFree(key);
+            } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
+            {
+              xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
+              sscanf((char*) key, "%lf,%lf", &data.position.first, &data.position.second);
+              xmlFree(key);
+            }
+          }
+        
+          objects.push_back(data);
+        }
+      }
     }
   }
   
@@ -69,6 +94,7 @@ Map::Map(const Map& map)
   leftmap = map.leftmap;
   rightmap = map.rightmap;
   dirty = map.dirty;
+  objects = map.objects;
 }
 
 Map::Map(Map&& map) : Map()
@@ -95,6 +121,7 @@ void swap(Map& first, Map& second)
   std::swap(first.leftmap, second.leftmap);
   std::swap(first.rightmap, second.rightmap);
   std::swap(first.dirty, second.dirty);
+  std::swap(first.objects, second.objects);
 }
 
 #define MY_ENCODING "ISO-8859-1"
@@ -131,17 +158,35 @@ void Map::save(std::string name)
   rc = xmlTextWriterWriteElement(writer, (xmlChar*) "environment", (xmlChar*) mapdata_out.str().c_str());
   if (rc < 0) throw MapWriteException(name);
   
-  if (leftmap != "")
+  rc = xmlTextWriterWriteElement(writer, (xmlChar*) "leftmap", (xmlChar*) leftmap.c_str());
+  if (rc < 0) throw MapWriteException(name);
+
+  rc = xmlTextWriterWriteElement(writer, (xmlChar*) "rightmap", (xmlChar*) rightmap.c_str());
+  if (rc < 0) throw MapWriteException(name);
+  
+  rc = xmlTextWriterStartElement(writer, (xmlChar*) "entities");
+  if (rc < 0) throw MapWriteException(name);
+  
+  for (auto object : objects)
   {
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "leftmap", (xmlChar*) leftmap.c_str());
+    rc = xmlTextWriterStartElement(writer, (xmlChar*) "entity");
+    if (rc < 0) throw MapWriteException(name);
+    
+    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-type", (xmlChar*) object.object->getType().c_str());
+    if (rc < 0) throw MapWriteException(name);
+    
+    std::ostringstream entpos_out;
+    entpos_out << object.position.first << "," << object.position.second;
+    
+    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-position", (xmlChar*) entpos_out.str().c_str());
+    if (rc < 0) throw MapWriteException(name);
+    
+    rc = xmlTextWriterEndElement(writer);
     if (rc < 0) throw MapWriteException(name);
   }
   
-  if (rightmap != "")
-  {
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "rightmap", (xmlChar*) rightmap.c_str());
-    if (rc < 0) throw MapWriteException(name);
-  }
+  rc = xmlTextWriterEndElement(writer);
+  if (rc < 0) throw MapWriteException(name);
   
   rc = xmlTextWriterEndElement(writer);
   if (rc < 0) throw MapWriteException(name);
@@ -179,4 +224,9 @@ void Map::setTitle(std::string title)
 {
   dirty = true;
   this->title = title;
+}
+
+std::list<MapObjectEntry> Map::getObjects()
+{
+  return objects;
 }

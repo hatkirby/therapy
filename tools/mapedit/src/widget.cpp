@@ -53,12 +53,24 @@ void MapeditWidget::OnPaint(wxPaintEvent& event)
     }
   }
   
+  for (auto object : map->getObjects())
+  {
+    tiles_dc.SelectObject(wxNullBitmap);
+    
+    wxBitmap sprite = object.object->getSprite();
+    tiles_dc.SelectObject(sprite);
+    
+    dc.StretchBlit(object.position.first*scale-vX, object.position.second*scale-vY, object.object->getWidth()*scale, object.object->getHeight()*scale, &tiles_dc, 0, 0, object.object->getWidth(), object.object->getHeight());
+  }
+  
   if (mouseIsIn)
   {
     int tile = tileWidget->getSelected();
     int x = (mousePos.x + vX) / (TILE_WIDTH * scale);
     int y = (mousePos.y + vY) / (TILE_HEIGHT * scale);
     
+    tiles_dc.SelectObject(wxNullBitmap);
+    tiles_dc.SelectObject(tiles);
     dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     
     wxPen pen(*wxGREEN, 2);

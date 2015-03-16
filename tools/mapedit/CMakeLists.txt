@@ -43,6 +43,7 @@ add_executable(AromatherapyMapEditor
   src/frame.cpp
   src/widget.cpp
   src/tile_widget.cpp
+  src/object.cpp
 )
 target_link_libraries(AromatherapyMapEditor ${ALL_LIBS})
 install(TARGETS AromatherapyMapEditor RUNTIME DESTINATION ${BIN_DIR})
