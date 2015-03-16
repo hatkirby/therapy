@@ -28,8 +28,8 @@ class TileWidget : public wxScrolledCanvas {
     int selected = 0;
     int scale;
     
-    DECLARE_DYNAMIC_CLASS(MapeditWidget);
-    DECLARE_EVENT_TABLE();
+    DECLARE_DYNAMIC_CLASS(MapeditWidget)
+    DECLARE_EVENT_TABLE()
 };
     
 #endif

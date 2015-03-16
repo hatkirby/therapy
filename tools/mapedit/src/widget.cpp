@@ -1,4 +1,5 @@
 #include "widget.h"
+#include "frame.h"
 
 IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxScrolledWindow)
 
@@ -36,13 +37,17 @@ wxSize MapeditWidget::DoGetBestSize() const
   return {GAME_WIDTH*2, GAME_HEIGHT*2};
 }
 
-void MapeditWidget::OnPaint(wxPaintEvent& event)
+void MapeditWidget::OnPaint(wxPaintEvent&)
 {
   wxPaintDC dc(this);
   wxMemoryDC tiles_dc;
   tiles_dc.SelectObject(tiles);
   int vX, vY;
   GetViewStart(&vX, &vY);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
 
   for (int y=0; y<MAP_HEIGHT; y++)
   {
@@ -63,20 +68,38 @@ void MapeditWidget::OnPaint(wxPaintEvent& event)
     dc.StretchBlit(object.position.first*scale-vX, object.position.second*scale-vY, object.object->getWidth()*scale, object.object->getHeight()*scale, &tiles_dc, 0, 0, object.object->getWidth(), object.object->getHeight());
   }
   
-  if (mouseIsIn)
+  if (editMode == EditTiles)
   {
-    int tile = tileWidget->getSelected();
-    int x = (mousePos.x + vX) / (TILE_WIDTH * scale);
-    int y = (mousePos.y + vY) / (TILE_HEIGHT * scale);
+    if (mouseIsIn)
+    {
+      int tile = tileWidget->getSelected();
+      int x = (mousePos.x + vX) / (TILE_WIDTH * scale);
+      int y = (mousePos.y + vY) / (TILE_HEIGHT * scale);
     
-    tiles_dc.SelectObject(wxNullBitmap);
-    tiles_dc.SelectObject(tiles);
-    dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+      tiles_dc.SelectObject(wxNullBitmap);
+      tiles_dc.SelectObject(tiles);
+      dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     
-    wxPen pen(*wxGREEN, 2);
-    dc.SetPen(pen);
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.DrawRectangle(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale);
+      wxPen pen(*wxGREEN, 2);
+      dc.SetPen(pen);
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.DrawRectangle(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale);
+    }
+  } else if (editMode == EditEntities)
+  {
+    if ((addingEntity != nullptr) && (mouseIsIn))
+    {
+      wxBitmap sprite = addingEntity->getSprite();
+      tiles_dc.SelectObject(wxNullBitmap);
+      tiles_dc.SelectObject(sprite);
+      
+      dc.StretchBlit(mousePos.x - addingEntity->getWidth()/2*scale, mousePos.y - addingEntity->getHeight()/2*scale, addingEntity->getWidth()*scale, addingEntity->getHeight()*scale, &tiles_dc, 0, 0, addingEntity->getWidth(), addingEntity->getHeight());
+      
+      wxPen pen(*wxGREEN, 2);
+      dc.SetPen(pen);
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.DrawRectangle(mousePos.x - addingEntity->getWidth()/2*scale, mousePos.y - addingEntity->getHeight()/2*scale, addingEntity->getWidth()*scale, addingEntity->getHeight()*scale);
+    }
   }
 }
 
@@ -84,6 +107,10 @@ void MapeditWidget::SetTile(wxPoint pos)
 {
   int vX, vY;
   GetViewStart(&vX, &vY);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
 
   int x = (pos.x + vX) / (TILE_WIDTH * scale);
   int y = (pos.y + vY) / (TILE_HEIGHT * scale);
@@ -96,32 +123,64 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
 {
   mouseIsDown = true;
   
-  SetTile(event.GetPosition());
+  if (editMode == EditTiles)
+  {
+    SetTile(event.GetPosition());
+  } else if (editMode == EditEntities)
+  {
+    if (addingEntity != nullptr)
+    {
+      int vX, vY;
+      GetViewStart(&vX, &vY);
+      int vXX, vYX;
+      GetScrollPixelsPerUnit(&vXX, &vYX);
+      vX *= vXX;
+      vY *= vYX;
+      
+      int x = (event.GetPosition().x + vX) / scale - (addingEntity->getWidth() / 2);
+      int y = (event.GetPosition().y + vY) / scale - (addingEntity->getHeight() / 2);
+      printf("%d,%d\n",x,y);
+      MapObjectEntry data;
+      data.object = addingEntity;
+      data.position = std::make_pair(x,y);
+      map->getObjects().push_back(data);
+      
+      addingEntity = nullptr;
+      
+      frame->FinishAddingEntity();
+      
+      Refresh();
+    }
+  }
   
   event.Skip();
 }
 
 void MapeditWidget::OnMouseMove(wxMouseEvent& event)
 {
-  if (mouseIsDown)
+  mousePos = event.GetPosition();
+  mouseIsIn = true;
+  
+  if (editMode == EditTiles)
   {
-    SetTile(event.GetPosition());
+    if (mouseIsDown)
+    {
+      SetTile(event.GetPosition());
+    }
   }
   
-  mouseIsIn = true;
-  mousePos = event.GetPosition();
   Refresh();
 }
 
-void MapeditWidget::OnMouseUp(wxMouseEvent& event)
+void MapeditWidget::OnMouseUp(wxMouseEvent&)
 {
   mouseIsDown = false;
 }
 
-void MapeditWidget::OnMouseOut(wxMouseEvent& event)
+void MapeditWidget::OnMouseOut(wxMouseEvent&)
 {
   mouseIsIn = false;
-  
+
   Refresh();
 }
 
@@ -132,7 +191,10 @@ void MapeditWidget::ZoomIn()
 
 void MapeditWidget::ZoomOut()
 {
-  SetZoomSize(scale-1);
+  if (scale > 1)
+  {
+    SetZoomSize(scale-1);
+  }
 }
 
 void MapeditWidget::SetZoomSize(int zoom)
@@ -141,5 +203,22 @@ void MapeditWidget::SetZoomSize(int zoom)
   
   SetVirtualSize(MAP_WIDTH*TILE_WIDTH*scale, MAP_HEIGHT*TILE_HEIGHT*scale);
   
-  GetParent()->Refresh();
+  Refresh();
+}
+
+void MapeditWidget::SetEditMode(EditMode editMode)
+{
+  this->editMode = editMode;
+  
+  Refresh();
+}
+
+void MapeditWidget::StartAddingEntity(MapObject* object)
+{
+  addingEntity = object;
+}
+
+void MapeditWidget::CancelAddingEntity()
+{
+  addingEntity = nullptr;
 }

@@ -66,7 +66,7 @@ Map::Map(std::string filename)
             if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
             {
               xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              data.object = MapObject::getAllObjects().at((char*) key);
+              data.object = MapObject::getAllObjects().at((char*) key).get();
               xmlFree(key);
             } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
             {
@@ -226,7 +226,7 @@ void Map::setTitle(std::string title)
   this->title = title;
 }
 
-std::list<MapObjectEntry> Map::getObjects()
+std::list<MapObjectEntry>& Map::getObjects()
 {
   return objects;
 }

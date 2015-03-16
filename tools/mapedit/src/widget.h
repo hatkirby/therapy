@@ -10,6 +10,13 @@
 #include "map.h"
 #include "tile_widget.h"
 
+class MapeditFrame;
+
+enum EditMode {
+  EditTiles,
+  EditEntities
+};
+
 class MapeditWidget : public wxScrolledWindow {
   public:
     MapeditWidget();
@@ -17,6 +24,11 @@ class MapeditWidget : public wxScrolledWindow {
     
     void ZoomIn();
     void ZoomOut();
+    void SetEditMode(EditMode editMode);
+    void StartAddingEntity(MapObject* object);
+    void CancelAddingEntity();
+    
+    MapeditFrame* frame;
     
   protected:
     void Init();
@@ -38,9 +50,12 @@ class MapeditWidget : public wxScrolledWindow {
     int scale;
     wxPoint mousePos;
     bool mouseIsIn = false;
+    EditMode editMode = EditTiles;
     
-    DECLARE_DYNAMIC_CLASS(MapeditWidget);
-    DECLARE_EVENT_TABLE();
+    MapObject* addingEntity = nullptr;
+    
+    DECLARE_DYNAMIC_CLASS(MapeditWidget)
+    DECLARE_EVENT_TABLE()
 };
     
 #endif

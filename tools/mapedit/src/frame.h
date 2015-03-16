@@ -11,6 +11,7 @@
 #include "widget.h"
 #include "tile_widget.h"
 #include <list>
+#include <wx/notebook.h>
 
 class MapeditFrame : public wxFrame {
   public:
@@ -18,6 +19,7 @@ class MapeditFrame : public wxFrame {
     MapeditFrame(Map map, std::string filename);
     
     MapeditWidget* GetMapEditor();
+    void FinishAddingEntity();
     
     static void NewMap();
     static void OpenMap(const char* filename);
@@ -36,12 +38,22 @@ class MapeditFrame : public wxFrame {
     void OnExit(wxCloseEvent& event);
     void OnQuit(wxCommandEvent& event);
     void OnTitleChange(wxCommandEvent& event);
+    void OnTabChange(wxBookCtrlEvent& event);
+    void OnTabChanging(wxBookCtrlEvent& event);
+    void OnAddEntity(wxCommandEvent& event);
+    void OnCancelAddEntity(wxCommandEvent& event);
     
     Map map;
     MapeditWidget* mapEditor;
     TileWidget* tileEditor;
     wxTextCtrl* titleBox;
     std::string filename;
+    wxNotebook* notebook;
+    wxChoice* entityTypeBox;
+    wxButton* addEntityButton;
+    wxButton* cancelEntityButton;
+    
+    bool addingEntity = false;
     
     wxDECLARE_EVENT_TABLE();
 };

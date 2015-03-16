@@ -34,7 +34,7 @@ void TileWidget::Init()
   SetVirtualSize(numTilesWidth*TILE_WIDTH*scale, (numTiles / numTilesWidth + 1) * TILE_HEIGHT*scale);
 }
 
-void TileWidget::OnPaint(wxPaintEvent& event)
+void TileWidget::OnPaint(wxPaintEvent&)
 {
   wxPaintDC dc(this);
   wxMemoryDC tiles_dc;
@@ -42,6 +42,10 @@ void TileWidget::OnPaint(wxPaintEvent& event)
   
   int vX, vY, vW, vH, aW, aH;
   GetViewStart(&vX, &vY);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
   GetVirtualSize(&vW, &vH);
   GetSize(&aW, &aH);
 
@@ -63,6 +67,10 @@ void TileWidget::OnClick(wxMouseEvent& event)
 {
   int vX, vY, vW, vH;
   GetViewStart(&vX, &vY);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
   GetVirtualSize(&vW, &vH);
   
   wxPoint pos = event.GetPosition();
