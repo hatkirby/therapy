@@ -1,5 +1,5 @@
 <entity-def>
-  <sprite>../res/keyring.png</sprite>
+  <sprite>res/keyring.png</sprite>
   <action>save</action>
   <size>8,11</size>
 </entity-def>

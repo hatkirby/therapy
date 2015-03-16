@@ -6,7 +6,7 @@ MapRenderComponent::MapRenderComponent(const Map& map) : screen(GAME_WIDTH, GAME
 {
   screen.fill(screen.entirety(), 0, 0, 0);
   
-  Texture tiles("../res/tiles.png");
+  Texture tiles("res/tiles.png");
   
   for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
   {
@@ -22,7 +22,7 @@ MapRenderComponent::MapRenderComponent(const Map& map) : screen(GAME_WIDTH, GAME
     }
   }
   
-  Texture font("../res/font.bmp");
+  Texture font("res/font.bmp");
   std::string map_name = map.getTitle();
   int start_x = (40/2) - (map_name.length()/2);
   for (size_t i=0; i<map_name.length(); i++)

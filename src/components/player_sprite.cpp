@@ -1,6 +1,6 @@
 #include "player_sprite.h"
 
-PlayerSpriteComponent::PlayerSpriteComponent() : sprite("../res/Starla.png")
+PlayerSpriteComponent::PlayerSpriteComponent() : sprite("res/Starla.png")
 {
   
 }

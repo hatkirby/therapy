@@ -38,14 +38,14 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
   {
     if (isFalling)
     {
-      playSound("../res/Randomize27.wav", 0.05);
+      playSound("res/Randomize27.wav", 0.05);
       isFalling = false;
     }
     
     velocity.second = 0.0;
   } else if (msg.type == Message::Type::jump)
   {
-    playSound("../res/Randomize87.wav", 0.25);
+    playSound("res/Randomize87.wav", 0.25);
     
     velocity.second = jump_velocity;
     accel.second = jump_gravity;

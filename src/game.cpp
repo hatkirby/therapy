@@ -155,7 +155,7 @@ void Game::playerDie()
 {
   player->send(*this, Message::Type::die);
   
-  playSound("../res/Hit_Hurt5.wav", 0.25);
+  playSound("res/Hit_Hurt5.wav", 0.25);
   
   schedule(0.75, [&] () {
     if (*currentMap != *save.map)

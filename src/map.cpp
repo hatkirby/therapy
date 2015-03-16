@@ -18,7 +18,7 @@ Map::Map(const std::string name)
 {
   this->name = name;
   
-  xmlDocPtr doc = xmlParseFile(("../maps/" + name + ".xml").c_str());
+  xmlDocPtr doc = xmlParseFile(("maps/" + name + ".xml").c_str());
   if (doc == nullptr)
   {
     fprintf(stderr, "Error reading map %s\n", name.c_str());

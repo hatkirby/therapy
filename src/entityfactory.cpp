@@ -24,7 +24,7 @@ std::shared_ptr<Entity> EntityFactory::createNamedEntity(const std::string name)
   EntityData data = factories[name];
   if (it == factories.end())
   {
-    xmlDocPtr doc = xmlParseFile(("../entities/" + name + ".xml").c_str());
+    xmlDocPtr doc = xmlParseFile(("entities/" + name + ".xml").c_str());
     if (doc == nullptr)
     {
       fprintf(stderr, "Error reading entity %s\n", name.c_str());
@@ -85,7 +85,7 @@ std::shared_ptr<Entity> EntityFactory::createNamedEntity(const std::string name)
     if (!strcmp(data.action, "save"))
     {
       auto component = std::make_shared<SimpleColliderComponent>([&] (Game& game, Entity&) {
-        playSound("../res/Pickup_Coin23.wav", 0.25);
+        playSound("res/Pickup_Coin23.wav", 0.25);
   
         game.saveGame();
       });

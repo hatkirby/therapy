@@ -363,7 +363,7 @@ GLFWwindow* initRenderer()
   std::vector<glm::vec3> mesh_vertices;
   std::vector<glm::vec2> mesh_uvs;
   std::vector<glm::vec3> mesh_normals;
-  loadMesh("../res/monitor-fef.obj", mesh_vertices, mesh_uvs, mesh_normals);
+  loadMesh("res/monitor-fef.obj", mesh_vertices, mesh_uvs, mesh_normals);
   
   mesh_numvertices = mesh_vertices.size();
   
@@ -396,7 +396,7 @@ GLFWwindow* initRenderer()
   glGenTextures(1, &artifactsTex);
   glBindTexture(GL_TEXTURE_2D, artifactsTex);
   int atdw, atdh;
-  unsigned char* artifactsTex_data = stbi_load("../res/artifacts.bmp", &atdw, &atdh, 0, 3);
+  unsigned char* artifactsTex_data = stbi_load("res/artifacts.bmp", &atdw, &atdh, 0, 3);
   flipImageData(artifactsTex_data, atdw, atdh, 3);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atdw, atdh, 0, GL_RGB, GL_UNSIGNED_BYTE, artifactsTex_data);
   stbi_image_free(artifactsTex_data);
@@ -407,7 +407,7 @@ GLFWwindow* initRenderer()
   glGenTextures(1, &scanlinesTex);
   glBindTexture(GL_TEXTURE_2D, scanlinesTex);
   int stdw, stdh;
-  unsigned char* scanlinesTex_data = stbi_load("../res/scanlines_333.bmp", &stdw, &stdh, 0, 3);
+  unsigned char* scanlinesTex_data = stbi_load("res/scanlines_333.bmp", &stdw, &stdh, 0, 3);
   flipImageData(scanlinesTex_data, stdw, stdh, 3);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, atdw, atdh, 0, GL_RGB, GL_UNSIGNED_BYTE, scanlinesTex_data);
   stbi_image_free(scanlinesTex_data);
@@ -416,12 +416,12 @@ GLFWwindow* initRenderer()
   glGenerateMipmap(GL_TEXTURE_2D);
   
   // Load the shaders
-  ntscShader = LoadShaders("../shaders/ntsc.vertex", "../shaders/ntsc.fragment");
-  finalShader = LoadShaders("../shaders/final.vertex", "../shaders/final.fragment");
-  blitShader = LoadShaders("../shaders/blit.vertex", "../shaders/blit.fragment");
-  fillShader = LoadShaders("../shaders/fill.vertex", "../shaders/fill.fragment");
-  bloom1Shader = LoadShaders("../shaders/bloom1.vertex", "../shaders/bloom1.fragment");
-  bloom2Shader = LoadShaders("../shaders/bloom2.vertex", "../shaders/bloom2.fragment");
+  ntscShader = LoadShaders("shaders/ntsc.vertex", "shaders/ntsc.fragment");
+  finalShader = LoadShaders("shaders/final.vertex", "shaders/final.fragment");
+  blitShader = LoadShaders("shaders/blit.vertex", "shaders/blit.fragment");
+  fillShader = LoadShaders("shaders/fill.vertex", "shaders/fill.fragment");
+  bloom1Shader = LoadShaders("shaders/bloom1.vertex", "shaders/bloom1.fragment");
+  bloom2Shader = LoadShaders("shaders/bloom2.vertex", "shaders/bloom2.fragment");
   
   rendererInitialized = true;
   
