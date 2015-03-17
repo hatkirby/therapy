@@ -53,7 +53,7 @@ class MapWriteException: public std::exception
 
 struct MapObjectEntry {
   MapObject* object;
-  std::pair<double, double> position;
+  std::pair<int, int> position;
   
   bool operator==(MapObjectEntry& other) const
   {
@@ -85,17 +85,19 @@ class Map {
     std::list<std::shared_ptr<Map>> getChildren() const;
     bool getExpanded() const;
     World* getWorld() const;
+    bool getHidden() const;
     
     void setTitle(std::string title, bool dirty = true);
     void setTileAt(int x, int y, int tile, bool dirty = true);
     void setMapdata(int* mapdata, bool dirty = true);
-    void addObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty = true);
-    void removeObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty = true);
+    void addObject(std::shared_ptr<MapObjectEntry> obj, bool dirty = true);
+    void removeObject(std::shared_ptr<MapObjectEntry> obj, bool dirty = true);
     void setLeftmap(int id, bool dirty = true);
     void setRightmap(int id, bool dirty = true);
     void setTreeItemId(wxTreeItemId id);
     void addChild(int id);
     void setExpanded(bool exp);
+    void setHidden(bool hid);
     
   private:
     int id;
@@ -108,6 +110,7 @@ class Map {
     int rightmap = -1;
     wxTreeItemId treeItemId;
     bool expanded = false;
+    bool hidden = false;
 };
 
 #endif

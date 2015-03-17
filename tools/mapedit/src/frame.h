@@ -14,6 +14,7 @@
 #include <wx/notebook.h>
 #include <memory>
 #include <wx/treectrl.h>
+#include "undo.h"
 
 class MapPtrCtr : public wxTreeItemData {
   public:
@@ -37,7 +38,6 @@ class MapeditFrame : public wxFrame {
     
     std::list<wxWindow*>::iterator closer;
 
-  private:
     static void LaunchWindow(std::unique_ptr<World> world);
     void populateMapTree(wxTreeItemId node, std::list<std::shared_ptr<Map>> maps);
     void SelectMap(Map* map);
@@ -60,7 +60,6 @@ class MapeditFrame : public wxFrame {
     void OnAddRoot(wxCommandEvent& event);
     void OnAddChild(wxCommandEvent& event);
     void OnDidSelectMap(wxTreeEvent& event);
-    void OnWillSelectMap(wxTreeEvent& event);
     void OnWillDragMap(wxTreeEvent& event);
     void OnDidDragMap(wxTreeEvent& event);
     void OnRightClickTree(wxTreeEvent& event);
@@ -69,25 +68,44 @@ class MapeditFrame : public wxFrame {
     
     std::unique_ptr<World> world;
     Map* currentMap;
+    
     MapeditWidget* mapEditor;
     TileWidget* tileEditor;
-    wxTextCtrl* titleBox;
-    std::string filename;
+    wxToolBar* toolbar;
+    wxMenu* menuFile;
+    
+    // Notebook
     wxNotebook* notebook;
     wxChoice* entityTypeBox;
     wxButton* addEntityButton;
     wxButton* cancelEntityButton;
-    wxToolBar* toolbar;
-    wxMenu* menuFile;
+
+    // Map tree
     wxTreeCtrl* mapTree;
     wxTreeItemId dragMap;
     wxMenu* mapTreePopup;
+    bool dontSelectMap = false;
+    
+    // Property editor
+    UndoableTextBox* titleBox;
+    wxString prevTitle;
     wxStaticText* startposLabel;
     wxButton* setStartposButton;
     wxButton* cancelStartposButton;
     
+    // Undo stuff
+    wxMenu* menuEdit;
+    std::list<std::shared_ptr<Undoable>> history;
+    std::list<std::shared_ptr<Undoable>>::iterator currentAction {begin(history)};
+    void OnUndo(wxCommandEvent& event);
+    void OnRedo(wxCommandEvent& event);
+    void UpdateUndoLabels();
+    void commitAction(std::shared_ptr<Undoable> action);
+    void commitAfter(std::shared_ptr<Undoable> action);
+    
     bool addingEntity = false;
     
+  private:
     wxDECLARE_EVENT_TABLE();
 };
 

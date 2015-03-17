@@ -55,6 +55,11 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
     for (int x=0; x<MAP_WIDTH; x++)
     {
       int tile = map->getTileAt(x, y);
+      if (changeBuffer.find({x,y}) != end(changeBuffer))
+      {
+        tile = tileWidget->getSelected();
+      }
+      
       dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     }
   }
@@ -151,6 +156,21 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
       dc.SetPen(pen);
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
       dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
+    } else if ((editMode == EditEntities) && (movingEntity != nullptr))
+    {
+      wxBitmap sprite = movingEntity->object->getSprite();
+      tiles_dc.SelectObject(wxNullBitmap);
+      tiles_dc.SelectObject(sprite);
+    
+      wxPoint pos {mousePos.x - movingEntity->object->getWidth()/2*scale, mousePos.y - movingEntity->object->getHeight()/2*scale};
+      wxSize size {movingEntity->object->getWidth()*scale, movingEntity->object->getHeight()*scale};
+    
+      dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, movingEntity->object->getWidth(), movingEntity->object->getHeight());
+    
+      wxPen pen(*wxGREEN, 2);
+      dc.SetPen(pen);
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
     }
   }
 }
@@ -167,7 +187,8 @@ void MapeditWidget::SetTile(wxPoint pos)
   int x = (pos.x + vX) / (TILE_WIDTH * scale);
   int y = (pos.y + vY) / (TILE_HEIGHT * scale);
   
-  map->setTileAt(x, y, tileWidget->getSelected());
+  changeBuffer.insert({x,y});
+  
   Refresh();
 }
 
@@ -191,17 +212,42 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
     {
       int x = (event.GetPosition().x + vX) / scale - (addingEntity->getWidth() / 2);
       int y = (event.GetPosition().y + vY) / scale - (addingEntity->getHeight() / 2);
-
+      
       auto data = std::make_shared<MapObjectEntry>();
       data->object = addingEntity;
       data->position = std::make_pair(x,y);
-      map->addObject(data);
       
-      addingEntity = nullptr;
+      frame->commitAction(std::make_shared<Undoable>("Add " + addingEntity->getType(), [=] () {
+        map->addObject(data);
+        
+        Refresh();
+      }, [=] () {
+        map->removeObject(data);
+        
+        Refresh();
+      }));
       
       frame->SetIsAddingEntity(false);
+      addingEntity = nullptr;
+    } else if (movingEntity != nullptr)
+    {
+      int x = (event.GetPosition().x + vX) / scale - (movingEntity->object->getWidth() / 2);
+      int y = (event.GetPosition().y + vY) / scale - (movingEntity->object->getHeight() / 2);
+      auto oldPos = movingEntity->position;
+      MapObjectEntry* me = movingEntity;
       
-      Refresh();
+      frame->commitAction(std::make_shared<Undoable>("Move " + movingEntity->object->getType(), [=] () {
+        me->position = std::make_pair(x,y);
+        
+        Refresh();
+      }, [=] () {
+        me->position = oldPos;
+        
+        Refresh();
+      }));
+      
+      frame->SetIsAddingEntity(false);
+      movingEntity = nullptr;
     } else {
       int x = (event.GetPosition().x + vX) / scale;
       int y = (event.GetPosition().y + vY) / scale;
@@ -211,9 +257,7 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
         if ((x > selectedEntity->position.first) && (x < selectedEntity->position.first + selectedEntity->object->getWidth())
           && (y > selectedEntity->position.second) && (y < selectedEntity->position.second + selectedEntity->object->getHeight()))
         {
-          addingEntity = selectedEntity->object;
-          map->removeObject(selectedEntity);
-          selectedEntity.reset();
+          movingEntity = selectedEntity.get();
           frame->SetIsAddingEntity(true);
         } else {
           selectedEntity.reset();
@@ -241,12 +285,23 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
   {
     int x = (event.GetPosition().x + vX) / scale - (PLAYER_WIDTH[currentPlayer] / 2);
     int y = (event.GetPosition().y + vY) / scale - (PLAYER_HEIGHT[currentPlayer] / 2);
+    auto oldPos = map->getWorld()->getStartingPosition();
+    auto oldSMap = map->getWorld()->getStartingMap();
     
-    map->getWorld()->setStart(map, {x, y});
+    frame->commitAction(std::make_shared<Undoable>("Set Starting Position", [=] () {
+      map->getWorld()->setStart(map, {x, y});
+      frame->SetStartposLabel();
+      
+      Refresh();
+    }, [=] () {
+      map->getWorld()->setStart(oldSMap, oldPos);
+      frame->SetStartposLabel();
+      
+      Refresh();
+    }));
+    
     isSettingPos = false;
     frame->SetIsSettingStart(false);
-    
-    Refresh();
   }
   
   event.Skip();
@@ -299,6 +354,34 @@ void MapeditWidget::OnMouseMove(wxMouseEvent& event)
 void MapeditWidget::OnMouseUp(wxMouseEvent&)
 {
   mouseIsDown = false;
+  
+  if (editMode == EditTiles)
+  {
+    std::map<std::pair<int, int>, int> localChangeBuffer;
+    for (auto assign : changeBuffer)
+    {
+      localChangeBuffer[assign] = map->getTileAt(assign.first, assign.second);
+    }
+    
+    int localSelection = tileWidget->getSelected();
+    frame->commitAction(std::make_shared<Undoable>("Paint Map", [=] () {
+      for (auto assign : localChangeBuffer)
+      {
+        map->setTileAt(assign.first.first, assign.first.second, localSelection);
+      }
+      
+      Refresh();
+    }, [=] () {
+      for (auto assign : localChangeBuffer)
+      {
+        map->setTileAt(assign.first.first, assign.first.second, assign.second);
+      }
+      
+      Refresh();
+    }));
+    
+    changeBuffer.clear();
+  }
 }
 
 void MapeditWidget::OnMouseOut(wxMouseEvent&)
@@ -350,6 +433,7 @@ void MapeditWidget::StartAddingEntity(MapObject* object)
 void MapeditWidget::CancelAddingEntity()
 {
   addingEntity = nullptr;
+  movingEntity = nullptr;
 }
 
 void MapeditWidget::SetIsSettingStart(bool isSetting)
@@ -369,6 +453,10 @@ void MapeditWidget::SetIsSettingStart(bool isSetting)
 void MapeditWidget::SetMap(Map* map)
 {
   this->map = map;
+  selectedEntity = nullptr;
+  addingEntity = nullptr;
+  movingEntity = nullptr;
+  isSettingPos = false;
   
   Refresh();
 }

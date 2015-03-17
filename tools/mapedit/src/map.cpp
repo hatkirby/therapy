@@ -19,6 +19,7 @@ Map::Map(const Map& map)
   world = map.world;
   treeItemId = map.treeItemId;
   children = map.children;
+  hidden = map.hidden;
 }
 
 Map::Map(Map&& map) : Map(-1, map.world)
@@ -49,6 +50,7 @@ void swap(Map& first, Map& second)
   std::swap(first.world, second.world);
   std::swap(first.treeItemId, second.treeItemId);
   std::swap(first.children, second.children);
+  std::swap(first.hidden, second.hidden);
 }
 
 int Map::getID() const
@@ -118,6 +120,11 @@ World* Map::getWorld() const
   return world;
 }
 
+bool Map::getHidden() const
+{
+  return hidden;
+}
+
 void Map::setTitle(std::string title, bool dirty)
 {
   this->title = title;
@@ -149,7 +156,7 @@ void Map::setMapdata(int* mapdata, bool dirty)
   }
 }
 
-void Map::addObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty)
+void Map::addObject(std::shared_ptr<MapObjectEntry> obj, bool dirty)
 {
   objects.push_back(obj);
   
@@ -159,7 +166,7 @@ void Map::addObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty)
   }
 }
 
-void Map::removeObject(std::shared_ptr<MapObjectEntry>& obj, bool dirty)
+void Map::removeObject(std::shared_ptr<MapObjectEntry> obj, bool dirty)
 {
   objects.remove(obj);
   
@@ -202,4 +209,9 @@ void Map::addChild(int id)
 void Map::setExpanded(bool exp)
 {
   expanded = exp;
+}
+
+void Map::setHidden(bool hid)
+{
+  hidden = hid;
 }

@@ -135,7 +135,7 @@ World::World(std::string filename)
                 } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
                 {
                   xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-                  sscanf((char*) key, "%lf,%lf", &data->position.first, &data->position.second);
+                  sscanf((char*) key, "%d,%d", &data->position.first, &data->position.second);
                   xmlFree(key);
                 }
               }
@@ -267,6 +267,8 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
   for (auto mapPair : maps)
   {
     Map& map = *mapPair.second;
+    
+    if (map.getHidden()) continue;
     
     // <map>
     rc = xmlTextWriterStartElement(writer, (xmlChar*) "map");

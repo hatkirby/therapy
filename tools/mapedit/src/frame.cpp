@@ -19,6 +19,8 @@ enum {
   MENU_FILE_CLOSE,
   MENU_MAP_ADD_ROOT,
   MENU_MAP_ADD_CHILD,
+  MENU_EDIT_UNDO,
+  MENU_EDIT_REDO,
   TOOL_FILE_NEW,
   TOOL_FILE_OPEN,
   TOOL_FILE_SAVE,
@@ -43,6 +45,8 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_MENU(MENU_FILE_CLOSE, MapeditFrame::OnClose)
   EVT_MENU(MENU_MAP_ADD_ROOT, MapeditFrame::OnAddRoot)
   EVT_MENU(MENU_MAP_ADD_CHILD, MapeditFrame::OnAddChild)
+  EVT_MENU(MENU_EDIT_UNDO, MapeditFrame::OnUndo)
+  EVT_MENU(MENU_EDIT_REDO, MapeditFrame::OnRedo)
   EVT_TOOL(TOOL_FILE_NEW, MapeditFrame::OnNew)
   EVT_TOOL(TOOL_FILE_OPEN, MapeditFrame::OnOpen)
   EVT_TOOL(TOOL_FILE_SAVE, MapeditFrame::OnSave)
@@ -51,7 +55,6 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_CLOSE(MapeditFrame::OnExit)
   EVT_NOTEBOOK_PAGE_CHANGED(MAP_EDITOR_NOTEBOOK, MapeditFrame::OnTabChange)
   EVT_NOTEBOOK_PAGE_CHANGING(MAP_EDITOR_NOTEBOOK, MapeditFrame::OnTabChanging)
-  EVT_TREE_SEL_CHANGING(MAP_EDITOR_TREE, MapeditFrame::OnWillSelectMap)
   EVT_TREE_SEL_CHANGED(MAP_EDITOR_TREE, MapeditFrame::OnDidSelectMap)
   EVT_TREE_BEGIN_DRAG(MAP_EDITOR_TREE, MapeditFrame::OnWillDragMap)
   EVT_TREE_END_DRAG(MAP_EDITOR_TREE, MapeditFrame::OnDidDragMap)
@@ -80,12 +83,18 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   menuFile->AppendSeparator();
   menuFile->Append(wxID_EXIT);
   
+  menuEdit = new wxMenu;
+  menuEdit->Append(MENU_EDIT_UNDO, "Undo\tCtrl-Z");
+  menuEdit->Append(MENU_EDIT_REDO, "Redo\tCtrl-Shift-Z");
+  UpdateUndoLabels();
+  
   wxMenu* menuView = new wxMenu;
   menuView->Append(MENU_VIEW_ZOOM_IN, "Zoom In\tCtrl-+");
   menuView->Append(MENU_VIEW_ZOOM_OUT, "Zoom Out\tCtrl--");
 
   wxMenuBar* menuBar = new wxMenuBar;
   menuBar->Append(menuFile, "&File");
+  menuBar->Append(menuEdit, "&Edit");
   menuBar->Append(menuView, "&View");
   
   SetMenuBar(menuBar);
@@ -118,7 +127,7 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   
   // Set up property editor
   wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY);
-  titleBox = new wxTextCtrl(propertyEditor, MAP_TITLE_TEXTBOX, currentMap->getTitle());
+  titleBox = new UndoableTextBox(propertyEditor, MAP_TITLE_TEXTBOX, currentMap->getTitle(), "Edit Map Title", this);
   titleBox->SetMaxLength(40);
   
   wxStaticText* titleLabel = new wxStaticText(propertyEditor, wxID_ANY, "Title:");
@@ -216,8 +225,9 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   toolbar->EnableTool(TOOL_FILE_SAVE, this->world->getDirty());
   toolbar->Realize();
   
-  mapTree->SetFocusedItem(currentMap->getTreeItemId());
-  SelectMap(currentMap);  
+  dontSelectMap = true;
+  mapTree->SelectItem(currentMap->getTreeItemId());
+  dontSelectMap = false;
   
   Maximize(true);
 }
@@ -324,10 +334,12 @@ void MapeditFrame::OnQuit(wxCommandEvent&)
   }
 }
 
-void MapeditFrame::OnTitleChange(wxCommandEvent&)
+void MapeditFrame::OnTitleChange(wxCommandEvent& event)
 {
   currentMap->setTitle(titleBox->GetValue().ToStdString());
-  mapTree->SetItemText(currentMap->getTreeItemId(), currentMap->getTitle());
+  mapTree->SetItemText(currentMap->getTreeItemId(), titleBox->GetValue());
+  
+  event.Skip();
 }
 
 void MapeditFrame::OnTabChange(wxBookCtrlEvent& event)
@@ -378,33 +390,83 @@ void MapeditFrame::OnCancelAddEntity(wxCommandEvent&)
 void MapeditFrame::OnAddRoot(wxCommandEvent&)
 {
   auto map = world->newMap();
-  wxTreeItemId node = mapTree->AppendItem(mapTree->GetItemParent(mapTree->GetSelection()), map->getTitle());
-  map->setTreeItemId(node);
-  mapTree->SetItemData(node, new MapPtrCtr(map.get()));
-  mapTree->SetFocusedItem(node);
-  SelectMap(map.get());
+  
+  commitAction(std::make_shared<Undoable>("New Map", [=] () {
+    map->setHidden(false);
+    
+    wxTreeItemId sel = mapTree->GetSelection();
+    wxTreeItemId par = mapTree->GetItemParent(sel);
+    wxTreeItemId node = mapTree->AppendItem(par, map->getTitle());
+    map->setTreeItemId(node);
+    mapTree->SetItemData(node, new MapPtrCtr(map.get()));
+    
+    dontSelectMap = true;
+    mapTree->SelectItem(node);
+    dontSelectMap = false;
+  }, [=] () {
+    map->setHidden(true);
+    
+    wxTreeItemId sel = mapTree->GetPrevSibling(map->getTreeItemId());
+    mapTree->Delete(map->getTreeItemId());
+    
+    dontSelectMap = true;
+    mapTree->SelectItem(sel);
+    dontSelectMap = false;
+  }));
+  
 }
 
 void MapeditFrame::OnAddChild(wxCommandEvent&)
 {
   auto map = world->newMap();
-  wxTreeItemId node = mapTree->AppendItem(mapTree->GetSelection(), map->getTitle());
-  map->setTreeItemId(node);
-  mapTree->SetItemData(node, new MapPtrCtr(map.get()));
-  mapTree->SetFocusedItem(node);
-  mapTree->Expand(mapTree->GetSelection());
-  SelectMap(map.get());
+  
+  commitAction(std::make_shared<Undoable>("New Map", [=] () {
+    map->setHidden(false);
+    
+    wxTreeItemId sel = mapTree->GetSelection();
+    wxTreeItemId node = mapTree->AppendItem(sel, map->getTitle());
+    map->setTreeItemId(node);
+    mapTree->SetItemData(node, new MapPtrCtr(map.get()));
+    
+    mapTree->Expand(sel);
+    
+    dontSelectMap = true;
+    mapTree->SelectItem(node);
+    dontSelectMap = false;
+  }, [=] () {
+    map->setHidden(true);
+    
+    wxTreeItemId sel = mapTree->GetItemParent(map->getTreeItemId());
+    mapTree->Delete(map->getTreeItemId());
+    
+    dontSelectMap = true;
+    mapTree->SelectItem(sel);
+    dontSelectMap = false;
+  }));
 }
 
 void MapeditFrame::OnDidSelectMap(wxTreeEvent& event)
 {
   MapPtrCtr* data = (MapPtrCtr*) mapTree->GetItemData(event.GetItem());
   SelectMap(data->map);
-}
-
-void MapeditFrame::OnWillSelectMap(wxTreeEvent& event)
-{
-  event.Skip();
+  
+  if (!dontSelectMap)
+  {
+    commitAfter(std::make_shared<Undoable>("Selecting " + data->map->getTitle(), [=] () {
+      wxTreeItemId toSelect = event.GetItem();
+      dontSelectMap = true;
+      mapTree->SelectItem(toSelect);
+      dontSelectMap = false;
+      SelectMap(data->map);
+    }, [=] () {
+      wxTreeItemId toSelect = event.GetOldItem();
+      MapPtrCtr* oldData = (MapPtrCtr*) mapTree->GetItemData(toSelect);
+      dontSelectMap = true;
+      mapTree->SelectItem(toSelect);
+      dontSelectMap = false;
+      SelectMap(oldData->map);
+    }));
+  }
 }
 
 void MapeditFrame::OnWillDragMap(wxTreeEvent& event)
@@ -426,9 +488,24 @@ void MapeditFrame::OnDidDragMap(wxTreeEvent& event)
     newParent = mapTree->GetRootItem();
   }
   
-  wxTreeItemId newChild = MoveTreeNode(dragMap, newParent);
+  wxTreeItemId curParent = mapTree->GetItemParent(event.GetItem());
+  wxTreeItemId dragMapCopy = dragMap;
   dragMap.Unset();
-  mapTree->SelectItem(newChild);
+  
+  Map* theMap = ((MapPtrCtr*) mapTree->GetItemData(dragMap))->map;
+  commitAction(std::make_shared<Undoable>("Arranging " + theMap->getTitle(), [=] () {
+    wxTreeItemId newChild = MoveTreeNode(dragMapCopy, newParent);
+  
+    dontSelectMap = true;
+    mapTree->SelectItem(newChild);
+    dontSelectMap = false;
+  }, [=] () {
+    wxTreeItemId newChild = MoveTreeNode(dragMapCopy, curParent);
+  
+    dontSelectMap = true;
+    mapTree->SelectItem(newChild);
+    dontSelectMap = false;
+  }));
 }
 
 void MapeditFrame::OnRightClickTree(wxTreeEvent& event)
@@ -449,6 +526,28 @@ void MapeditFrame::OnCancelSetStartpos(wxCommandEvent&)
 {
   SetIsSettingStart(false);
   mapEditor->SetIsSettingStart(false);
+}
+
+void MapeditFrame::OnUndo(wxCommandEvent&)
+{
+  (*currentAction)->endChanges();
+  (*currentAction)->undo();
+  currentAction++;
+  
+  UpdateUndoLabels();
+}
+
+void MapeditFrame::OnRedo(wxCommandEvent&)
+{
+  if (currentAction != end(history))
+  {
+    (*currentAction)->endChanges();
+  }
+  
+  currentAction--;
+  (*currentAction)->apply();
+  
+  UpdateUndoLabels();
 }
 
 void MapeditFrame::NewWorld()
@@ -531,6 +630,10 @@ void MapeditFrame::SelectMap(Map* map)
 {
   currentMap = map;
   mapEditor->SetMap(map);
+  
+  SetIsAddingEntity(false);
+  SetIsSettingStart(false);
+  
   titleBox->ChangeValue(map->getTitle());
   world->setLastMap(map);
 }
@@ -591,4 +694,50 @@ void MapeditFrame::SetStartposLabel()
   mappos_out << ")";
   
   startposLabel->SetLabel(mappos_out.str());
+}
+
+void MapeditFrame::UpdateUndoLabels()
+{
+  if (currentAction != end(history))
+  {
+    menuEdit->SetLabel(MENU_EDIT_UNDO, "Undo " + (*currentAction)->getTitle() + "\tCtrl-Z");
+    menuEdit->Enable(MENU_EDIT_UNDO, true);
+  } else {
+    menuEdit->SetLabel(MENU_EDIT_UNDO, "Undo\tCtrl-Z");
+    menuEdit->Enable(MENU_EDIT_UNDO, false);
+  }
+  
+  if (currentAction != begin(history))
+  {
+    menuEdit->SetLabel(MENU_EDIT_REDO, "Redo " + (*std::prev(currentAction))->getTitle() + "\tCtrl-Shift-Z");
+    menuEdit->Enable(MENU_EDIT_REDO, true);
+  } else {
+    menuEdit->SetLabel(MENU_EDIT_REDO, "Redo\tCtrl-Shift-Z");
+    menuEdit->Enable(MENU_EDIT_REDO, false);
+  }
+}
+
+void MapeditFrame::commitAction(std::shared_ptr<Undoable> action)
+{
+  action->apply();
+  
+  commitAfter(action);
+}
+
+void MapeditFrame::commitAfter(std::shared_ptr<Undoable> action)
+{
+  if (currentAction != end(history))
+  {
+    (*currentAction)->endChanges();
+  }
+
+  history.erase(begin(history), currentAction);
+  currentAction = history.insert(begin(history), action);
+  
+  UpdateUndoLabels();
+  
+  if (history.size() > 100)
+  {
+    history.pop_back();
+  }
 }

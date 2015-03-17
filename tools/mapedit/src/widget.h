@@ -11,6 +11,8 @@
 #include "tile_widget.h"
 #include <list>
 #include <memory>
+#include <utility>
+#include <set>
 
 class MapeditFrame;
 
@@ -58,8 +60,10 @@ class MapeditWidget : public wxScrolledWindow {
     EditMode editMode = EditTiles;
     int currentPlayer = 0;
     bool isSettingPos = false;
+    std::set<std::pair<int,int>> changeBuffer;
     
     MapObject* addingEntity = nullptr;
+    MapObjectEntry* movingEntity = nullptr;
     std::shared_ptr<MapObjectEntry> selectedEntity;
     
     DECLARE_DYNAMIC_CLASS(MapeditWidget)
