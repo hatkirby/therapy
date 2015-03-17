@@ -14,6 +14,7 @@
 #include <wx/notebook.h>
 #include <memory>
 #include <wx/treectrl.h>
+#include <wx/splitter.h>
 #include "undo.h"
 
 class MapPtrCtr : public wxTreeItemData {
@@ -65,6 +66,8 @@ class MapeditFrame : public wxFrame {
     void OnRightClickTree(wxTreeEvent& event);
     void OnSetStartpos(wxCommandEvent& event);
     void OnCancelSetStartpos(wxCommandEvent& event);
+    void OnOneMovingSash(wxSplitterEvent& event);
+    void OnThreeMovingSash(wxSplitterEvent& event);
     
     std::unique_ptr<World> world;
     Map* currentMap;
@@ -73,6 +76,8 @@ class MapeditFrame : public wxFrame {
     TileWidget* tileEditor;
     wxToolBar* toolbar;
     wxMenu* menuFile;
+    wxSplitterWindow* layout1;
+    wxSplitterWindow* layout3;
     
     // Notebook
     wxNotebook* notebook;

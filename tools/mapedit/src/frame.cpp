@@ -1,7 +1,6 @@
 #include "frame.h"
 #include "widget.h"
 #include "tile_widget.h"
-#include <wx/splitter.h>
 #include <wx/statline.h>
 #include "panel.h"
 #include <list>
@@ -32,7 +31,9 @@ enum {
   ADD_ENTITY_BUTTON,
   CANCEL_ENTITY_BUTTON,
   SET_STARTPOS_BUTTON,
-  CANCEL_STARTPOS_BUTTON
+  CANCEL_STARTPOS_BUTTON,
+  LAYOUT_ONE_SPLITTER,
+  LAYOUT_THREE_SPLITTER
 };
 
 wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
@@ -64,6 +65,8 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_BUTTON(CANCEL_ENTITY_BUTTON, MapeditFrame::OnCancelAddEntity)
   EVT_BUTTON(SET_STARTPOS_BUTTON, MapeditFrame::OnSetStartpos)
   EVT_BUTTON(CANCEL_STARTPOS_BUTTON, MapeditFrame::OnCancelSetStartpos)
+  EVT_SPLITTER_SASH_POS_CHANGING(LAYOUT_ONE_SPLITTER, MapeditFrame::OnOneMovingSash)
+  EVT_SPLITTER_SASH_POS_CHANGING(LAYOUT_THREE_SPLITTER, MapeditFrame::OnThreeMovingSash)
 wxEND_EVENT_TABLE()
 
 MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_ANY, "Map Editor")
@@ -133,14 +136,14 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   // Layout 2: Non-splitter between layout 3 and notebook
   // Layout 3: Splitter between map editor and properties editor
   
-  wxSplitterWindow* layout1 = new wxSplitterWindow(this, wxID_ANY);
-  mapTree = new wxTreeCtrl(layout1, MAP_EDITOR_TREE, wxDefaultPosition, wxSize(150, 0), wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS);
+  layout1 = new wxSplitterWindow(this, LAYOUT_ONE_SPLITTER);
+  mapTree = new wxTreeCtrl(layout1, MAP_EDITOR_TREE, wxDefaultPosition, wxSize(200, -1), wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS);
   wxTreeItemId mapTreeRoot = mapTree->AddRoot("root");
   populateMapTree(mapTreeRoot, this->world->getRootMaps());
   
   wxPanel* layout2 = new wxPanel(layout1, wxID_ANY);
   
-  wxSplitterWindow* layout3 = new wxSplitterWindow(layout2, wxID_ANY);
+  layout3 = new wxSplitterWindow(layout2, LAYOUT_THREE_SPLITTER);
   layout3->SetSashGravity(1.0);
   
   notebook = new wxNotebook(layout2, MAP_EDITOR_NOTEBOOK);
@@ -152,7 +155,7 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   mapEditor->frame = this;
   
   // Set up property editor
-  wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY, wxDefaultPosition, wxSize(-1, 100));
+  wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY);//, wxDefaultPosition, wxSize(-1, 100));
   titleBox = new UndoableTextBox(propertyEditor, MAP_TITLE_TEXTBOX, currentMap->getTitle(), "Edit Map Title", this);
   titleBox->SetMaxLength(40);
   
@@ -169,12 +172,12 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   wxBoxSizer* propertySizer1 = new wxBoxSizer(wxHORIZONTAL);
   propertySizer1->Add(titleLabel, 0, wxALIGN_RIGHT | wxLEFT, 10);
   propertySizer1->Add(titleBox, 1, wxALIGN_LEFT | wxLEFT | wxRIGHT, 10);
-  propertySizer->Add(propertySizer1, 1, wxEXPAND | wxTOP, 10);
+  propertySizer->Add(propertySizer1, 0, wxEXPAND | wxTOP, 10);
   wxBoxSizer* propertySizer2 = new wxBoxSizer(wxHORIZONTAL);
   propertySizer2->Add(startposLabel, 0, wxALIGN_RIGHT | wxLEFT, 10);
   propertySizer2->Add(setStartposButton, 0, wxALIGN_LEFT | wxLEFT, 10);
   propertySizer2->Add(cancelStartposButton, 0, wxALIGN_LEFT | wxLEFT, 10);
-  propertySizer->Add(propertySizer2, 1, wxEXPAND | wxTOP, 10);
+  propertySizer->Add(propertySizer2, 0, wxEXPAND | wxTOP | wxBOTTOM, 10);
   propertyEditor->SetSizer(propertySizer);
   propertySizer->SetSizeHints(propertyEditor);
   
@@ -217,13 +220,10 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   entitySizer->SetSizeHints(entityEditor);
   
   // Finish setting up the layouts
-  layout3->SplitHorizontally(mapEditor, propertyEditor);
-  layout1->SplitVertically(mapTree, layout2);
-  
   wxBoxSizer* sizer1 = new wxBoxSizer(wxHORIZONTAL);
   sizer1->Add(layout1, 1, wxEXPAND, 0);
   sizer1->Add(mapTree, 0, wxALIGN_TOP | wxALIGN_LEFT, 0);
-  sizer1->Add(layout2, 1, wxEXPAND, 0);
+  sizer1->Add(layout2, 2, wxEXPAND, 0);
   layout1->SetSizer(sizer1);
   sizer1->SetSizeHints(layout1);
   
@@ -234,11 +234,14 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   sizer2->SetSizeHints(layout2);
   
   wxBoxSizer* splitterSizer = new wxBoxSizer(wxVERTICAL);
-  splitterSizer->Add(layout3, 1, wxEXPAND, 0);
+  splitterSizer->Add(layout3, 0, wxEXPAND, 0);
   splitterSizer->Add(mapEditor, 1, wxEXPAND, 0);
-  splitterSizer->Add(propertyEditor, 0, wxALIGN_TOP | wxALIGN_LEFT, 0);
+  splitterSizer->Add(propertyEditor, 0, wxALIGN_BOTTOM | wxALIGN_LEFT, 0);
   layout3->SetSizer(splitterSizer);
   splitterSizer->SetSizeHints(layout3);
+  
+  layout3->SplitHorizontally(mapEditor, propertyEditor, -propertyEditor->GetSize().GetHeight());
+  layout1->SplitVertically(mapTree, layout2, mapTree->GetSize().GetWidth());
   
   // Toolbar time!
   toolbar = CreateToolBar();
@@ -572,6 +575,16 @@ void MapeditFrame::OnRedo(wxCommandEvent&)
   (*currentAction)->apply();
   
   UpdateUndoLabels();
+}
+
+void MapeditFrame::OnOneMovingSash(wxSplitterEvent& event)
+{
+  layout1->SetSashPosition(event.GetSashPosition(), true);
+}
+
+void MapeditFrame::OnThreeMovingSash(wxSplitterEvent& event)
+{
+  layout3->SetSashPosition(event.GetSashPosition(), true);
 }
 
 void MapeditFrame::NewWorld()
