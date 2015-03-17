@@ -78,6 +78,7 @@ class MapeditFrame : public wxFrame {
     wxMenu* menuFile;
     wxSplitterWindow* layout1;
     wxSplitterWindow* layout3;
+    wxPanel* propertyEditor;
     
     // Notebook
     wxNotebook* notebook;

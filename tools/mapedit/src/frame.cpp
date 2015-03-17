@@ -155,14 +155,13 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   mapEditor->frame = this;
   
   // Set up property editor
-  wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY);//, wxDefaultPosition, wxSize(-1, 100));
+  propertyEditor = new wxPanel(layout3, wxID_ANY);//, wxDefaultPosition, wxSize(-1, 100));
   titleBox = new UndoableTextBox(propertyEditor, MAP_TITLE_TEXTBOX, currentMap->getTitle(), "Edit Map Title", this);
   titleBox->SetMaxLength(40);
   
   wxStaticText* titleLabel = new wxStaticText(propertyEditor, wxID_ANY, "Title:");
   
   startposLabel = new wxStaticText(propertyEditor, wxID_ANY, "Starting Position:");
-  SetStartposLabel();
   
   setStartposButton = new wxButton(propertyEditor, SET_STARTPOS_BUTTON, "Set Starting Position");
   cancelStartposButton = new wxButton(propertyEditor, CANCEL_STARTPOS_BUTTON, "Cancel");
@@ -257,6 +256,8 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   dontSelectMap = true;
   mapTree->SelectItem(currentMap->getTreeItemId());
   dontSelectMap = false;
+  
+  SetStartposLabel();
 }
 
 void MapeditFrame::OnExit(wxCloseEvent& event)
@@ -731,6 +732,7 @@ void MapeditFrame::SetStartposLabel()
   mappos_out << ")";
   
   startposLabel->SetLabel(mappos_out.str());
+  propertyEditor->GetSizer()->SetSizeHints(propertyEditor);
 }
 
 void MapeditFrame::UpdateUndoLabels()
