@@ -113,6 +113,11 @@ bool Map::getExpanded() const
   return expanded;
 }
 
+World* Map::getWorld() const
+{
+  return world;
+}
+
 void Map::setTitle(std::string title, bool dirty)
 {
   this->title = title;

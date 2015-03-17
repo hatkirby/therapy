@@ -6,6 +6,7 @@
 #include "panel.h"
 #include <list>
 #include <exception>
+#include <sstream>
 
 static std::list<wxWindow*> openWindows;
 
@@ -27,7 +28,9 @@ enum {
   MAP_EDITOR_TREE,
   MAP_TITLE_TEXTBOX,
   ADD_ENTITY_BUTTON,
-  CANCEL_ENTITY_BUTTON
+  CANCEL_ENTITY_BUTTON,
+  SET_STARTPOS_BUTTON,
+  CANCEL_STARTPOS_BUTTON
 };
 
 wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
@@ -56,6 +59,8 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_TEXT(MAP_TITLE_TEXTBOX, MapeditFrame::OnTitleChange)
   EVT_BUTTON(ADD_ENTITY_BUTTON, MapeditFrame::OnAddEntity)
   EVT_BUTTON(CANCEL_ENTITY_BUTTON, MapeditFrame::OnCancelAddEntity)
+  EVT_BUTTON(SET_STARTPOS_BUTTON, MapeditFrame::OnSetStartpos)
+  EVT_BUTTON(CANCEL_STARTPOS_BUTTON, MapeditFrame::OnCancelSetStartpos)
 wxEND_EVENT_TABLE()
 
 MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_ANY, "Map Editor", wxDefaultPosition, wxSize(GAME_WIDTH*2+TILE_WIDTH*6*6+10+10+150, GAME_HEIGHT*3))
@@ -114,14 +119,27 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   // Set up property editor
   wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY);
   titleBox = new wxTextCtrl(propertyEditor, MAP_TITLE_TEXTBOX, currentMap->getTitle());
+  titleBox->SetMaxLength(40);
   
   wxStaticText* titleLabel = new wxStaticText(propertyEditor, wxID_ANY, "Title:");
+  
+  startposLabel = new wxStaticText(propertyEditor, wxID_ANY, "Starting Position:");
+  SetStartposLabel();
+  
+  setStartposButton = new wxButton(propertyEditor, SET_STARTPOS_BUTTON, "Set Starting Position");
+  cancelStartposButton = new wxButton(propertyEditor, CANCEL_STARTPOS_BUTTON, "Cancel");
+  cancelStartposButton->Disable();
   
   wxBoxSizer* propertySizer = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer* propertySizer1 = new wxBoxSizer(wxHORIZONTAL);
   propertySizer1->Add(titleLabel, 0, wxALIGN_RIGHT | wxLEFT, 10);
   propertySizer1->Add(titleBox, 1, wxALIGN_LEFT | wxLEFT | wxRIGHT, 10);
   propertySizer->Add(propertySizer1, 1, wxEXPAND | wxTOP, 10);
+  wxBoxSizer* propertySizer2 = new wxBoxSizer(wxHORIZONTAL);
+  propertySizer2->Add(startposLabel, 0, wxALIGN_RIGHT | wxLEFT, 10);
+  propertySizer2->Add(setStartposButton, 0, wxALIGN_LEFT | wxLEFT, 10);
+  propertySizer2->Add(cancelStartposButton, 0, wxALIGN_LEFT | wxLEFT, 10);
+  propertySizer->Add(propertySizer2, 1, wxEXPAND | wxTOP, 10);
   propertyEditor->SetSizer(propertySizer);
   propertySizer->SetSizeHints(propertyEditor);
   
@@ -386,22 +404,13 @@ void MapeditFrame::OnDidSelectMap(wxTreeEvent& event)
 
 void MapeditFrame::OnWillSelectMap(wxTreeEvent& event)
 {
-  if (addingEntity)
-  {
-    event.Veto();
-    return;
-  }
-  
   event.Skip();
 }
 
 void MapeditFrame::OnWillDragMap(wxTreeEvent& event)
 {
-  if (!addingEntity)
-  {
-    event.Allow();
-    dragMap = event.GetItem();
-  }
+  event.Allow();
+  dragMap = event.GetItem();
 }
 
 void MapeditFrame::OnDidDragMap(wxTreeEvent& event)
@@ -428,6 +437,18 @@ void MapeditFrame::OnRightClickTree(wxTreeEvent& event)
   {
     PopupMenu(mapTreePopup);
   }
+}
+
+void MapeditFrame::OnSetStartpos(wxCommandEvent&)
+{
+  SetIsSettingStart(true);
+  mapEditor->SetIsSettingStart(true);
+}
+
+void MapeditFrame::OnCancelSetStartpos(wxCommandEvent&)
+{
+  SetIsSettingStart(false);
+  mapEditor->SetIsSettingStart(false);
 }
 
 void MapeditFrame::NewWorld()
@@ -459,43 +480,18 @@ void MapeditFrame::LaunchWindow(std::unique_ptr<World> world)
   frame->Show(true);
 }
 
-void MapeditFrame::StartAddingEntity()
+void MapeditFrame::SetIsAddingEntity(bool isAddingEntity)
 {
-  addingEntity = true;
-  addEntityButton->Disable();
-  cancelEntityButton->Enable();
-  
-  toolbar->EnableTool(TOOL_FILE_NEW, false);
-  toolbar->EnableTool(TOOL_FILE_OPEN, false);
-  toolbar->EnableTool(TOOL_FILE_SAVE, false);
-  toolbar->EnableTool(TOOL_MAP_ADD_ROOT, false);
-  toolbar->EnableTool(TOOL_MAP_ADD_CHILD, false);
-  
-  menuFile->Enable(MENU_FILE_NEW, false);
-  menuFile->Enable(MENU_FILE_OPEN, false);
-  menuFile->Enable(MENU_FILE_SAVE, false);
-  menuFile->Enable(MENU_MAP_ADD_ROOT, false);
-  menuFile->Enable(MENU_MAP_ADD_CHILD, false);
-}
-
-void MapeditFrame::FinishAddingEntity()
-{
-  addingEntity = false;
-  addEntityButton->Enable();
-  cancelEntityButton->Disable();
-  toolbar->Enable();
-  
-  toolbar->EnableTool(TOOL_FILE_NEW, true);
-  toolbar->EnableTool(TOOL_FILE_OPEN, true);
-  toolbar->EnableTool(TOOL_FILE_SAVE, world->getDirty());
-  toolbar->EnableTool(TOOL_MAP_ADD_ROOT, true);
-  toolbar->EnableTool(TOOL_MAP_ADD_CHILD, true);
-  
-  menuFile->Enable(MENU_FILE_NEW, true);
-  menuFile->Enable(MENU_FILE_OPEN, true);
-  menuFile->Enable(MENU_FILE_SAVE, world->getDirty());
-  menuFile->Enable(MENU_MAP_ADD_ROOT, true);
-  menuFile->Enable(MENU_MAP_ADD_CHILD, true);
+  if (isAddingEntity)
+  {
+    addingEntity = true;
+    addEntityButton->Disable();
+    cancelEntityButton->Enable();
+  } else {
+    addingEntity = false;
+    addEntityButton->Enable();
+    cancelEntityButton->Disable();
+  }
 }
 
 void MapeditFrame::MapDirtyDidChange(bool dirty)
@@ -567,4 +563,32 @@ wxTreeItemId MapeditFrame::MoveTreeNode(wxTreeItemId toCopy, wxTreeItemId newPar
   mapTree->Delete(toCopy);
   
   return copied;
+}
+
+void MapeditFrame::SetIsSettingStart(bool isSettingStart)
+{
+  if (isSettingStart)
+  {
+    setStartposButton->Disable();
+    cancelStartposButton->Enable();
+  } else {
+    SetStartposLabel();
+    
+    setStartposButton->Enable();
+    cancelStartposButton->Disable();
+  }
+}
+
+void MapeditFrame::SetStartposLabel()
+{
+  std::ostringstream mappos_out;
+  mappos_out << "Starting Position: ";
+  mappos_out << world->getStartingMap()->getTitle();
+  mappos_out << " (";
+  mappos_out << (int) world->getStartingPosition().first;
+  mappos_out << ",";
+  mappos_out << (int) world->getStartingPosition().second;
+  mappos_out << ")";
+  
+  startposLabel->SetLabel(mappos_out.str());
 }

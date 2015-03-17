@@ -30,6 +30,7 @@ class MapeditWidget : public wxScrolledWindow {
     void StartAddingEntity(MapObject* object);
     void CancelAddingEntity();
     void SetMap(Map* map);
+    void SetIsSettingStart(bool isSetting);
     
     MapeditFrame* frame;
     
@@ -55,6 +56,8 @@ class MapeditWidget : public wxScrolledWindow {
     wxPoint mousePos;
     bool mouseIsIn = false;
     EditMode editMode = EditTiles;
+    int currentPlayer = 0;
+    bool isSettingPos = false;
     
     MapObject* addingEntity = nullptr;
     std::shared_ptr<MapObjectEntry> selectedEntity;

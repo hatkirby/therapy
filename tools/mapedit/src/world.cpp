@@ -59,6 +59,17 @@ World::World(std::string filename)
         rootChildren.push_back(atoi((char*) key));
       }
       xmlFree(key);
+    } else if (!xmlStrcmp(node->name, (const xmlChar*) "startpos"))
+    {
+      xmlChar* idKey = xmlGetProp(node, (xmlChar*) "id");
+      if (idKey == 0) throw MapLoadException(filename);
+      startingMap = atoi((char*) idKey);
+      xmlFree(idKey);
+      
+      xmlChar* posKey = xmlGetProp(node, (xmlChar*) "pos");
+      if (posKey == 0) throw MapLoadException(filename);
+      sscanf((char*) posKey, "%d,%d", &startingPosition.first, &startingPosition.second);
+      xmlFree(posKey);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "map"))
     {
       xmlChar* idKey = xmlGetProp(node, (xmlChar*) "id");
@@ -237,6 +248,22 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
     if (rc < 0) throw MapWriteException(name);
   }
   
+  //   <startpos>
+  rc = xmlTextWriterStartElement(writer, (xmlChar*) "startpos");
+  if (rc < 0) throw MapWriteException(name);
+  
+  //   id=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "id", "%d", startingMap);
+  if (rc < 0) throw MapWriteException(name);
+  
+  //   pos=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "pos", "%d,%d", startingPosition.first, startingPosition.second);
+  if (rc < 0) throw MapWriteException(name);
+  
+  //   </startpos>
+  rc = xmlTextWriterEndElement(writer);
+  if (rc < 0) throw MapWriteException(name);
+  
   for (auto mapPair : maps)
   {
     Map& map = *mapPair.second;
@@ -378,4 +405,22 @@ void World::setLastMap(Map* map)
 bool World::getEmpty() const
 {
   return empty;
+}
+
+Map* World::getStartingMap() const
+{
+  return getMap(startingMap).get();
+}
+
+std::pair<double, double> World::getStartingPosition() const
+{
+  return startingPosition;
+}
+
+void World::setStart(Map* map, std::pair<double, double> startPos)
+{
+  startingMap = map->getID();
+  startingPosition = startPos;
+  
+  setDirty(true);
 }

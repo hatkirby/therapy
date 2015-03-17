@@ -28,9 +28,9 @@ class MapeditFrame : public wxFrame {
     MapeditFrame(std::unique_ptr<World> world);
     
     MapeditWidget* GetMapEditor();
-    void StartAddingEntity();
-    void FinishAddingEntity();
+    void SetIsAddingEntity(bool isAddingEntity);
     void MapDirtyDidChange(bool dirty);
+    void SetIsSettingStart(bool isSettingStart);
     
     static void NewWorld();
     static bool OpenWorld(std::string filename);
@@ -42,6 +42,7 @@ class MapeditFrame : public wxFrame {
     void populateMapTree(wxTreeItemId node, std::list<std::shared_ptr<Map>> maps);
     void SelectMap(Map* map);
     wxTreeItemId MoveTreeNode(wxTreeItemId toCopy, wxTreeItemId newParent);
+    void SetStartposLabel();
       
     void ZoomIn(wxCommandEvent& event);
     void ZoomOut(wxCommandEvent& event);
@@ -63,6 +64,8 @@ class MapeditFrame : public wxFrame {
     void OnWillDragMap(wxTreeEvent& event);
     void OnDidDragMap(wxTreeEvent& event);
     void OnRightClickTree(wxTreeEvent& event);
+    void OnSetStartpos(wxCommandEvent& event);
+    void OnCancelSetStartpos(wxCommandEvent& event);
     
     std::unique_ptr<World> world;
     Map* currentMap;
@@ -79,6 +82,9 @@ class MapeditFrame : public wxFrame {
     wxTreeCtrl* mapTree;
     wxTreeItemId dragMap;
     wxMenu* mapTreePopup;
+    wxStaticText* startposLabel;
+    wxButton* setStartposButton;
+    wxButton* cancelStartposButton;
     
     bool addingEntity = false;
     

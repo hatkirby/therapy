@@ -33,6 +33,9 @@ class World {
     std::list<std::shared_ptr<Map>> getRootMaps() const;
     const std::map<int, std::shared_ptr<Map>> getMaps() const;
     bool getEmpty() const;
+    Map* getStartingMap() const;
+    std::pair<double, double> getStartingPosition() const;
+    void setStart(Map* map, std::pair<double, double> startPos); 
     
   private:
     MapeditFrame* parent;
@@ -43,6 +46,8 @@ class World {
     int lastmap = 0;
     std::list<int> rootChildren;
     bool empty = false;
+    int startingMap = 0;
+    std::pair<int, int> startingPosition {100, 100};
 };
 
 #endif

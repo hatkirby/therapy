@@ -20,6 +20,8 @@ const int GAME_WIDTH = 320;
 const int GAME_HEIGHT = 200;
 const int MAP_WIDTH = GAME_WIDTH/TILE_WIDTH;
 const int MAP_HEIGHT = GAME_HEIGHT/TILE_HEIGHT - 1;
+const int PLAYER_WIDTH[5] = {10, 0, 0, 0, 0};
+const int PLAYER_HEIGHT[5] = {12, 0, 0, 0, 0};
 
 class MapLoadException: public std::exception
 {
@@ -57,6 +59,11 @@ struct MapObjectEntry {
   {
     return (object == other.object) && (position == other.position);
   }
+  
+  bool operator!=(MapObjectEntry& other) const
+  {
+    return (object != other.object) && (position != other.position);
+  }
 };
 
 class Map {
@@ -77,6 +84,7 @@ class Map {
     wxTreeItemId getTreeItemId() const;
     std::list<std::shared_ptr<Map>> getChildren() const;
     bool getExpanded() const;
+    World* getWorld() const;
     
     void setTitle(std::string title, bool dirty = true);
     void setTileAt(int x, int y, int tile, bool dirty = true);

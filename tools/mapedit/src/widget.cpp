@@ -66,48 +66,91 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
     wxBitmap sprite = object->object->getSprite();
     tiles_dc.SelectObject(sprite);
     
-    dc.StretchBlit(object->position.first*scale-vX, object->position.second*scale-vY, object->object->getWidth()*scale, object->object->getHeight()*scale, &tiles_dc, 0, 0, object->object->getWidth(), object->object->getHeight());
+    wxPoint pos {(int) object->position.first*scale-vX, (int) object->position.second*scale-vY};
+    wxSize size {object->object->getWidth()*scale, object->object->getHeight()*scale};
+    dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, object->object->getWidth(), object->object->getHeight());
     
-    if ((editMode == EditEntities) && (selectedEntity) && (object == selectedEntity))
+    if (editMode == EditEntities)
     {
-      wxPen pen(*wxGREEN, 2);
-      dc.SetPen(pen);
-      dc.SetBrush(*wxTRANSPARENT_BRUSH);
-      dc.DrawRectangle(object->position.first*scale-vX, object->position.second*scale-vY, object->object->getWidth()*scale, object->object->getHeight()*scale);
+      if (!selectedEntity)
+      {
+        wxPen pen(*wxYELLOW, 2);
+        dc.SetPen(pen);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
+      } else if (object == selectedEntity)
+      {
+        wxPen pen(*wxGREEN, 2);
+        dc.SetPen(pen);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
+      }
     }
   }
   
-  if (editMode == EditTiles)
+  if (map->getWorld()->getStartingMap()->getID() == map->getID())
   {
-    if (mouseIsIn)
+    wxBitmap sprite = wxImage("res/Starla.png");
+    tiles_dc.SelectObject(wxNullBitmap);
+    tiles_dc.SelectObject(sprite);
+    
+    std::pair<double, double> startPos = map->getWorld()->getStartingPosition();
+    
+    wxPoint pos {(int) startPos.first*scale-vX, (int) startPos.second*scale-vY};
+    wxSize size {PLAYER_WIDTH[currentPlayer]*scale, PLAYER_HEIGHT[currentPlayer]*scale};
+    
+    dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, PLAYER_WIDTH[currentPlayer], PLAYER_HEIGHT[currentPlayer]);
+  }
+  
+  if (mouseIsIn)
+  {
+    if (isSettingPos)
+    {
+      wxBitmap sprite = wxImage("res/Starla.png");
+      tiles_dc.SelectObject(wxNullBitmap);
+      tiles_dc.SelectObject(sprite);
+
+      wxPoint pos {mousePos.x - PLAYER_WIDTH[currentPlayer]/2*scale, mousePos.y - PLAYER_HEIGHT[currentPlayer]/2*scale};
+      wxSize size {PLAYER_WIDTH[currentPlayer]*scale, PLAYER_HEIGHT[currentPlayer]*scale};
+
+      dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, PLAYER_WIDTH[currentPlayer], PLAYER_HEIGHT[currentPlayer]);
+
+      wxPen pen(*wxGREEN, 2);
+      dc.SetPen(pen);
+      dc.SetBrush(*wxTRANSPARENT_BRUSH);
+      dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
+    } else if (editMode == EditTiles)
     {
       int tile = tileWidget->getSelected();
       int x = (mousePos.x + vX) / (TILE_WIDTH * scale);
       int y = (mousePos.y + vY) / (TILE_HEIGHT * scale);
     
+      wxPoint pos {x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY};
+      wxSize size {TILE_WIDTH*scale, TILE_HEIGHT*scale};
+  
       tiles_dc.SelectObject(wxNullBitmap);
       tiles_dc.SelectObject(tiles);
-      dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-    
+      dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+  
       wxPen pen(*wxGREEN, 2);
       dc.SetPen(pen);
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
-      dc.DrawRectangle(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale);
-    }
-  } else if (editMode == EditEntities)
-  {
-    if ((addingEntity != nullptr) && (mouseIsIn))
+      dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
+    } else if ((editMode == EditEntities) && (addingEntity != nullptr))
     {
       wxBitmap sprite = addingEntity->getSprite();
       tiles_dc.SelectObject(wxNullBitmap);
       tiles_dc.SelectObject(sprite);
-      
-      dc.StretchBlit(mousePos.x - addingEntity->getWidth()/2*scale, mousePos.y - addingEntity->getHeight()/2*scale, addingEntity->getWidth()*scale, addingEntity->getHeight()*scale, &tiles_dc, 0, 0, addingEntity->getWidth(), addingEntity->getHeight());
-      
+    
+      wxPoint pos {mousePos.x - addingEntity->getWidth()/2*scale, mousePos.y - addingEntity->getHeight()/2*scale};
+      wxSize size {addingEntity->getWidth()*scale, addingEntity->getHeight()*scale};
+    
+      dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, addingEntity->getWidth(), addingEntity->getHeight());
+    
       wxPen pen(*wxGREEN, 2);
       dc.SetPen(pen);
       dc.SetBrush(*wxTRANSPARENT_BRUSH);
-      dc.DrawRectangle(mousePos.x - addingEntity->getWidth()/2*scale, mousePos.y - addingEntity->getHeight()/2*scale, addingEntity->getWidth()*scale, addingEntity->getHeight()*scale);
+      dc.DrawRectangle(pos.x, pos.y, size.GetWidth(), size.GetHeight());
     }
   }
 }
@@ -132,6 +175,13 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
 {
   mouseIsDown = true;
   
+  int vX, vY;
+  GetViewStart(&vX, &vY);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
+  
   if (editMode == EditTiles)
   {
     SetTile(event.GetPosition());
@@ -139,13 +189,6 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
   {
     if (addingEntity != nullptr)
     {
-      int vX, vY;
-      GetViewStart(&vX, &vY);
-      int vXX, vYX;
-      GetScrollPixelsPerUnit(&vXX, &vYX);
-      vX *= vXX;
-      vY *= vYX;
-      
       int x = (event.GetPosition().x + vX) / scale - (addingEntity->getWidth() / 2);
       int y = (event.GetPosition().y + vY) / scale - (addingEntity->getHeight() / 2);
 
@@ -156,17 +199,10 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
       
       addingEntity = nullptr;
       
-      frame->FinishAddingEntity();
+      frame->SetIsAddingEntity(false);
       
       Refresh();
     } else {
-      int vX, vY;
-      GetViewStart(&vX, &vY);
-      int vXX, vYX;
-      GetScrollPixelsPerUnit(&vXX, &vYX);
-      vX *= vXX;
-      vY *= vYX;
-      
       int x = (event.GetPosition().x + vX) / scale;
       int y = (event.GetPosition().y + vY) / scale;
       
@@ -178,7 +214,7 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
           addingEntity = selectedEntity->object;
           map->removeObject(selectedEntity);
           selectedEntity.reset();
-          frame->StartAddingEntity();
+          frame->SetIsAddingEntity(true);
         } else {
           selectedEntity.reset();
         }
@@ -199,6 +235,18 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
         }
       }
     }
+  }
+  
+  if (isSettingPos)
+  {
+    int x = (event.GetPosition().x + vX) / scale - (PLAYER_WIDTH[currentPlayer] / 2);
+    int y = (event.GetPosition().y + vY) / scale - (PLAYER_HEIGHT[currentPlayer] / 2);
+    
+    map->getWorld()->setStart(map, {x, y});
+    isSettingPos = false;
+    frame->SetIsSettingStart(false);
+    
+    Refresh();
   }
   
   event.Skip();
@@ -225,6 +273,8 @@ void MapeditWidget::OnRightClick(wxMouseEvent& event)
       {
         map->removeObject(selectedEntity);
         selectedEntity.reset();
+        
+        Refresh();
       }
     }
   }
@@ -290,12 +340,30 @@ void MapeditWidget::SetEditMode(EditMode editMode)
 void MapeditWidget::StartAddingEntity(MapObject* object)
 {
   addingEntity = object;
+  
+  // Turn everything else off
   selectedEntity = nullptr;
+  isSettingPos = false;
+  frame->SetIsSettingStart(false);
 }
 
 void MapeditWidget::CancelAddingEntity()
 {
   addingEntity = nullptr;
+}
+
+void MapeditWidget::SetIsSettingStart(bool isSetting)
+{
+  if (isSetting)
+  {
+    isSettingPos = true;
+    
+    frame->SetIsAddingEntity(false);
+    addingEntity = nullptr;
+    selectedEntity = nullptr;
+  } else {
+    isSettingPos = false;
+  }
 }
 
 void MapeditWidget::SetMap(Map* map)
