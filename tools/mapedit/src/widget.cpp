@@ -234,8 +234,8 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
   {
     if (addingEntity != nullptr)
     {
-      int x = (event.GetPosition().x + vX) / scale - (addingEntity->getWidth() / 2);
-      int y = (event.GetPosition().y + vY) / scale - (addingEntity->getHeight() / 2);
+      int x = (event.GetPosition().x + vX - EDITOR_SPACING_X*scale) / scale - (addingEntity->getWidth() / 2);
+      int y = (event.GetPosition().y + vY - EDITOR_SPACING_Y*scale) / scale - (addingEntity->getHeight() / 2);
       
       auto data = std::make_shared<MapObjectEntry>();
       data->object = addingEntity;
@@ -255,8 +255,8 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
       addingEntity = nullptr;
     } else if (movingEntity != nullptr)
     {
-      int x = (event.GetPosition().x + vX) / scale - (movingEntity->object->getWidth() / 2);
-      int y = (event.GetPosition().y + vY) / scale - (movingEntity->object->getHeight() / 2);
+      int x = (event.GetPosition().x + vX - EDITOR_SPACING_X*scale) / scale - (movingEntity->object->getWidth() / 2);
+      int y = (event.GetPosition().y + vY - EDITOR_SPACING_Y*scale) / scale - (movingEntity->object->getHeight() / 2);
       auto oldPos = movingEntity->position;
       MapObjectEntry* me = movingEntity;
       
@@ -273,8 +273,8 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
       frame->SetIsAddingEntity(false);
       movingEntity = nullptr;
     } else {
-      int x = (event.GetPosition().x + vX) / scale;
-      int y = (event.GetPosition().y + vY) / scale;
+      int x = (event.GetPosition().x + vX - EDITOR_SPACING_X*scale) / scale;
+      int y = (event.GetPosition().y + vY - EDITOR_SPACING_Y*scale) / scale;
       
       if (selectedEntity)
       {
@@ -307,8 +307,8 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
   
   if (isSettingPos)
   {
-    int x = (event.GetPosition().x + vX) / scale - (PLAYER_WIDTH[currentPlayer] / 2);
-    int y = (event.GetPosition().y + vY) / scale - (PLAYER_HEIGHT[currentPlayer] / 2);
+    int x = (event.GetPosition().x + vX - EDITOR_SPACING_X*scale) / scale - (PLAYER_WIDTH[currentPlayer] / 2);
+    int y = (event.GetPosition().y + vY - EDITOR_SPACING_Y*scale) / scale - (PLAYER_HEIGHT[currentPlayer] / 2);
     auto oldPos = map->getWorld()->getStartingPosition();
     auto oldSMap = map->getWorld()->getStartingMap();
     
@@ -344,8 +344,8 @@ void MapeditWidget::OnRightClick(wxMouseEvent& event)
       vX *= vXX;
       vY *= vYX;
       
-      int x = (event.GetPosition().x + vX) / scale;
-      int y = (event.GetPosition().y + vY) / scale;
+      int x = (event.GetPosition().x + vX - EDITOR_SPACING_X*scale) / scale;
+      int y = (event.GetPosition().y + vY - EDITOR_SPACING_Y*scale) / scale;
       
       if ((x > selectedEntity->position.first) && (x < selectedEntity->position.first + selectedEntity->object->getWidth())
         && (y > selectedEntity->position.second) && (y < selectedEntity->position.second + selectedEntity->object->getHeight()))
