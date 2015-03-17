@@ -66,8 +66,34 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_BUTTON(CANCEL_STARTPOS_BUTTON, MapeditFrame::OnCancelSetStartpos)
 wxEND_EVENT_TABLE()
 
-MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_ANY, "Map Editor", wxDefaultPosition, wxSize(GAME_WIDTH*2+TILE_WIDTH*6*6+10+10+150, GAME_HEIGHT*3))
+MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_ANY, "Map Editor")
 {
+  int screenWidth = wxSystemSettings::GetMetric(wxSYS_SCREEN_X);
+  int screenHeight = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y);
+  bool setSize = false;
+  wxSize toSetSize = GetSize();
+  if (screenWidth > 1280)
+  {
+    setSize = true;
+    toSetSize.SetWidth(1280);
+  }
+  
+  if (screenHeight > 800)
+  {
+    setSize = true;
+    toSetSize.SetHeight(800);
+  }
+  
+  if (setSize)
+  {
+    SetSize(toSetSize);
+    
+    int numClosers = openWindows.size() - 1;
+    SetPosition({GetPosition().x + numClosers*20, GetPosition().y + numClosers*20});
+  } else {
+    Maximize();
+  }
+  
   this->world = std::move(world);
   this->world->setParent(this);
   currentMap = this->world->getLastMap();
@@ -228,8 +254,6 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   dontSelectMap = true;
   mapTree->SelectItem(currentMap->getTreeItemId());
   dontSelectMap = false;
-  
-  Maximize(true);
 }
 
 void MapeditFrame::OnExit(wxCloseEvent& event)
