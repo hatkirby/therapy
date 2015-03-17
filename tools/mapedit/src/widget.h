@@ -21,7 +21,7 @@ enum EditMode {
   EditEntities
 };
 
-class MapeditWidget : public wxScrolledWindow {
+class MapeditWidget : public wxScrolledCanvas {
   public:
     MapeditWidget();
     MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileWidget* tileWidget, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
@@ -54,8 +54,8 @@ class MapeditWidget : public wxScrolledWindow {
     wxBitmap tiles;
     TileWidget* tileWidget;
     bool mouseIsDown = false;
-    int scale;
-    wxPoint mousePos;
+    int scale = 1;
+    wxPoint mousePos {GAME_WIDTH/2, GAME_HEIGHT/2};
     bool mouseIsIn = false;
     EditMode editMode = EditTiles;
     int currentPlayer = 0;

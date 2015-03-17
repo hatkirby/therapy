@@ -1,9 +1,14 @@
 #include "widget.h"
 #include "frame.h"
 
-IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxScrolledWindow)
+const int EDITOR_SPACING_X = MAP_WIDTH * TILE_WIDTH / 2;
+const int EDITOR_SPACING_Y = MAP_HEIGHT * TILE_HEIGHT / 2;
+const int EDITOR_WIDTH = MAP_WIDTH * TILE_WIDTH + EDITOR_SPACING_X * 2;
+const int EDITOR_HEIGHT = MAP_HEIGHT * TILE_HEIGHT + EDITOR_SPACING_Y * 2;
 
-BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledWindow)
+IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxScrolledCanvas)
+
+BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledCanvas)
 	EVT_PAINT(MapeditWidget::OnPaint)
   EVT_LEFT_DOWN(MapeditWidget::OnClick)
   EVT_RIGHT_DOWN(MapeditWidget::OnRightClick)
@@ -18,7 +23,7 @@ MapeditWidget::MapeditWidget()
 }
 
 MapeditWidget::MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileWidget* tileWidget, const wxPoint& pos, const wxSize& size)
-  : wxScrolledWindow(parent, winid, pos, size), map(map), tileWidget(tileWidget)
+  : wxScrolledCanvas(parent, winid, pos, size), map(map), tileWidget(tileWidget)
 {
   Init();
 }
@@ -30,12 +35,21 @@ void MapeditWidget::Init()
   this->FitInside();
   this->SetScrollRate(5, 5);
   
+  SetVirtualSize(EDITOR_WIDTH, EDITOR_HEIGHT);
+  
+  int cW, cH;
+  GetClientSize(&cW, &cH);
+  mousePos.x = cW / 2;
+  mousePos.y = cH / 2;
+  
+//  Scroll(GAME_WIDTH*1.5-mousePos.x, GAME_HEIGHT*1.5-mousePos.y);
+  
   SetZoomSize(2);
 }
 
 wxSize MapeditWidget::DoGetBestSize() const
 {
-  return {GAME_WIDTH*2, GAME_HEIGHT*2};
+  return {EDITOR_WIDTH*scale, EDITOR_HEIGHT*scale};
 }
 
 void MapeditWidget::OnPaint(wxPaintEvent&)
@@ -43,12 +57,18 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
   wxPaintDC dc(this);
   wxMemoryDC tiles_dc;
   tiles_dc.SelectObject(tiles);
-  int vX, vY;
+  
+  int vX, vY, vXX, vXY, vW, vH, cW, cH;
   GetViewStart(&vX, &vY);
-  int vXX, vYX;
-  GetScrollPixelsPerUnit(&vXX, &vYX);
+  GetVirtualSize(&vW, &vH);
+  GetClientSize(&cW, &cH);
+  GetScrollPixelsPerUnit(&vXX, &vXY);
   vX *= vXX;
-  vY *= vYX;
+  vY *= vXY;
+  
+  dc.SetPen(*wxGREY_PEN);
+  dc.SetBrush(*wxGREY_BRUSH);
+  dc.DrawRectangle(0, 0, cW, cH);
 
   for (int y=0; y<MAP_HEIGHT; y++)
   {
@@ -60,7 +80,9 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
         tile = tileWidget->getSelected();
       }
       
-      dc.StretchBlit(x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+      wxPoint pos {(x*TILE_WIDTH + EDITOR_SPACING_X)*scale - vX, (y*TILE_HEIGHT + EDITOR_SPACING_Y) * scale - vY};
+      
+      dc.StretchBlit(pos.x, pos.y, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     }
   }
   
@@ -71,7 +93,7 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
     wxBitmap sprite = object->object->getSprite();
     tiles_dc.SelectObject(sprite);
     
-    wxPoint pos {(int) object->position.first*scale-vX, (int) object->position.second*scale-vY};
+    wxPoint pos {(object->position.first + EDITOR_SPACING_X)*scale-vX, (object->position.second + EDITOR_SPACING_Y)*scale-vY};
     wxSize size {object->object->getWidth()*scale, object->object->getHeight()*scale};
     dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, object->object->getWidth(), object->object->getHeight());
     
@@ -99,9 +121,9 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
     tiles_dc.SelectObject(wxNullBitmap);
     tiles_dc.SelectObject(sprite);
     
-    std::pair<double, double> startPos = map->getWorld()->getStartingPosition();
+    std::pair<int, int> startPos = map->getWorld()->getStartingPosition();
     
-    wxPoint pos {(int) startPos.first*scale-vX, (int) startPos.second*scale-vY};
+    wxPoint pos {(startPos.first + EDITOR_SPACING_X)*scale-vX, (startPos.second + EDITOR_SPACING_Y)*scale-vY};
     wxSize size {PLAYER_WIDTH[currentPlayer]*scale, PLAYER_HEIGHT[currentPlayer]*scale};
     
     dc.StretchBlit(pos.x, pos.y, size.GetWidth(), size.GetHeight(), &tiles_dc, 0, 0, PLAYER_WIDTH[currentPlayer], PLAYER_HEIGHT[currentPlayer]);
@@ -127,10 +149,10 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
     } else if (editMode == EditTiles)
     {
       int tile = tileWidget->getSelected();
-      int x = (mousePos.x + vX) / (TILE_WIDTH * scale);
-      int y = (mousePos.y + vY) / (TILE_HEIGHT * scale);
+      int x = (mousePos.x + vX - EDITOR_SPACING_X*scale) / (TILE_WIDTH * scale);
+      int y = (mousePos.y + vY - EDITOR_SPACING_Y*scale) / (TILE_HEIGHT * scale);
     
-      wxPoint pos {x*TILE_WIDTH*scale-vX, y*TILE_HEIGHT*scale-vY};
+      wxPoint pos {(x*TILE_WIDTH + EDITOR_SPACING_X)*scale-vX, (y*TILE_HEIGHT + EDITOR_SPACING_Y)*scale-vY};
       wxSize size {TILE_WIDTH*scale, TILE_HEIGHT*scale};
   
       tiles_dc.SelectObject(wxNullBitmap);
@@ -184,8 +206,8 @@ void MapeditWidget::SetTile(wxPoint pos)
   vX *= vXX;
   vY *= vYX;
 
-  int x = (pos.x + vX) / (TILE_WIDTH * scale);
-  int y = (pos.y + vY) / (TILE_HEIGHT * scale);
+  int x = (pos.x + vX - EDITOR_SPACING_X*scale) / (TILE_WIDTH * scale);
+  int y = (pos.y + vY - EDITOR_SPACING_Y*scale) / (TILE_HEIGHT * scale);
   
   changeBuffer.insert({x,y});
   
@@ -194,6 +216,8 @@ void MapeditWidget::SetTile(wxPoint pos)
 
 void MapeditWidget::OnClick(wxMouseEvent& event)
 {
+  if (!mouseIsIn) return;
+  
   mouseIsDown = true;
   
   int vX, vY;
@@ -338,14 +362,29 @@ void MapeditWidget::OnRightClick(wxMouseEvent& event)
 void MapeditWidget::OnMouseMove(wxMouseEvent& event)
 {
   mousePos = event.GetPosition();
-  mouseIsIn = true;
   
-  if (editMode == EditTiles)
+  int vX, vY, vW, vH;
+  GetViewStart(&vX, &vY);
+  GetVirtualSize(&vW, &vH);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
+  
+  if ((mousePos.x+vX >= EDITOR_SPACING_X*scale) && (mousePos.x+vX < (EDITOR_WIDTH-EDITOR_SPACING_X)*scale)
+    && (mousePos.y+vY >= EDITOR_SPACING_Y*scale) && (mousePos.y+vY < (EDITOR_HEIGHT-EDITOR_SPACING_Y)*scale))
   {
-    if (mouseIsDown)
+    mouseIsIn = true;
+  
+    if (editMode == EditTiles)
     {
-      SetTile(event.GetPosition());
+      if (mouseIsDown)
+      {
+        SetTile(event.GetPosition());
+      }
     }
+  } else {
+    mouseIsIn = false;
   }
   
   Refresh();
@@ -406,9 +445,19 @@ void MapeditWidget::ZoomOut()
 
 void MapeditWidget::SetZoomSize(int zoom)
 {
-  scale = zoom;
+  int vX, vY, vXX, vXY;
+  GetViewStart(&vX, &vY);
+  GetScrollPixelsPerUnit(&vXX, &vXY);
+  vX *= vXX;
+  vY *= vXY;
   
-  SetVirtualSize(MAP_WIDTH*TILE_WIDTH*scale, MAP_HEIGHT*TILE_HEIGHT*scale);
+  int newViewStartX = (vX + mousePos.x) / scale * zoom - mousePos.x;
+  int newViewStartY = (vY + mousePos.y) / scale * zoom - mousePos.y;
+
+  SetVirtualSize(EDITOR_WIDTH * zoom, EDITOR_HEIGHT * zoom);
+  Scroll(newViewStartX / vXX, newViewStartY / vXY);
+  
+  scale = zoom;
   
   Refresh();
 }

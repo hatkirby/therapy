@@ -114,7 +114,7 @@ World::World(std::string filename)
           xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
           if (key != 0)
           {
-            map->setRightmap(atoi((char*) key));
+            map->setRightmap(atoi((char*) key), false);
           }
           xmlFree(key);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "entities"))

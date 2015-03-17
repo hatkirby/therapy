@@ -134,7 +134,7 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   // Layout 3: Splitter between map editor and properties editor
   
   wxSplitterWindow* layout1 = new wxSplitterWindow(this, wxID_ANY);
-  mapTree = new wxTreeCtrl(layout1, MAP_EDITOR_TREE, wxDefaultPosition, wxSize(200, 0), wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS);
+  mapTree = new wxTreeCtrl(layout1, MAP_EDITOR_TREE, wxDefaultPosition, wxSize(150, 0), wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS);
   wxTreeItemId mapTreeRoot = mapTree->AddRoot("root");
   populateMapTree(mapTreeRoot, this->world->getRootMaps());
   
@@ -152,7 +152,7 @@ MapeditFrame::MapeditFrame(std::unique_ptr<World> world) : wxFrame(NULL, wxID_AN
   mapEditor->frame = this;
   
   // Set up property editor
-  wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY);
+  wxPanel* propertyEditor = new wxPanel(layout3, wxID_ANY, wxDefaultPosition, wxSize(-1, 100));
   titleBox = new UndoableTextBox(propertyEditor, MAP_TITLE_TEXTBOX, currentMap->getTitle(), "Edit Map Title", this);
   titleBox->SetMaxLength(40);
   
