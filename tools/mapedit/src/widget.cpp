@@ -5,11 +5,6 @@
 #include "object.h"
 #include "undo.h"
 
-const int EDITOR_SPACING_X = MAP_WIDTH * TILE_WIDTH / 2;
-const int EDITOR_SPACING_Y = MAP_HEIGHT * TILE_HEIGHT / 2;
-const int EDITOR_WIDTH = MAP_WIDTH * TILE_WIDTH + EDITOR_SPACING_X * 2;
-const int EDITOR_HEIGHT = MAP_HEIGHT * TILE_HEIGHT + EDITOR_SPACING_Y * 2;
-
 IMPLEMENT_DYNAMIC_CLASS(MapeditWidget,wxScrolledCanvas)
 
 BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledCanvas)
@@ -77,20 +72,34 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
   dc.SetBrush(*wxGREY_BRUSH);
   dc.DrawRectangle(0, 0, cW, cH);
 
-  for (int y=0; y<MAP_HEIGHT; y++)
+  RenderMap(map, dc, tiles_dc);
+  
+  if (map->getLeftMoveType() == Map::MoveType::Warp)
   {
-    for (int x=0; x<MAP_WIDTH; x++)
-    {
-      int tile = map->getTileAt(x, y);
-      if (changeBuffer.find({x,y}) != end(changeBuffer))
-      {
-        tile = tileWidget->getSelected();
-      }
-      
-      wxPoint pos {(x*TILE_WIDTH + EDITOR_SPACING_X)*scale - vX, (y*TILE_HEIGHT + EDITOR_SPACING_Y) * scale - vY};
-      
-      dc.StretchBlit(pos.x, pos.y, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-    }
+    auto tomap = map->getWorld()->getMap(map->getLeftMoveMapID());
+    
+    RenderMap(tomap.get(), dc, tiles_dc, -EDITOR_SPACING_X, EDITOR_SPACING_Y, false);
+  }
+  
+  if (map->getRightMoveType() == Map::MoveType::Warp)
+  {
+    auto tomap = map->getWorld()->getMap(map->getRightMoveMapID());
+    
+    RenderMap(tomap.get(), dc, tiles_dc, EDITOR_WIDTH-EDITOR_SPACING_X, EDITOR_SPACING_Y, false);
+  }
+  
+  if (map->getUpMoveType() == Map::MoveType::Warp)
+  {
+    auto tomap = map->getWorld()->getMap(map->getUpMoveMapID());
+    
+    RenderMap(tomap.get(), dc, tiles_dc, EDITOR_SPACING_X, -EDITOR_SPACING_Y, false);
+  }
+  
+  if (map->getDownMoveType() == Map::MoveType::Warp)
+  {
+    auto tomap = map->getWorld()->getMap(map->getDownMoveMapID());
+    
+    RenderMap(tomap.get(), dc, tiles_dc, EDITOR_SPACING_X, EDITOR_HEIGHT-EDITOR_SPACING_Y, false);
   }
   
   for (auto object : map->getObjects())
@@ -515,4 +524,44 @@ void MapeditWidget::SetMap(Map* map)
   isSettingPos = false;
   
   Refresh();
+}
+
+void MapeditWidget::RenderMap(Map* toRender, wxPaintDC& dc, wxMemoryDC& tiles_dc, int offset_x, int offset_y, bool main)
+{
+  int vX, vY, vXX, vXY, vW, vH, cW, cH;
+  GetViewStart(&vX, &vY);
+  GetVirtualSize(&vW, &vH);
+  GetClientSize(&cW, &cH);
+  GetScrollPixelsPerUnit(&vXX, &vXY);
+  vX *= vXX;
+  vY *= vXY;
+  
+  if (main)
+  {
+    dc.SetPen(*wxGREY_PEN);
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.DrawRectangle(offset_x, offset_y, MAP_WIDTH*TILE_WIDTH*scale, MAP_HEIGHT*TILE_HEIGHT*scale);
+  }
+  
+  for (int y=0; y<MAP_HEIGHT; y++)
+  {
+    for (int x=0; x<MAP_WIDTH; x++)
+    {
+      int tile = toRender->getTileAt(x, y);
+      
+      if (main)
+      {
+        if (changeBuffer.find({x,y}) != end(changeBuffer))
+        {
+          tile = tileWidget->getSelected();
+        }
+      }
+      
+      wxPoint pos {(x*TILE_WIDTH + offset_x)*scale - vX, (y*TILE_HEIGHT + offset_y) * scale - vY};
+      
+      wxRasterOperationMode mod = wxCOPY;
+      if (!main) mod = wxOR;
+      dc.StretchBlit(pos.x, pos.y, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, mod);
+    }
+  }
 }

@@ -54,6 +54,7 @@ class MapeditWidget : public wxScrolledCanvas {
   private:
     void SetTile(wxPoint pos);
     void SetZoomSize(int zoom);
+    void RenderMap(Map* toRender, wxPaintDC& dc, wxMemoryDC& tiles_dc, int offset_x = EDITOR_SPACING_X, int offset_y = EDITOR_SPACING_Y, bool main = true);
       
     Map* map = nullptr;
     wxBitmap tiles;
