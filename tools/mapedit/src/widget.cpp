@@ -14,6 +14,7 @@ BEGIN_EVENT_TABLE(MapeditWidget, wxScrolledCanvas)
   EVT_LEFT_UP(MapeditWidget::OnMouseUp)
   EVT_MOTION(MapeditWidget::OnMouseMove)
   EVT_LEAVE_WINDOW(MapeditWidget::OnMouseOut)
+  EVT_SCROLLWIN(MapeditWidget::OnScroll)
 END_EVENT_TABLE()
 
 MapeditWidget::MapeditWidget()
@@ -564,4 +565,25 @@ void MapeditWidget::RenderMap(Map* toRender, wxPaintDC& dc, wxMemoryDC& tiles_dc
       dc.StretchBlit(pos.x, pos.y, TILE_WIDTH*scale, TILE_HEIGHT*scale, &tiles_dc, tile%8*TILE_WIDTH, tile/8*TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, mod);
     }
   }
+}
+
+void MapeditWidget::OnScroll(wxScrollWinEvent&)
+{
+  int vX, vY, vW, vH;
+  GetViewStart(&vX, &vY);
+  GetVirtualSize(&vW, &vH);
+  int vXX, vYX;
+  GetScrollPixelsPerUnit(&vXX, &vYX);
+  vX *= vXX;
+  vY *= vYX;
+  
+  if ((mousePos.x+vX >= EDITOR_SPACING_X*scale) && (mousePos.x+vX < (EDITOR_WIDTH-EDITOR_SPACING_X)*scale)
+    && (mousePos.y+vY >= EDITOR_SPACING_Y*scale) && (mousePos.y+vY < (EDITOR_HEIGHT-EDITOR_SPACING_Y)*scale))
+  {
+    mouseIsIn = true;
+  } else {
+    mouseIsIn = false;
+  }
+  
+  Refresh();
 }

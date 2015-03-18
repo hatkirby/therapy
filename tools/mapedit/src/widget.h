@@ -50,6 +50,7 @@ class MapeditWidget : public wxScrolledCanvas {
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseUp(wxMouseEvent& event);
     void OnMouseOut(wxMouseEvent& event);
+    void OnScroll(wxScrollWinEvent& event);
     
   private:
     void SetTile(wxPoint pos);
