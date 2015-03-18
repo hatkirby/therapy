@@ -75,30 +75,30 @@ void MapeditWidget::OnPaint(wxPaintEvent&)
 
   RenderMap(map, dc, tiles_dc);
   
-  if (map->getLeftMoveType() == Map::MoveType::Warp)
+  if (map->getAdjacent(Map::MoveDir::Left).type == Map::MoveType::Warp)
   {
-    auto tomap = map->getWorld()->getMap(map->getLeftMoveMapID());
+    auto tomap = map->getWorld()->getMap(map->getAdjacent(Map::MoveDir::Left).map);
     
     RenderMap(tomap.get(), dc, tiles_dc, -EDITOR_SPACING_X, EDITOR_SPACING_Y, false);
   }
   
-  if (map->getRightMoveType() == Map::MoveType::Warp)
+  if (map->getAdjacent(Map::MoveDir::Right).type == Map::MoveType::Warp)
   {
-    auto tomap = map->getWorld()->getMap(map->getRightMoveMapID());
+    auto tomap = map->getWorld()->getMap(map->getAdjacent(Map::MoveDir::Right).map);
     
     RenderMap(tomap.get(), dc, tiles_dc, EDITOR_WIDTH-EDITOR_SPACING_X, EDITOR_SPACING_Y, false);
   }
   
-  if (map->getUpMoveType() == Map::MoveType::Warp)
+  if (map->getAdjacent(Map::MoveDir::Up).type == Map::MoveType::Warp)
   {
-    auto tomap = map->getWorld()->getMap(map->getUpMoveMapID());
+    auto tomap = map->getWorld()->getMap(map->getAdjacent(Map::MoveDir::Up).map);
     
     RenderMap(tomap.get(), dc, tiles_dc, EDITOR_SPACING_X, -EDITOR_SPACING_Y, false);
   }
   
-  if (map->getDownMoveType() == Map::MoveType::Warp)
+  if (map->getAdjacent(Map::MoveDir::Down).type == Map::MoveType::Warp)
   {
-    auto tomap = map->getWorld()->getMap(map->getDownMoveMapID());
+    auto tomap = map->getWorld()->getMap(map->getAdjacent(Map::MoveDir::Down).map);
     
     RenderMap(tomap.get(), dc, tiles_dc, EDITOR_SPACING_X, EDITOR_HEIGHT-EDITOR_SPACING_Y, false);
   }

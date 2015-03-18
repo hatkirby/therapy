@@ -20,14 +20,7 @@ Map::Map(const Map& map)
   
   id = map.id;
   title = map.title;
-  leftMap = map.leftMap;
-  rightMap = map.rightMap;
-  downMap = map.downMap;
-  upMap = map.upMap;
-  leftType = map.leftType;
-  rightType = map.rightType;
-  upType = map.upType;
-  downType = map.downType;
+  adjacents = map.adjacents;
   entities = map.entities;
 }
 
@@ -52,14 +45,7 @@ void swap(Map& first, Map& second)
 {
   std::swap(first.mapdata, second.mapdata);
   std::swap(first.title, second.title);
-  std::swap(first.leftMap, second.leftMap);
-  std::swap(first.rightMap, second.rightMap);
-  std::swap(first.downMap, second.downMap);
-  std::swap(first.upMap, second.upMap);
-  std::swap(first.leftType, second.leftType);
-  std::swap(first.rightType, second.rightType);
-  std::swap(first.upType, second.upType);
-  std::swap(first.downType, second.downType);
+  std::swap(first.adjacents, second.adjacents);
   std::swap(first.id, second.id);
   std::swap(first.entities, second.entities);
 }
@@ -109,44 +95,24 @@ Map::MoveType Map::moveTypeForShort(std::string str)
   return MoveType::Wall;
 }
 
-Map::MoveType Map::getLeftMoveType() const
+Map::MoveDir Map::moveDirForShort(std::string str)
 {
-  return leftType;
+  if (str == "right") return MoveDir::Right;
+  if (str == "up") return MoveDir::Up;
+  if (str == "down") return MoveDir::Down;
+  
+  return MoveDir::Left;
 }
 
-Map::MoveType Map::getRightMoveType() const
+static const Map::Adjacent defaultAdjacent {};
+const Map::Adjacent& Map::getAdjacent(MoveDir dir) const
 {
-  return rightType;
-}
-
-Map::MoveType Map::getUpMoveType() const
-{
-  return upType;
-}
-
-Map::MoveType Map::getDownMoveType() const
-{
-  return downType;
-}
-
-int Map::getLeftMapID() const
-{
-  return leftMap;
-}
-
-int Map::getRightMapID() const
-{
-  return rightMap;
-}
-
-int Map::getUpMapID() const
-{
-  return upMap;
-}
-
-int Map::getDownMapID() const
-{
-  return downMap;
+  if (adjacents.count(dir) > 0)
+  {
+    return adjacents.at(dir);
+  } else {
+    return defaultAdjacent;
+  }
 }
 
 bool Map::moveTypeTakesMap(MoveType type)
@@ -171,44 +137,11 @@ void Map::setTitle(std::string title)
   this->title = title;
 }
 
-void Map::setLeftMoveType(MoveType type)
+void Map::setAdjacent(MoveDir dir, MoveType type, int map)
 {
-  leftType = type;
-}
-
-void Map::setRightMoveType(MoveType type)
-{
-  rightType = type;
-}
-
-void Map::setUpMoveType(MoveType type)
-{
-  upType = type;
-}
-
-void Map::setDownMoveType(MoveType type)
-{
-  downType = type;
-}
-
-void Map::setLeftMapID(int id)
-{
-  leftMap = id;
-}
-
-void Map::setRightMapID(int id)
-{
-  rightMap = id;
-}
-
-void Map::setUpMapID(int id)
-{
-  upMap = id;
-}
-
-void Map::setDownMapID(int id)
-{
-  downMap = id;
+  Adjacent& cur = adjacents[dir];
+  cur.type = type;
+  if (map != -1) cur.map = map;
 }
 
 void Map::addEntity(EntityData& data)

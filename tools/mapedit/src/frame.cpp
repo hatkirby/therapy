@@ -190,22 +190,22 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   wxStaticText* leftmapLabel = new wxStaticText(propertyEditor, wxID_ANY, "Leftmap Action:");
   wxChoice* leftmapChoice = new wxChoice(propertyEditor, LEFTMAP_TYPE_CHOICE);
   wxComboCtrl* leftmapCombo = new wxComboCtrl(propertyEditor, LEFTMAP_MAP_CHOICE, "", wxDefaultPosition, wxDefaultSize, wxCB_READONLY);
-  leftmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getLeftMoveMapID()));
+  leftmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getAdjacent(Map::MoveDir::Left).map));
   
   wxStaticText* rightmapLabel = new wxStaticText(propertyEditor, wxID_ANY, "Rightmap Action:");
   wxChoice* rightmapChoice = new wxChoice(propertyEditor, RIGHTMAP_TYPE_CHOICE);
   wxComboCtrl* rightmapCombo = new wxComboCtrl(propertyEditor, RIGHTMAP_MAP_CHOICE, "", wxDefaultPosition, wxDefaultSize, wxCB_READONLY);
-  rightmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getRightMoveMapID()));
+  rightmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getAdjacent(Map::MoveDir::Right).map));
   
   wxStaticText* upmapLabel = new wxStaticText(propertyEditor, wxID_ANY, "Upmap Action:");
   wxChoice* upmapChoice = new wxChoice(propertyEditor, UPMAP_TYPE_CHOICE);
   wxComboCtrl* upmapCombo = new wxComboCtrl(propertyEditor, UPMAP_MAP_CHOICE, "", wxDefaultPosition, wxDefaultSize, wxCB_READONLY);
-  upmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getUpMoveMapID()));
+  upmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getAdjacent(Map::MoveDir::Up).map));
   
   wxStaticText* downmapLabel = new wxStaticText(propertyEditor, wxID_ANY, "Downmap Action:");
   wxChoice* downmapChoice = new wxChoice(propertyEditor, DOWNMAP_TYPE_CHOICE);
   wxComboCtrl* downmapCombo = new wxComboCtrl(propertyEditor, DOWNMAP_MAP_CHOICE, "", wxDefaultPosition, wxDefaultSize, wxCB_READONLY);
-  downmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getDownMoveMapID()));
+  downmapCombo->SetPopupControl(new MapSelectComboPopup(mapTree, currentMap->getAdjacent(Map::MoveDir::Down).map));
   
   for (auto type : Map::listMoveTypes())
   {
@@ -674,157 +674,169 @@ void MapeditFrame::OnThreeMovingSash(wxSplitterEvent& event)
 
 void MapeditFrame::OnSetLeftmapType(wxCommandEvent&)
 {
-  wxChoice* leftmapChoice = (wxChoice*) wxWindow::FindWindowById(LEFTMAP_TYPE_CHOICE, this);
-  wxComboCtrl* leftmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(LEFTMAP_MAP_CHOICE, this);
+  wxChoice* choice = (wxChoice*) wxWindow::FindWindowById(LEFTMAP_TYPE_CHOICE, this);
+  wxComboCtrl* combo = (wxComboCtrl*) wxChoice::FindWindowById(LEFTMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Left;
   
-  Map::MoveType old = currentMap->getLeftMoveType();
-  Map::MoveType newt = ((MoveTypeCtr*) leftmapChoice->GetClientData(leftmapChoice->GetSelection()))->type;
-  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  Map::MoveType newt = ((MoveTypeCtr*) choice->GetClientData(choice->GetSelection()))->type;
   commitAction(std::make_shared<Undoable>("Set Leftmap Action", [=] () {
-    leftmapChoice->SetSelection(leftmapChoice->FindString(Map::stringForMoveType(newt)));
-    currentMap->setLeftMoveType(newt);
-    leftmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getLeftMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(newt)));
+    currentMap->setAdjacent(dir, newt);
+    combo->Enable(Map::moveTypeTakesMap(newt));
   }, [=] () {
-    leftmapChoice->SetSelection(leftmapChoice->FindString(Map::stringForMoveType(old)));
-    currentMap->setLeftMoveType(old);
-    leftmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getLeftMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(adjacent.type)));
+    currentMap->setAdjacent(dir, adjacent.type);
+    combo->Enable(Map::moveTypeTakesMap(adjacent.type));
   }));
 }
 
 void MapeditFrame::OnSetLeftmapMap(wxCommandEvent&)
 {
-  wxComboCtrl* leftmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(LEFTMAP_MAP_CHOICE, this);
-  MapSelectComboPopup* popup = (MapSelectComboPopup*) leftmapCombo->GetPopupControl();
-  int old = currentMap->getLeftMoveMapID();
+  wxComboCtrl* combo = (wxComboCtrl*) wxWindow::FindWindowById(LEFTMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Left;
+  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  MapSelectComboPopup* popup = (MapSelectComboPopup*) combo->GetPopupControl();
+  int old = adjacent.map;
   int newt = popup->GetSelectedMapID();
   
   if (old == newt) return;
   
   commitAction(std::make_shared<Undoable>("Set Leftmap Map", [=] () {
     popup->SetSelectedMapID(newt);
-    leftmapCombo->SetValue(world->getMap(newt)->getTitle());
-    currentMap->setLeftMoveMapID(newt);
+    combo->SetValue(world->getMap(newt)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, newt);
   }, [=] () {
     popup->SetSelectedMapID(old);
-    leftmapCombo->SetValue(world->getMap(old)->getTitle());
-    currentMap->setLeftMoveMapID(old);
+    combo->SetValue(world->getMap(old)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, old);
   }));
 }
 
 void MapeditFrame::OnSetRightmapType(wxCommandEvent&)
 {
-  wxChoice* rightmapChoice = (wxChoice*) wxWindow::FindWindowById(RIGHTMAP_TYPE_CHOICE, this);
-  wxComboCtrl* rightmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(RIGHTMAP_MAP_CHOICE, this);
+  wxChoice* choice = (wxChoice*) wxWindow::FindWindowById(RIGHTMAP_TYPE_CHOICE, this);
+  wxComboCtrl* combo = (wxComboCtrl*) wxChoice::FindWindowById(RIGHTMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Right;
   
-  Map::MoveType old = currentMap->getRightMoveType();
-  Map::MoveType newt = ((MoveTypeCtr*) rightmapChoice->GetClientData(rightmapChoice->GetSelection()))->type;
-  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  Map::MoveType newt = ((MoveTypeCtr*) choice->GetClientData(choice->GetSelection()))->type;
   commitAction(std::make_shared<Undoable>("Set Rightmap Action", [=] () {
-    rightmapChoice->SetSelection(rightmapChoice->FindString(Map::stringForMoveType(newt)));
-    currentMap->setRightMoveType(newt);
-    rightmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getRightMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(newt)));
+    currentMap->setAdjacent(dir, newt);
+    combo->Enable(Map::moveTypeTakesMap(newt));
   }, [=] () {
-    rightmapChoice->SetSelection(rightmapChoice->FindString(Map::stringForMoveType(old)));
-    currentMap->setRightMoveType(old);
-    rightmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getRightMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(adjacent.type)));
+    currentMap->setAdjacent(dir, adjacent.type);
+    combo->Enable(Map::moveTypeTakesMap(adjacent.type));
   }));
 }
 
 void MapeditFrame::OnSetRightmapMap(wxCommandEvent&)
 {
-  wxComboCtrl* rightmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(RIGHTMAP_MAP_CHOICE, this);
-  MapSelectComboPopup* popup = (MapSelectComboPopup*) rightmapCombo->GetPopupControl();
-  int old = currentMap->getRightMoveMapID();
+  wxComboCtrl* combo = (wxComboCtrl*) wxWindow::FindWindowById(RIGHTMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Right;
+  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  MapSelectComboPopup* popup = (MapSelectComboPopup*) combo->GetPopupControl();
+  int old = adjacent.map;
   int newt = popup->GetSelectedMapID();
   
   if (old == newt) return;
   
   commitAction(std::make_shared<Undoable>("Set Rightmap Map", [=] () {
     popup->SetSelectedMapID(newt);
-    rightmapCombo->SetValue(world->getMap(newt)->getTitle());
-    currentMap->setRightMoveMapID(newt);
+    combo->SetValue(world->getMap(newt)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, newt);
   }, [=] () {
     popup->SetSelectedMapID(old);
-    rightmapCombo->SetValue(world->getMap(old)->getTitle());
-    currentMap->setRightMoveMapID(old);
+    combo->SetValue(world->getMap(old)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, old);
   }));
 }
 
 void MapeditFrame::OnSetUpmapType(wxCommandEvent&)
 {
-  wxChoice* upmapChoice = (wxChoice*) wxWindow::FindWindowById(UPMAP_TYPE_CHOICE, this);
-  wxComboCtrl* upmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(UPMAP_MAP_CHOICE, this);
+  wxChoice* choice = (wxChoice*) wxWindow::FindWindowById(UPMAP_TYPE_CHOICE, this);
+  wxComboCtrl* combo = (wxComboCtrl*) wxChoice::FindWindowById(UPMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Up;
   
-  Map::MoveType old = currentMap->getUpMoveType();
-  Map::MoveType newt = ((MoveTypeCtr*) upmapChoice->GetClientData(upmapChoice->GetSelection()))->type;
-  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  Map::MoveType newt = ((MoveTypeCtr*) choice->GetClientData(choice->GetSelection()))->type;
   commitAction(std::make_shared<Undoable>("Set Upmap Action", [=] () {
-    upmapChoice->SetSelection(upmapChoice->FindString(Map::stringForMoveType(newt)));
-    currentMap->setUpMoveType(newt);
-    upmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getUpMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(newt)));
+    currentMap->setAdjacent(dir, newt);
+    combo->Enable(Map::moveTypeTakesMap(newt));
   }, [=] () {
-    upmapChoice->SetSelection(upmapChoice->FindString(Map::stringForMoveType(old)));
-    currentMap->setUpMoveType(old);
-    upmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getUpMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(adjacent.type)));
+    currentMap->setAdjacent(dir, adjacent.type);
+    combo->Enable(Map::moveTypeTakesMap(adjacent.type));
   }));
 }
 
 void MapeditFrame::OnSetUpmapMap(wxCommandEvent&)
 {
-  wxComboCtrl* upmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(UPMAP_MAP_CHOICE, this);
-  MapSelectComboPopup* popup = (MapSelectComboPopup*) upmapCombo->GetPopupControl();
-  int old = currentMap->getUpMoveMapID();
+  wxComboCtrl* combo = (wxComboCtrl*) wxWindow::FindWindowById(UPMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Up;
+  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  MapSelectComboPopup* popup = (MapSelectComboPopup*) combo->GetPopupControl();
+  int old = adjacent.map;
   int newt = popup->GetSelectedMapID();
   
   if (old == newt) return;
   
   commitAction(std::make_shared<Undoable>("Set Upmap Map", [=] () {
     popup->SetSelectedMapID(newt);
-    upmapCombo->SetValue(world->getMap(newt)->getTitle());
-    currentMap->setUpMoveMapID(newt);
+    combo->SetValue(world->getMap(newt)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, newt);
   }, [=] () {
     popup->SetSelectedMapID(old);
-    upmapCombo->SetValue(world->getMap(old)->getTitle());
-    currentMap->setUpMoveMapID(old);
+    combo->SetValue(world->getMap(old)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, old);
   }));
 }
 
 void MapeditFrame::OnSetDownmapType(wxCommandEvent&)
 {
-  wxChoice* downmapChoice = (wxChoice*) wxWindow::FindWindowById(DOWNMAP_TYPE_CHOICE, this);
-  wxComboCtrl* downmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(DOWNMAP_MAP_CHOICE, this);
+  wxChoice* choice = (wxChoice*) wxWindow::FindWindowById(DOWNMAP_TYPE_CHOICE, this);
+  wxComboCtrl* combo = (wxComboCtrl*) wxChoice::FindWindowById(DOWNMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Down;
   
-  Map::MoveType old = currentMap->getDownMoveType();
-  Map::MoveType newt = ((MoveTypeCtr*) downmapChoice->GetClientData(downmapChoice->GetSelection()))->type;
-  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  Map::MoveType newt = ((MoveTypeCtr*) choice->GetClientData(choice->GetSelection()))->type;
   commitAction(std::make_shared<Undoable>("Set Downmap Action", [=] () {
-    downmapChoice->SetSelection(downmapChoice->FindString(Map::stringForMoveType(newt)));
-    currentMap->setDownMoveType(newt);
-    downmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getDownMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(newt)));
+    currentMap->setAdjacent(dir, newt);
+    combo->Enable(Map::moveTypeTakesMap(newt));
   }, [=] () {
-    downmapChoice->SetSelection(downmapChoice->FindString(Map::stringForMoveType(old)));
-    currentMap->setDownMoveType(old);
-    downmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getDownMoveType()));
+    choice->SetSelection(choice->FindString(Map::stringForMoveType(adjacent.type)));
+    currentMap->setAdjacent(dir, adjacent.type);
+    combo->Enable(Map::moveTypeTakesMap(adjacent.type));
   }));
 }
 
 void MapeditFrame::OnSetDownmapMap(wxCommandEvent&)
 {
-  wxComboCtrl* downmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(DOWNMAP_MAP_CHOICE, this);
-  MapSelectComboPopup* popup = (MapSelectComboPopup*) downmapCombo->GetPopupControl();
-  int old = currentMap->getDownMoveMapID();
+  wxComboCtrl* combo = (wxComboCtrl*) wxWindow::FindWindowById(DOWNMAP_MAP_CHOICE, this);
+  Map::MoveDir dir = Map::MoveDir::Down;
+  
+  Map::Adjacent adjacent = currentMap->getAdjacent(dir);
+  MapSelectComboPopup* popup = (MapSelectComboPopup*) combo->GetPopupControl();
+  int old = adjacent.map;
   int newt = popup->GetSelectedMapID();
   
   if (old == newt) return;
   
   commitAction(std::make_shared<Undoable>("Set Downmap Map", [=] () {
     popup->SetSelectedMapID(newt);
-    downmapCombo->SetValue(world->getMap(newt)->getTitle());
-    currentMap->setDownMoveMapID(newt);
+    combo->SetValue(world->getMap(newt)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, newt);
   }, [=] () {
     popup->SetSelectedMapID(old);
-    downmapCombo->SetValue(world->getMap(old)->getTitle());
-    currentMap->setDownMoveMapID(old);
+    combo->SetValue(world->getMap(old)->getTitle());
+    currentMap->setAdjacent(dir, adjacent.type, old);
   }));
 }
 
@@ -924,20 +936,20 @@ void MapeditFrame::SelectMap(Map* map)
   wxComboCtrl* upmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(UPMAP_MAP_CHOICE, this);
   wxComboCtrl* downmapCombo = (wxComboCtrl*) wxWindow::FindWindowById(DOWNMAP_MAP_CHOICE, this);
   
-  leftmapChoice->SetSelection(leftmapChoice->FindString(Map::stringForMoveType(currentMap->getLeftMoveType())));
-  rightmapChoice->SetSelection(rightmapChoice->FindString(Map::stringForMoveType(currentMap->getRightMoveType())));
-  upmapChoice->SetSelection(upmapChoice->FindString(Map::stringForMoveType(currentMap->getUpMoveType())));
-  downmapChoice->SetSelection(downmapChoice->FindString(Map::stringForMoveType(currentMap->getDownMoveType())));
+  leftmapChoice->SetSelection(leftmapChoice->FindString(Map::stringForMoveType(currentMap->getAdjacent(Map::MoveDir::Left).type)));
+  rightmapChoice->SetSelection(rightmapChoice->FindString(Map::stringForMoveType(currentMap->getAdjacent(Map::MoveDir::Right).type)));
+  upmapChoice->SetSelection(upmapChoice->FindString(Map::stringForMoveType(currentMap->getAdjacent(Map::MoveDir::Up).type)));
+  downmapChoice->SetSelection(downmapChoice->FindString(Map::stringForMoveType(currentMap->getAdjacent(Map::MoveDir::Down).type)));
   
-  leftmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getLeftMoveType()));
-  rightmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getRightMoveType()));
-  upmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getUpMoveType()));
-  downmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getDownMoveType()));
+  leftmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getAdjacent(Map::MoveDir::Left).type));
+  rightmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getAdjacent(Map::MoveDir::Right).type));
+  upmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getAdjacent(Map::MoveDir::Up).type));
+  downmapCombo->Enable(Map::moveTypeTakesMap(currentMap->getAdjacent(Map::MoveDir::Down).type));
   
-  leftmapCombo->SetValue(world->getMap(currentMap->getLeftMoveMapID())->getTitle());
-  rightmapCombo->SetValue(world->getMap(currentMap->getRightMoveMapID())->getTitle());
-  upmapCombo->SetValue(world->getMap(currentMap->getUpMoveMapID())->getTitle());
-  downmapCombo->SetValue(world->getMap(currentMap->getDownMoveMapID())->getTitle());
+  leftmapCombo->SetValue(world->getMap(currentMap->getAdjacent(Map::MoveDir::Left).map)->getTitle());
+  rightmapCombo->SetValue(world->getMap(currentMap->getAdjacent(Map::MoveDir::Right).map)->getTitle());
+  upmapCombo->SetValue(world->getMap(currentMap->getAdjacent(Map::MoveDir::Up).map)->getTitle());
+  downmapCombo->SetValue(world->getMap(currentMap->getAdjacent(Map::MoveDir::Down).map)->getTitle());
 }
 
 wxTreeItemId MapeditFrame::MoveTreeNode(wxTreeItemId toCopy, wxTreeItemId newParent)

@@ -53,6 +53,7 @@ add_executable(Aromatherapy
   src/game.cpp
   src/muxer.cpp
   src/entityfactory.cpp
+  src/world.cpp
   src/components/map_collision.cpp
   src/components/map_render.cpp
   src/components/physics_body.cpp

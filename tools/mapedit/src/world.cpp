@@ -36,43 +36,43 @@ World::World(std::string filename)
     throw MapLoadException(filename);
   }
   
+  xmlChar* nextmapKey = xmlGetProp(top, (xmlChar*) "nextmap");
+  if (nextmapKey != 0)
+  {
+    nextMapID = atoi((char*) nextmapKey);
+  }
+  xmlFree(nextmapKey);
+  
+  xmlChar* lastmapKey = xmlGetProp(top, (xmlChar*) "lastmap");
+  if (lastmapKey != 0)
+  {
+    lastmap = atoi((char*) lastmapKey);
+  }
+  xmlFree(lastmapKey);
+  
+  xmlChar* startxKey = xmlGetProp(top, (xmlChar*) "startx");
+  if (startxKey == 0) throw MapLoadException(filename);
+  startingPosition.first = atoi((char*) startxKey);
+  xmlFree(startxKey);
+  
+  xmlChar* startyKey = xmlGetProp(top, (xmlChar*) "starty");
+  if (startyKey == 0) throw MapLoadException(filename);
+  startingPosition.second = atoi((char*) startyKey);
+  xmlFree(startyKey);
+  
+  xmlChar* startmapKey = xmlGetProp(top, (xmlChar*) "startmap");
+  if (startxKey == 0) throw MapLoadException(filename);
+  startingMap = atoi((char*) startmapKey);
+  xmlFree(startmapKey);
+  
   for (xmlNodePtr node = top->xmlChildrenNode; node != NULL; node = node->next)
   {
-    if (!xmlStrcmp(node->name, (const xmlChar*) "nextmapid"))
+    if (!xmlStrcmp(node->name, (const xmlChar*) "root"))
     {
       xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key != 0)
-      {
-        nextMapID = atoi((char*) key);
-      }
+      if (key == 0) throw MapLoadException(filename);
+      rootChildren.push_back(atoi((char*) key));
       xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "lastmap"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key != 0)
-      {
-        lastmap = atoi((char*) key);
-      }
-      xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "root"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key != 0)
-      {
-        rootChildren.push_back(atoi((char*) key));
-      }
-      xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "startpos"))
-    {
-      xmlChar* idKey = xmlGetProp(node, (xmlChar*) "id");
-      if (idKey == 0) throw MapLoadException(filename);
-      startingMap = atoi((char*) idKey);
-      xmlFree(idKey);
-      
-      xmlChar* posKey = xmlGetProp(node, (xmlChar*) "pos");
-      if (posKey == 0) throw MapLoadException(filename);
-      sscanf((char*) posKey, "%d,%d", &startingPosition.first, &startingPosition.second);
-      xmlFree(posKey);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "map"))
     {
       xmlChar* idKey = xmlGetProp(node, (xmlChar*) "id");
@@ -82,18 +82,21 @@ World::World(std::string filename)
       
       auto map = std::make_shared<Map>(id, this);
       
+      xmlChar* expandKey = xmlGetProp(node, (xmlChar*) "expanded");
+      if ((expandKey != 0) && (!xmlStrcmp(expandKey, (const xmlChar*) "true")))
+      {
+        map->setExpanded(true);
+      }
+      xmlFree(expandKey);
+      
+      xmlChar* titleKey = xmlGetProp(node, (xmlChar*) "title");
+      if (titleKey == 0) throw MapLoadException(filename);
+      map->setTitle((char*) titleKey, false);
+      xmlFree(titleKey);
+      
       for (xmlNodePtr mapNode = node->xmlChildrenNode; mapNode != NULL; mapNode = mapNode->next)
       {
-        if (!xmlStrcmp(mapNode->name, (const xmlChar*) "name"))
-        {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
-          if (key != 0)
-          {
-            map->setTitle((char*) key, false);
-          }
-          
-          xmlFree(key);
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "environment"))
+        if (!xmlStrcmp(mapNode->name, (const xmlChar*) "environment"))
         {
           xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
           int* mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
@@ -104,88 +107,50 @@ World::World(std::string filename)
           }
           map->setMapdata(mapdata, false);
           xmlFree(key);
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "leftmap"))
+        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "entity"))
         {
-          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
+          auto data = std::make_shared<MapObjectEntry>();
+          
+          xmlChar* typeKey = xmlGetProp(mapNode, (const xmlChar*) "type");
           if (typeKey == 0) throw MapLoadException(filename);
-          map->setLeftMoveType(Map::moveTypeForShort((char*) typeKey), false);
+          data->object = MapObject::getAllObjects().at((char*) typeKey).get();
           xmlFree(typeKey);
           
-          if (Map::moveTypeTakesMap(map->getLeftMoveType()))
-          {
-            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
-            if (idKey == 0) throw MapLoadException(filename);
-            map->setLeftMoveMapID(atoi((char*) idKey), false);
-            xmlFree(idKey);
-          }
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "rightmap"))
+          xmlChar* xKey = xmlGetProp(mapNode, (const xmlChar*) "x");
+          if (xKey == 0) throw MapLoadException(filename);
+          data->position.first = atoi((char*) xKey);
+          xmlFree(xKey);
+          
+          xmlChar* yKey = xmlGetProp(mapNode, (const xmlChar*) "y");
+          if (yKey == 0) throw MapLoadException(filename);
+          data->position.second = atoi((char*) yKey);
+          xmlFree(yKey);
+          
+          map->addObject(data, false);
+        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "adjacent"))
         {
-          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
+          Map::MoveDir direction;
+          Map::MoveType moveType;
+          int mapId = 0;
+          
+          xmlChar* dirKey = xmlGetProp(mapNode, (const xmlChar*) "dir");
+          if (dirKey == 0) throw MapLoadException(filename);
+          direction = Map::moveDirForShort((char*) dirKey);
+          xmlFree(dirKey);
+          
+          xmlChar* typeKey = xmlGetProp(mapNode, (const xmlChar*) "type");
           if (typeKey == 0) throw MapLoadException(filename);
-          map->setRightMoveType(Map::moveTypeForShort((char*) typeKey), false);
+          moveType = Map::moveTypeForShort((char*) typeKey);
           xmlFree(typeKey);
           
-          if (Map::moveTypeTakesMap(map->getRightMoveType()))
+          xmlChar* mapIdKey = xmlGetProp(mapNode, (const xmlChar*) "map");
+          if (mapIdKey != 0)
           {
-            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
-            if (idKey == 0) throw MapLoadException(filename);
-            map->setRightMoveMapID(atoi((char*) idKey), false);
-            xmlFree(idKey);
+            mapId = atoi((char*) mapIdKey);
           }
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "upmap"))
-        {
-          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
-          if (typeKey == 0) throw MapLoadException(filename);
-          map->setUpMoveType(Map::moveTypeForShort((char*) typeKey), false);
-          xmlFree(typeKey);
+          xmlFree(mapIdKey);
           
-          if (Map::moveTypeTakesMap(map->getUpMoveType()))
-          {
-            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
-            if (idKey == 0) throw MapLoadException(filename);
-            map->setUpMoveMapID(atoi((char*) idKey), false);
-            xmlFree(idKey);
-          }
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "downmap"))
-        {
-          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
-          if (typeKey == 0) throw MapLoadException(filename);
-          map->setDownMoveType(Map::moveTypeForShort((char*) typeKey), false);
-          xmlFree(typeKey);
-          
-          if (Map::moveTypeTakesMap(map->getDownMoveType()))
-          {
-            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
-            if (idKey == 0) throw MapLoadException(filename);
-            map->setDownMoveMapID(atoi((char*) idKey), false);
-            xmlFree(idKey);
-          }
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "entities"))
-        {
-          for (xmlNodePtr entityNode = mapNode->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
-          {
-            if (!xmlStrcmp(entityNode->name, (const xmlChar*) "entity"))
-            {
-              auto data = std::make_shared<MapObjectEntry>();
-          
-              for (xmlNodePtr entityDataNode = entityNode->xmlChildrenNode; entityDataNode != NULL; entityDataNode = entityDataNode->next)
-              {
-                if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
-                {
-                  xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-                  data->object = MapObject::getAllObjects().at((char*) key).get();
-                  xmlFree(key);
-                } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
-                {
-                  xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-                  sscanf((char*) key, "%d,%d", &data->position.first, &data->position.second);
-                  xmlFree(key);
-                }
-              }
-        
-              map->addObject(data, false);
-            }
-          }
+          map->setAdjacent(direction, moveType, mapId, false);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "child"))
         {
           xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
@@ -194,13 +159,6 @@ World::World(std::string filename)
             map->addChild(atoi((char*) key));
           }
           xmlFree(key);
-        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "expanded"))
-        {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
-          if ((key != 0) && ((char) key[0] == '1'))
-          {
-            map->setExpanded(true);
-          }
         }
       }
       
@@ -266,16 +224,24 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
   rc = xmlTextWriterStartElement(writer, (xmlChar*) "world");
   if (rc < 0) throw MapWriteException(name);
   
-  //   <nextmapid/>
-  std::ostringstream nextMap_out;
-  nextMap_out << nextMapID;
-  rc = xmlTextWriterWriteElement(writer, (xmlChar*) "nextmapid", (xmlChar*) nextMap_out.str().c_str());
+  //   nextmap=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "nextmap", "%d", nextMapID);
   if (rc < 0) throw MapWriteException(name);
   
-  //   <lastmap/>
-  std::ostringstream lastMap_out;
-  lastMap_out << lastmap;
-  rc = xmlTextWriterWriteElement(writer, (xmlChar*) "lastmap", (xmlChar*) lastMap_out.str().c_str());
+  //   lastmap=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "lastmap", "%d", lastmap);
+  if (rc < 0) throw MapWriteException(name);
+  
+  //   startx=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "startx", "%d", startingPosition.first);
+  if (rc < 0) throw MapWriteException(name);
+  
+  //   starty=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "starty", "%d", startingPosition.second);
+  if (rc < 0) throw MapWriteException(name);
+  
+  //   startmap=
+  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "startmap", "%d", startingMap);
   if (rc < 0) throw MapWriteException(name);
   
   // ASSUMPTION: There will always be at least one child of the invisible root element. i.e. you cannot delete to zero maps.
@@ -285,27 +251,9 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
   {
     // <root>
     MapPtrCtr* ctl = (MapPtrCtr*) mapTree->GetItemData(it);
-    std::ostringstream rootid_out;
-    rootid_out << ctl->map->getID();
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "root", (xmlChar*) rootid_out.str().c_str());
+    rc = xmlTextWriterWriteFormatElement(writer, (xmlChar*) "root", "%d", ctl->map->getID());
     if (rc < 0) throw MapWriteException(name);
   }
-  
-  //   <startpos/>
-  rc = xmlTextWriterStartElement(writer, (xmlChar*) "startpos");
-  if (rc < 0) throw MapWriteException(name);
-  
-  //   id=
-  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "id", "%d", startingMap);
-  if (rc < 0) throw MapWriteException(name);
-  
-  //   pos=
-  rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "pos", "%d,%d", startingPosition.first, startingPosition.second);
-  if (rc < 0) throw MapWriteException(name);
-  
-  //   </startpos>
-  rc = xmlTextWriterEndElement(writer);
-  if (rc < 0) throw MapWriteException(name);
   
   for (auto mapPair : maps)
   {
@@ -318,16 +266,33 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
     if (rc < 0) throw MapWriteException(name);
     
     // id=
-    std::ostringstream id_out;
-    id_out << map.getID();
-    rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "id", (xmlChar*) id_out.str().c_str());
+    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "id", "%d", map.getID());
     if (rc < 0) throw MapWriteException(name);
     
-    //   <name/>
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "name", (xmlChar*) map.getTitle().c_str());
+    // expanded=
+    wxTreeItemId node = map.getTreeItemId();
+    if (mapTree->IsExpanded(node))
+    {
+      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "expanded", (xmlChar*) "true");
+      if (rc < 0) throw MapWriteException(name);
+    } else {
+      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "expanded", (xmlChar*) "false");
+      if (rc < 0) throw MapWriteException(name);
+    }
+    
+    // title=
+    rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "name", (xmlChar*) map.getTitle().c_str());
     if (rc < 0) throw MapWriteException(name);
   
-    //   <environment/>
+    //   <environment
+    rc = xmlTextWriterStartElement(writer, (xmlChar*) "environment");
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   type=
+    rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "type", (xmlChar*) "0");
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   >
     std::ostringstream mapdata_out;
     for (int y=0; y<MAP_HEIGHT; y++)
     {
@@ -341,113 +306,60 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
   
     rc = xmlTextWriterWriteElement(writer, (xmlChar*) "environment", (xmlChar*) mapdata_out.str().c_str());
     if (rc < 0) throw MapWriteException(name);
-  
-    //   <leftmap/>
-    rc = xmlTextWriterStartElement(writer, (xmlChar*) "leftmap");
-    if (rc < 0) throw MapWriteException(name);
     
-    //   type=
-    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getLeftMoveType()).c_str());
-    if (rc < 0) throw MapWriteException(name);
-    
-    if (Map::moveTypeTakesMap(map.getLeftMoveType()))
-    {
-      // map=
-      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getLeftMoveMapID());
-      if (rc < 0) throw MapWriteException(name);
-    }
-    
-    //   </leftmap>
+    //   </environment>
     rc = xmlTextWriterEndElement(writer);
     if (rc < 0) throw MapWriteException(name);
     
-    //   <rightmap/>
-    rc = xmlTextWriterStartElement(writer, (xmlChar*) "rightmap");
-    if (rc < 0) throw MapWriteException(name);
-    
-    //   type=
-    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getRightMoveType()).c_str());
-    if (rc < 0) throw MapWriteException(name);
-    
-    if (Map::moveTypeTakesMap(map.getRightMoveType()))
-    {
-      // map=
-      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getRightMoveMapID());
-      if (rc < 0) throw MapWriteException(name);
-    }
-    
-    //   </rightmap>
-    rc = xmlTextWriterEndElement(writer);
-    if (rc < 0) throw MapWriteException(name);
-    
-    //   <upmap/>
-    rc = xmlTextWriterStartElement(writer, (xmlChar*) "upmap");
-    if (rc < 0) throw MapWriteException(name);
-    
-    //   type=
-    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getUpMoveType()).c_str());
-    if (rc < 0) throw MapWriteException(name);
-    
-    if (Map::moveTypeTakesMap(map.getUpMoveType()))
-    {
-      // map=
-      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getUpMoveMapID());
-      if (rc < 0) throw MapWriteException(name);
-    }
-    
-    //   </upmap>
-    rc = xmlTextWriterEndElement(writer);
-    if (rc < 0) throw MapWriteException(name);
-    
-    //   <downmap/>
-    rc = xmlTextWriterStartElement(writer, (xmlChar*) "downmap");
-    if (rc < 0) throw MapWriteException(name);
-    
-    //   type=
-    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getDownMoveType()).c_str());
-    if (rc < 0) throw MapWriteException(name);
-    
-    if (Map::moveTypeTakesMap(map.getDownMoveType()))
-    {
-      // map=
-      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getDownMoveMapID());
-      if (rc < 0) throw MapWriteException(name);
-    }
-    
-    //   </downmap>
-    rc = xmlTextWriterEndElement(writer);
-    if (rc < 0) throw MapWriteException(name);
-  
-    //   <entities>
-    rc = xmlTextWriterStartElement(writer, (xmlChar*) "entities");
-    if (rc < 0) throw MapWriteException(name);
-  
     for (auto object : map.getObjects())
     {
-      //   <entity>
+      // <entity>
       rc = xmlTextWriterStartElement(writer, (xmlChar*) "entity");
       if (rc < 0) throw MapWriteException(name);
     
-      //     <entity-type/>
-      rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-type", (xmlChar*) object->object->getType().c_str());
+      // type=
+      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "type", (xmlChar*) object->object->getType().c_str());
       if (rc < 0) throw MapWriteException(name);
     
-      //     <entity-position/>
-      std::ostringstream entpos_out;
-      entpos_out << object->position.first << "," << object->position.second;
-      rc = xmlTextWriterWriteElement(writer, (xmlChar*) "entity-position", (xmlChar*) entpos_out.str().c_str());
+      // x=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "x", "%d", object->position.first);
+      if (rc < 0) throw MapWriteException(name);
+      
+      // y=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "y", "%d", object->position.second);
       if (rc < 0) throw MapWriteException(name);
     
-      //   </entity>
+      // </entity>
       rc = xmlTextWriterEndElement(writer);
       if (rc < 0) throw MapWriteException(name);
     }
-  
-    //   </entities>
-    rc = xmlTextWriterEndElement(writer);
-    if (rc < 0) throw MapWriteException(name);
     
-    wxTreeItemId node = map.getTreeItemId();
+    for (auto adjacent : map.getAdjacents())
+    {
+      // <adjacent>
+      rc = xmlTextWriterStartElement(writer, (xmlChar*) "adjacent");
+      if (rc < 0) throw MapWriteException(name);
+      
+      // dir=
+      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "dir", (xmlChar*) Map::shortForMoveDir(adjacent.first).c_str());
+      if (rc < 0) throw MapWriteException(name);
+      
+      // type=
+      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "type", (xmlChar*) Map::shortForMoveType(adjacent.second.type).c_str());
+      if (rc < 0) throw MapWriteException(name);
+      
+      // map=
+      if (Map::moveTypeTakesMap(adjacent.second.type))
+      {
+        rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", adjacent.second.map);
+        if (rc < 0) throw MapWriteException(name);
+      }
+      
+      // </adjacent>
+      rc = xmlTextWriterEndElement(writer);
+      if (rc < 0) throw MapWriteException(name);
+    }
+    
     if (mapTree->ItemHasChildren(node))
     {
       wxTreeItemIdValue cookie2;
@@ -455,16 +367,7 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
       {
       // <child/>
         MapPtrCtr* ctl = (MapPtrCtr*) mapTree->GetItemData(it);
-        std::ostringstream childid_out;
-        childid_out << ctl->map->getID();
-        rc = xmlTextWriterWriteElement(writer, (xmlChar*) "child", (xmlChar*) childid_out.str().c_str());
-        if (rc < 0) throw MapWriteException(name);
-      }
-      
-      if (mapTree->IsExpanded(node))
-      {
-      // <expanded/>
-        rc = xmlTextWriterWriteElement(writer, (xmlChar*) "expanded", (xmlChar*) "1");
+        rc = xmlTextWriterWriteFormatElement(writer, (xmlChar*) "child", "%d", ctl->map->getID());
         if (rc < 0) throw MapWriteException(name);
       }
     }

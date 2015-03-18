@@ -7,6 +7,7 @@
 #include <list>
 #include <memory>
 #include <wx/treectrl.h>
+#include <map>
 
 class MapObject;
 class World;
@@ -64,6 +65,13 @@ class Map {
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
+    enum class MoveDir {
+      Left,
+      Right,
+      Up,
+      Down
+    };
+    
     enum class MoveType {
       Wall,
       Wrap,
@@ -71,11 +79,18 @@ class Map {
       ReverseWarp
     };
     
+    struct Adjacent {
+      MoveType type = MoveType::Wall;
+      int map = 0;
+    };
+    
     static std::list<MoveType> listMoveTypes();
     static std::string stringForMoveType(MoveType type);
     static bool moveTypeTakesMap(MoveType type);
     static std::string shortForMoveType(MoveType type);
+    static std::string shortForMoveDir(MoveDir dir);
     static MoveType moveTypeForShort(std::string str);
+    static MoveDir moveDirForShort(std::string str);
     
     int getID() const;
     std::string getTitle() const;
@@ -86,14 +101,8 @@ class Map {
     bool getExpanded() const;
     World* getWorld() const;
     bool getHidden() const;
-    MoveType getLeftMoveType() const;
-    MoveType getRightMoveType() const;
-    MoveType getUpMoveType() const;
-    MoveType getDownMoveType() const;
-    int getLeftMoveMapID() const;
-    int getRightMoveMapID() const;
-    int getUpMoveMapID() const;
-    int getDownMoveMapID() const;
+    const std::map<MoveDir, Adjacent>& getAdjacents() const;
+    const Adjacent& getAdjacent(MoveDir direction) const;
     
     void setTitle(std::string title, bool dirty = true);
     void setTileAt(int x, int y, int tile, bool dirty = true);
@@ -104,14 +113,7 @@ class Map {
     void addChild(int id);
     void setExpanded(bool exp);
     void setHidden(bool hid);
-    void setLeftMoveType(MoveType move, bool dirty = true);
-    void setRightMoveType(MoveType move, bool dirty = true);
-    void setUpMoveType(MoveType move, bool dirty = true);
-    void setDownMoveType(MoveType move, bool dirty = true);
-    void setLeftMoveMapID(int id, bool dirty = true);
-    void setRightMoveMapID(int id, bool dirty = true);
-    void setUpMoveMapID(int id, bool dirty = true);
-    void setDownMoveMapID(int id, bool dirty = true);
+    void setAdjacent(MoveDir direction, MoveType type, int map = -1, bool dirty = true);
     
   private:
     int id;
@@ -123,14 +125,8 @@ class Map {
     wxTreeItemId treeItemId;
     bool expanded = false;
     bool hidden = false;
-    MoveType leftType = MoveType::Wall;
-    MoveType rightType = MoveType::Wall;
-    MoveType upType = MoveType::Wall;
-    MoveType downType = MoveType::Wall;
-    int leftMap = 0;
-    int rightMap = 0;
-    int upMap = 0;
-    int downMap = 0;
+    std::map<MoveDir, Adjacent> adjacents;
+    const Adjacent defaultAdjacent {};
 };
 
 class MapPtrCtr : public wxTreeItemData {

@@ -21,14 +21,7 @@ Map::Map(const Map& map)
   treeItemId = map.treeItemId;
   children = map.children;
   hidden = map.hidden;
-  leftType = map.leftType;
-  rightType = map.rightType;
-  upType = map.upType;
-  downType = map.downType;
-  leftMap = map.leftMap;
-  rightMap = map.rightMap;
-  downMap = map.downMap;
-  upMap = map.upMap;
+  adjacents = map.adjacents;
 }
 
 Map::Map(Map&& map) : Map(-1, map.world)
@@ -58,14 +51,7 @@ void swap(Map& first, Map& second)
   std::swap(first.treeItemId, second.treeItemId);
   std::swap(first.children, second.children);
   std::swap(first.hidden, second.hidden);
-  std::swap(first.leftType, second.leftType);
-  std::swap(first.rightType, second.rightType);
-  std::swap(first.upType, second.upType);
-  std::swap(first.downType, second.downType);
-  std::swap(first.leftMap, second.leftMap);
-  std::swap(first.rightMap, second.rightMap);
-  std::swap(first.downMap, second.downMap);
-  std::swap(first.upMap, second.upMap);
+  std::swap(first.adjacents, second.adjacents);
 }
 
 std::list<Map::MoveType> Map::listMoveTypes()
@@ -78,9 +64,9 @@ std::string Map::stringForMoveType(MoveType type)
   switch (type)
   {
     case MoveType::Wall: return "Wall";
-    case MoveType::Warp: return "Warp";
+    case MoveType::Warp: return "Teleport";
     case MoveType::Wrap: return "Wrap";
-    case MoveType::ReverseWarp: return "Reverse Warp";
+    case MoveType::ReverseWarp: return "Reverse Teleport";
   }
 }
 
@@ -106,6 +92,17 @@ std::string Map::shortForMoveType(MoveType type)
   }
 }
 
+std::string Map::shortForMoveDir(MoveDir dir)
+{
+  switch (dir)
+  {
+    case MoveDir::Left: return "left";
+    case MoveDir::Right: return "right";
+    case MoveDir::Up: return "up";
+    case MoveDir::Down: return "down";
+  }
+}
+
 Map::MoveType Map::moveTypeForShort(std::string str)
 {
   if (str == "wrap") return MoveType::Wrap;
@@ -113,6 +110,15 @@ Map::MoveType Map::moveTypeForShort(std::string str)
   if (str == "reverseWarp") return MoveType::ReverseWarp;
   
   return MoveType::Wall;
+}
+
+Map::MoveDir Map::moveDirForShort(std::string str)
+{
+  if (str == "right") return MoveDir::Right;
+  if (str == "up") return MoveDir::Up;
+  if (str == "down") return MoveDir::Down;
+  
+  return MoveDir::Left;
 }
 
 int Map::getID() const
@@ -167,46 +173,20 @@ bool Map::getHidden() const
   return hidden;
 }
 
-Map::MoveType Map::getLeftMoveType() const
+const std::map<Map::MoveDir, Map::Adjacent>& Map::getAdjacents() const
 {
-  return leftType;
+  return adjacents;
 }
 
-Map::MoveType Map::getRightMoveType() const
+const Map::Adjacent& Map::getAdjacent(MoveDir direction) const
 {
-  return rightType;
+  if (adjacents.count(direction) > 0)
+  {
+    return adjacents.at(direction);
+  } else {
+    return defaultAdjacent;
+  }
 }
-
-Map::MoveType Map::getUpMoveType() const
-{
-  return upType;
-}
-
-Map::MoveType Map::getDownMoveType() const
-{
-  return downType;
-}
-
-int Map::getLeftMoveMapID() const
-{
-  return leftMap;
-}
-
-int Map::getRightMoveMapID() const
-{
-  return rightMap;
-}
-
-int Map::getUpMoveMapID() const
-{
-  return upMap;
-}
-
-int Map::getDownMoveMapID() const
-{
-  return downMap;
-}
-
 
 void Map::setTitle(std::string title, bool dirty)
 {
@@ -279,79 +259,11 @@ void Map::setHidden(bool hid)
   hidden = hid;
 }
 
-void Map::setLeftMoveType(Map::MoveType move, bool dirty)
+void Map::setAdjacent(MoveDir direction, MoveType type, int map, bool dirty)
 {
-  leftType = move;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setRightMoveType(Map::MoveType move, bool dirty)
-{
-  rightType = move;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setUpMoveType(Map::MoveType move, bool dirty)
-{
-  upType = move;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setDownMoveType(Map::MoveType move, bool dirty)
-{
-  downType = move;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setLeftMoveMapID(int id, bool dirty)
-{
-  leftMap = id;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setRightMoveMapID(int id, bool dirty)
-{
-  rightMap = id;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setUpMoveMapID(int id, bool dirty)
-{
-  upMap = id;
-  
-  if (dirty)
-  {
-    world->setDirty(true);
-  }
-}
-
-void Map::setDownMoveMapID(int id, bool dirty)
-{
-  downMap = id;
+  Adjacent& cur = adjacents[direction];
+  cur.type = type;
+  if (map != -1) cur.map = map;
   
   if (dirty)
   {

@@ -6,6 +6,7 @@
 #include <list>
 #include <map>
 #include "map.h"
+#include "world.h"
 
 class Entity;
 struct GLFWwindow;
@@ -24,14 +25,11 @@ class Game {
     void saveGame();
     void schedule(double time, std::function<void ()> callback);
     void playerDie();
-    const Map& getMap(int id) const;
+    const World& getWorld() const;
     
   private:
     friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-    std::map<int, Map> maps;
-    int startMap;
-    std::pair<int, int> startPos;
     std::list<std::shared_ptr<Entity>> entities;
     std::list<std::shared_ptr<Entity>> nextEntities;
     std::pair<double, double> nextPosition;
@@ -41,6 +39,7 @@ class Game {
     Savefile save;
     std::list<std::pair<double, std::function<void ()>>> scheduled;
     bool shouldQuit = false;
+    World world;
 };
 
 #endif

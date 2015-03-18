@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="map">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0" />
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="move-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="wall" />
+      <xs:enumeration value="wrap" />
+      <xs:enumeration value="warp" />
+      <xs:enumeration value="reverseWarp" />
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="direction">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="left" />
+      <xs:enumeration value="right" />
+      <xs:enumeration value="up" />
+      <xs:enumeration value="down" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="world">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="root" type="map" maxOccurs="unbounded" />
+      
+        <xs:element name="map" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="environment">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute name="type" use="required">
+                        <xs:simpleType>
+                          <xs:restriction base="xs:integer">
+                            <xs:minInclusive value="0" />
+                            <xs:maxExclusive value="5" />
+                          </xs:restriction>
+                        </xs:simpleType>
+                      </xs:attribute>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+        
+              <xs:element name="entity" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="type" type="xs:string" use="required" />
+                  <xs:attribute name="x" type="xs:integer" use="required" />
+                  <xs:attribute name="y" type="xs:integer" use="required" />
+                </xs:complexType>
+              </xs:element>
+              
+              <xs:element name="adjacent" minOccurs="0" maxOccurs="4">
+                <xs:complexType>
+                  <xs:attribute name="dir" type="direction" use="required" />
+                  <xs:attribute name="type" type="move-type" use="required" />
+                  <xs:attribute name="map" type="map" default="0" />
+                </xs:complexType>
+              </xs:element>
+        
+              <xs:element name="child" type="map" minOccurs="0" maxOccurs="unbounded" />
+            </xs:sequence>
+            
+            <xs:attribute name="id" type="xs:integer" use="required" />
+            <xs:attribute name="expanded" type="xs:boolean" default="false" />
+            <xs:attribute name="title" use="required">
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:maxLength value="40" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      
+      <xs:attribute name="nextmap" type="map" default="0" />
+      <xs:attribute name="lastmap" type="map" default="0" />
+      <xs:attribute name="startx" type="xs:integer" use="required" />
+      <xs:attribute name="starty" type="xs:integer" use="required" />
+      <xs:attribute name="startmap" type="map" use="required" />
+    </xs:complexType>
+  </xs:element>
+  
+</xs:schema>
