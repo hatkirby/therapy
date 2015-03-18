@@ -1,11 +1,14 @@
 #include "map_collision.h"
 #include "map.h"
 #include "game.h"
+#include "consts.h"
 
 MapCollisionComponent::MapCollisionComponent(const Map& map) : map(map)
 {
-  addCollision(-6, 0, GAME_WIDTH, Direction::left, (map.getLeftMap() == nullptr) ? Collision::Type::wrap : Collision::Type::teleport);
-  addCollision(GAME_WIDTH+6, 0, GAME_WIDTH, Direction::right, (map.getRightMap() == nullptr) ? Collision::Type::reverse : Collision::Type::teleport);
+  addCollision(-6, 0, GAME_HEIGHT, Direction::left, collisionFromMoveType(map.getLeftMoveType()));
+  addCollision(GAME_WIDTH+6, 0, GAME_HEIGHT, Direction::right, collisionFromMoveType(map.getRightMoveType()));
+  addCollision(-7, 0, GAME_WIDTH, Direction::up, collisionFromMoveType(map.getUpMoveType()));
+  addCollision(GAME_HEIGHT+6, 0, GAME_WIDTH, Direction::down, collisionFromMoveType(map.getDownMoveType()));
   
   for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
   {
@@ -186,13 +189,20 @@ void MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
   {
     if (dir == Direction::left)
     {
-      game.loadMap(*map.getLeftMap(), std::make_pair(GAME_WIDTH-collider.size.first/2, old_position.second));
+      game.loadMap(game.getMap(map.getLeftMapID()), std::make_pair(GAME_WIDTH-collider.size.first/2, old_position.second));
     } else if (dir == Direction::right)
     {
-      game.loadMap(*map.getRightMap(), std::make_pair(-collider.size.first/2, old_position.second));
+      game.loadMap(game.getMap(map.getRightMapID()), std::make_pair(-collider.size.first/2, old_position.second));
+    } else if (dir == Direction::up)
+    {
+      game.loadMap(game.getMap(map.getUpMapID()), std::make_pair(old_position.first, GAME_HEIGHT-collider.size.second/2));
+    } else if (dir == Direction::down)
+    {
+      game.loadMap(game.getMap(map.getDownMapID()), std::make_pair(old_position.first, -collider.size.second/2));
     }
   } else if (collision.type == Collision::Type::reverse)
   {
+    // TODO reverse
     if (dir == Direction::right)
     {
       collider.position.first = collision.axis - collider.size.first;
@@ -207,5 +217,16 @@ void MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
   } else if (collision.type == Collision::Type::danger)
   {
     game.playerDie();
+  }
+}
+
+MapCollisionComponent::Collision::Type MapCollisionComponent::collisionFromMoveType(Map::MoveType type)
+{
+  switch (type)
+  {
+    case Map::MoveType::Wall: return Collision::Type::wall;
+    case Map::MoveType::Wrap: return Collision::Type::wrap;
+    case Map::MoveType::Warp: return Collision::Type::teleport;
+    case Map::MoveType::ReverseWarp: return Collision::Type::reverse;
   }
 }

@@ -1,5 +1,6 @@
 #include "physics_body.h"
 #include "game.h"
+#include "consts.h"
 
 void PhysicsBodyComponent::receive(Game&, Entity&, const Message& msg)
 {

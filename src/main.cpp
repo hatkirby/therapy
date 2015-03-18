@@ -14,7 +14,7 @@ int main()
   
   // Put this in a block so game goes out of scope before we destroy the renderer
   {
-    Game game;
+    Game game {"res/maps.xml"};
     game.execute(window);
   }
   

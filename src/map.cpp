@@ -1,115 +1,16 @@
 #include "map.h"
-#include "game.h"
 #include <cstdlib>
 #include <cstring>
-#include <libxml/parser.h>
 #include <map>
 #include "entityfactory.h"
 #include "entity.h"
+#include "game.h"
+#include "consts.h"
 
-static std::map<std::string, Map> maps;
-
-Map::Map()
+Map::Map(int id)
 {
+  this->id = id;
   mapdata = (int*) calloc(1, sizeof(int));
-}
-
-Map::Map(const std::string name)
-{
-  this->name = name;
-  
-  xmlDocPtr doc = xmlParseFile(("maps/" + name + ".xml").c_str());
-  if (doc == nullptr)
-  {
-    fprintf(stderr, "Error reading map %s\n", name.c_str());
-    exit(-1);
-  }
-  
-  xmlNodePtr top = xmlDocGetRootElement(doc);
-  if (top == nullptr)
-  {
-    fprintf(stderr, "Empty map %s\n", name.c_str());
-    exit(-1);
-  }
-  
-  if (xmlStrcmp(top->name, (const xmlChar*) "map-def"))
-  {
-    fprintf(stderr, "Invalid map definition %s\n", name.c_str());
-    exit(-1);
-  }
-  
-  for (xmlNodePtr node = top->xmlChildrenNode; node != NULL; node = node->next)
-  {
-    if (!xmlStrcmp(node->name, (const xmlChar*) "name"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key != 0)
-      {
-        title = (char*) key;
-      }
-      
-      xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "environment"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
-      mapdata[0] = atoi(strtok((char*) key, ",\n"));
-      for (int i=1; i<(MAP_WIDTH*MAP_HEIGHT); i++)
-      {
-        mapdata[i] = atoi(strtok(NULL, ",\n"));
-      }
-      xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "entities"))
-    {
-      for (xmlNodePtr entityNode = node->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
-      {
-        if (!xmlStrcmp(entityNode->name, (const xmlChar*) "entity"))
-        {
-          EntityData data;
-          for (xmlNodePtr entityDataNode = entityNode->xmlChildrenNode; entityDataNode != NULL; entityDataNode = entityDataNode->next)
-          {
-            if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-type"))
-            {
-              xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              if (key != 0)
-              {
-                data.name = (char*) key;
-              }
-
-              xmlFree(key);
-            } else if (!xmlStrcmp(entityDataNode->name, (const xmlChar*) "entity-position"))
-            {
-              xmlChar* key = xmlNodeListGetString(doc, entityDataNode->xmlChildrenNode, 1);
-              sscanf((char*) key, "%lf,%lf", &data.position.first, &data.position.second);
-              xmlFree(key);
-            }
-          }
-        
-          entities.push_back(data);
-        }
-      }
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "leftmap"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key != 0)
-      {
-        leftMap = &Map::getNamedMap((char*) key);
-      }
-
-      xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "rightmap"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key != 0)
-      {
-        rightMap = &Map::getNamedMap((char*) key);
-      }
-
-      xmlFree(key);
-    }
-  }
-  
-  xmlFreeDoc(doc);
 }
 
 Map::Map(const Map& map)
@@ -117,13 +18,17 @@ Map::Map(const Map& map)
   mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
   memcpy(mapdata, map.mapdata, MAP_WIDTH*MAP_HEIGHT*sizeof(int));
   
+  id = map.id;
   title = map.title;
   leftMap = map.leftMap;
   rightMap = map.rightMap;
-  
+  downMap = map.downMap;
+  upMap = map.upMap;
+  leftType = map.leftType;
+  rightType = map.rightType;
+  upType = map.upType;
+  downType = map.downType;
   entities = map.entities;
-  
-  name = map.name;
 }
 
 Map::Map(Map&& map) : Map()
@@ -149,8 +54,19 @@ void swap(Map& first, Map& second)
   std::swap(first.title, second.title);
   std::swap(first.leftMap, second.leftMap);
   std::swap(first.rightMap, second.rightMap);
+  std::swap(first.downMap, second.downMap);
+  std::swap(first.upMap, second.upMap);
+  std::swap(first.leftType, second.leftType);
+  std::swap(first.rightType, second.rightType);
+  std::swap(first.upType, second.upType);
+  std::swap(first.downType, second.downType);
+  std::swap(first.id, second.id);
   std::swap(first.entities, second.entities);
-  std::swap(first.name, second.name);
+}
+
+int Map::getID() const
+{
+  return id;
 }
 
 const int* Map::getMapdata() const
@@ -161,26 +77,6 @@ const int* Map::getMapdata() const
 std::string Map::getTitle() const
 {
   return title;
-}
-
-const Map* Map::getLeftMap() const
-{
-  return leftMap;
-}
-
-const Map* Map::getRightMap() const
-{
-  return rightMap;
-}
-
-void Map::setLeftMap(const Map* m)
-{
-  leftMap = m;
-}
-
-void Map::setRightMap(const Map* m)
-{
-  rightMap = m;
 }
 
 void Map::createEntities(std::list<std::shared_ptr<Entity>>& entities) const
@@ -196,20 +92,127 @@ void Map::createEntities(std::list<std::shared_ptr<Entity>>& entities) const
 
 bool Map::operator==(const Map& other) const
 {
-  return name == other.name;
+  return id == other.id;
 }
 
 bool Map::operator!=(const Map& other) const
 {
-  return name != other.name;
+  return id != other.id;
 }
 
-Map& Map::getNamedMap(const std::string name)
+Map::MoveType Map::moveTypeForShort(std::string str)
 {
-  if (maps.count(name) == 0)
-  {
-    maps[name] = Map {name};
-  }
+  if (str == "wrap") return MoveType::Wrap;
+  if (str == "warp") return MoveType::Warp;
+  if (str == "reverseWarp") return MoveType::ReverseWarp;
   
-  return maps[name];
+  return MoveType::Wall;
 }
+
+Map::MoveType Map::getLeftMoveType() const
+{
+  return leftType;
+}
+
+Map::MoveType Map::getRightMoveType() const
+{
+  return rightType;
+}
+
+Map::MoveType Map::getUpMoveType() const
+{
+  return upType;
+}
+
+Map::MoveType Map::getDownMoveType() const
+{
+  return downType;
+}
+
+int Map::getLeftMapID() const
+{
+  return leftMap;
+}
+
+int Map::getRightMapID() const
+{
+  return rightMap;
+}
+
+int Map::getUpMapID() const
+{
+  return upMap;
+}
+
+int Map::getDownMapID() const
+{
+  return downMap;
+}
+
+bool Map::moveTypeTakesMap(MoveType type)
+{
+  switch (type)
+  {
+    case MoveType::Wall: return false;
+    case MoveType::Wrap: return false;
+    case MoveType::Warp: return true;
+    case MoveType::ReverseWarp: return true;
+  }
+}
+
+void Map::setMapdata(int* mapdata)
+{
+  free(this->mapdata);
+  this->mapdata = mapdata;
+}
+
+void Map::setTitle(std::string title)
+{
+  this->title = title;
+}
+
+void Map::setLeftMoveType(MoveType type)
+{
+  leftType = type;
+}
+
+void Map::setRightMoveType(MoveType type)
+{
+  rightType = type;
+}
+
+void Map::setUpMoveType(MoveType type)
+{
+  upType = type;
+}
+
+void Map::setDownMoveType(MoveType type)
+{
+  downType = type;
+}
+
+void Map::setLeftMapID(int id)
+{
+  leftMap = id;
+}
+
+void Map::setRightMapID(int id)
+{
+  rightMap = id;
+}
+
+void Map::setUpMapID(int id)
+{
+  upMap = id;
+}
+
+void Map::setDownMapID(int id)
+{
+  downMap = id;
+}
+
+void Map::addEntity(EntityData& data)
+{
+  entities.push_back(data);
+}
+

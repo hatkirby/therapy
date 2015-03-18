@@ -2,9 +2,9 @@
 #define MAP_COLLISION_H
 
 #include "entity.h"
+#include "map.h"
 #include <list>
 
-class Map;
 class Game;
 
 class MapCollisionComponent : public Component {
@@ -35,6 +35,7 @@ class MapCollisionComponent : public Component {
     
     void addCollision(double axis, double lower, double upper, Direction dir, Collision::Type type);
     void processCollision(Game& game, Entity& collider, Collision collision, Direction dir, std::pair<double, double> old_position);
+    Collision::Type collisionFromMoveType(Map::MoveType type);
     
     std::list<Collision> left_collisions;
     std::list<Collision> right_collisions;

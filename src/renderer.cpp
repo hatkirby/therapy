@@ -5,9 +5,9 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-#include "game.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "consts.h"
 
 // include stb_image
 #define STB_IMAGE_IMPLEMENTATION

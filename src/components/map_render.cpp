@@ -1,6 +1,7 @@
 #include "map_render.h"
 #include "map.h"
 #include "game.h"
+#include "consts.h"
 
 MapRenderComponent::MapRenderComponent(const Map& map) : screen(GAME_WIDTH, GAME_HEIGHT)
 {

@@ -8,37 +8,63 @@ class Entity;
 
 class Map {
   public:
-    Map();
-    Map(std::string name);
+    Map(int id);
+    Map() : Map(-1) {}
     Map(const Map& map);
     Map(Map&& map);
     ~Map();
     Map& operator= (Map other);
     friend void swap(Map& first, Map& second);
     
-    static Map& getNamedMap(std::string name);
+    enum class MoveType {
+      Wall,
+      Wrap,
+      Warp,
+      ReverseWarp
+    };
     
+    struct EntityData {
+      std::string name;
+      std::pair<int, int> position;
+    };
+    
+    static MoveType moveTypeForShort(std::string str);
+    static bool moveTypeTakesMap(MoveType type);
+    
+    int getID() const;
     const int* getMapdata() const;
     std::string getTitle() const;
-    const Map* getLeftMap() const;
-    const Map* getRightMap() const;
-    void setLeftMap(const Map* m);
-    void setRightMap(const Map* m);
+    MoveType getLeftMoveType() const;
+    MoveType getRightMoveType() const;
+    MoveType getUpMoveType() const;
+    MoveType getDownMoveType() const;
+    int getLeftMapID() const;
+    int getRightMapID() const;
+    int getUpMapID() const;
+    int getDownMapID() const;
+    
     void createEntities(std::list<std::shared_ptr<Entity>>& entities) const;
     bool operator==(const Map& other) const;
     bool operator!=(const Map& other) const;
-  private:
-    struct EntityData {
-      std::string name;
-      std::pair<double, double> position;
-    };
     
+    void setMapdata(int* mapdata);
+    void setTitle(std::string title);
+    void setLeftMoveType(MoveType type);
+    void setRightMoveType(MoveType type);
+    void setUpMoveType(MoveType type);
+    void setDownMoveType(MoveType type);
+    void setLeftMapID(int id);
+    void setRightMapID(int id);
+    void setUpMapID(int id);
+    void setDownMapID(int id);
+    void addEntity(EntityData& data);
+  private:
     int* mapdata;
     std::string title;
-    std::string name;
-    const Map* leftMap = nullptr;
-    const Map* rightMap = nullptr;
+    int id;
     std::list<EntityData> entities;
+    MoveType leftType, rightType, upType, downType;
+    int leftMap, rightMap, upMap, downMap;
 };
 
 #endif

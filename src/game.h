@@ -3,21 +3,12 @@
 
 #include <memory>
 #include <functional>
-#include "renderer.h"
 #include <list>
+#include <map>
+#include "map.h"
 
 class Entity;
-class Map;
-
-const int TILE_WIDTH = 8;
-const int TILE_HEIGHT = 8;
-const int GAME_WIDTH = 320;
-const int GAME_HEIGHT = 200;
-const int MAP_WIDTH = GAME_WIDTH/TILE_WIDTH;
-const int MAP_HEIGHT = GAME_HEIGHT/TILE_HEIGHT - 1;
-
-const int FRAMES_PER_SECOND = 60;
-const double SECONDS_PER_FRAME = 1.0 / FRAMES_PER_SECOND;
+struct GLFWwindow;
 
 struct Savefile {
   const Map* map;
@@ -26,17 +17,21 @@ struct Savefile {
 
 class Game {
   public:
-    Game();
+    Game(const char* maps);
     void execute(GLFWwindow* window);
     void loadMap(const Map& map, std::pair<double, double> position);
     void detectCollision(Entity& collider, std::pair<double, double> old_position);
     void saveGame();
     void schedule(double time, std::function<void ()> callback);
     void playerDie();
+    const Map& getMap(int id) const;
     
   private:
     friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
+    std::map<int, Map> maps;
+    int startMap;
+    std::pair<int, int> startPos;
     std::list<std::shared_ptr<Entity>> entities;
     std::list<std::shared_ptr<Entity>> nextEntities;
     std::pair<double, double> nextPosition;
