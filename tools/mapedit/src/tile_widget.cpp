@@ -1,5 +1,5 @@
 #include "tile_widget.h"
-#include "map.h"
+#include "consts.h"
 
 IMPLEMENT_DYNAMIC_CLASS(TileWidget,wxScrolledCanvas)
 

@@ -7,14 +7,18 @@
 #include <wx/wx.h>
 #endif
 
-#include "map.h"
-#include "tile_widget.h"
 #include <list>
 #include <memory>
 #include <utility>
 #include <set>
 
 class MapeditFrame;
+class TileWidget;
+class Map;
+class MapObject;
+struct MapObjectEntry;
+
+#include "consts.h"
 
 enum EditMode {
   EditTiles,

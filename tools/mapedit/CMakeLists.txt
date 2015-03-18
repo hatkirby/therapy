@@ -10,7 +10,7 @@ set(BIN_DIR ${AromatherapyMapEditor_SOURCE_DIR}/bin)
 # selecting the build mode in their IDE
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -std=c++11")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -g")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE} -O2")
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 	if (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
@@ -46,6 +46,7 @@ add_executable(AromatherapyMapEditor
   src/object.cpp
   src/world.cpp
   src/undo.cpp
+  src/mapselect_combo.cpp
 )
 target_link_libraries(AromatherapyMapEditor ${ALL_LIBS})
 install(TARGETS AromatherapyMapEditor RUNTIME DESTINATION ${BIN_DIR})

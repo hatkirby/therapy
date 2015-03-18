@@ -7,8 +7,6 @@
 #include <wx/wx.h>
 #endif
 
-#include "map.h"
-
 class TileWidget : public wxScrolledCanvas {
   public:
     TileWidget();

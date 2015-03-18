@@ -1,5 +1,9 @@
 #include "widget.h"
 #include "frame.h"
+#include "map.h"
+#include "tile_widget.h"
+#include "object.h"
+#include "undo.h"
 
 const int EDITOR_SPACING_X = MAP_WIDTH * TILE_WIDTH / 2;
 const int EDITOR_SPACING_Y = MAP_HEIGHT * TILE_HEIGHT / 2;

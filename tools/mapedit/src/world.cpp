@@ -1,8 +1,11 @@
 #include "world.h"
 #include <libxml/parser.h>
 #include <libxml/xmlwriter.h>
-#include "frame.h"
 #include <sstream>
+#include "frame.h"
+#include "map.h"
+#include "object.h"
+#include "consts.h"
 
 World::World()
 {
@@ -103,20 +106,60 @@ World::World(std::string filename)
           xmlFree(key);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "leftmap"))
         {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
-          if (key != 0)
+          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
+          if (typeKey == 0) throw MapLoadException(filename);
+          map->setLeftMoveType(Map::moveTypeForShort((char*) typeKey), false);
+          xmlFree(typeKey);
+          
+          if (Map::moveTypeTakesMap(map->getLeftMoveType()))
           {
-            map->setLeftmap(atoi((char*) key), false);
+            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
+            if (idKey == 0) throw MapLoadException(filename);
+            map->setLeftMoveMapID(atoi((char*) idKey), false);
+            xmlFree(idKey);
           }
-          xmlFree(key);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "rightmap"))
         {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
-          if (key != 0)
+          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
+          if (typeKey == 0) throw MapLoadException(filename);
+          map->setRightMoveType(Map::moveTypeForShort((char*) typeKey), false);
+          xmlFree(typeKey);
+          
+          if (Map::moveTypeTakesMap(map->getRightMoveType()))
           {
-            map->setRightmap(atoi((char*) key), false);
+            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
+            if (idKey == 0) throw MapLoadException(filename);
+            map->setRightMoveMapID(atoi((char*) idKey), false);
+            xmlFree(idKey);
           }
-          xmlFree(key);
+        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "upmap"))
+        {
+          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
+          if (typeKey == 0) throw MapLoadException(filename);
+          map->setUpMoveType(Map::moveTypeForShort((char*) typeKey), false);
+          xmlFree(typeKey);
+          
+          if (Map::moveTypeTakesMap(map->getUpMoveType()))
+          {
+            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
+            if (idKey == 0) throw MapLoadException(filename);
+            map->setUpMoveMapID(atoi((char*) idKey), false);
+            xmlFree(idKey);
+          }
+        } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "downmap"))
+        {
+          xmlChar* typeKey = xmlGetProp(mapNode, (xmlChar*) "type");
+          if (typeKey == 0) throw MapLoadException(filename);
+          map->setDownMoveType(Map::moveTypeForShort((char*) typeKey), false);
+          xmlFree(typeKey);
+          
+          if (Map::moveTypeTakesMap(map->getDownMoveType()))
+          {
+            xmlChar* idKey = xmlGetProp(mapNode, (xmlChar*) "map");
+            if (idKey == 0) throw MapLoadException(filename);
+            map->setDownMoveMapID(atoi((char*) idKey), false);
+            xmlFree(idKey);
+          }
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "entities"))
         {
           for (xmlNodePtr entityNode = mapNode->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
@@ -248,7 +291,7 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
     if (rc < 0) throw MapWriteException(name);
   }
   
-  //   <startpos>
+  //   <startpos/>
   rc = xmlTextWriterStartElement(writer, (xmlChar*) "startpos");
   if (rc < 0) throw MapWriteException(name);
   
@@ -300,21 +343,79 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
     if (rc < 0) throw MapWriteException(name);
   
     //   <leftmap/>
-    std::ostringstream leftmap_out;
-    if (map.getLeftmap())
-    {
-      leftmap_out << map.getLeftmap()->getID();
-    }
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "leftmap", (xmlChar*) leftmap_out.str().c_str());
+    rc = xmlTextWriterStartElement(writer, (xmlChar*) "leftmap");
     if (rc < 0) throw MapWriteException(name);
-
-    //   <rightmap/>
-    std::ostringstream rightmap_out;
-    if (map.getRightmap())
+    
+    //   type=
+    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getLeftMoveType()).c_str());
+    if (rc < 0) throw MapWriteException(name);
+    
+    if (Map::moveTypeTakesMap(map.getLeftMoveType()))
     {
-      rightmap_out << map.getRightmap()->getID();
+      // map=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getLeftMoveMapID());
+      if (rc < 0) throw MapWriteException(name);
     }
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "rightmap", (xmlChar*) rightmap_out.str().c_str());
+    
+    //   </leftmap>
+    rc = xmlTextWriterEndElement(writer);
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   <rightmap/>
+    rc = xmlTextWriterStartElement(writer, (xmlChar*) "rightmap");
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   type=
+    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getRightMoveType()).c_str());
+    if (rc < 0) throw MapWriteException(name);
+    
+    if (Map::moveTypeTakesMap(map.getRightMoveType()))
+    {
+      // map=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getRightMoveMapID());
+      if (rc < 0) throw MapWriteException(name);
+    }
+    
+    //   </rightmap>
+    rc = xmlTextWriterEndElement(writer);
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   <upmap/>
+    rc = xmlTextWriterStartElement(writer, (xmlChar*) "upmap");
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   type=
+    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getUpMoveType()).c_str());
+    if (rc < 0) throw MapWriteException(name);
+    
+    if (Map::moveTypeTakesMap(map.getUpMoveType()))
+    {
+      // map=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getUpMoveMapID());
+      if (rc < 0) throw MapWriteException(name);
+    }
+    
+    //   </upmap>
+    rc = xmlTextWriterEndElement(writer);
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   <downmap/>
+    rc = xmlTextWriterStartElement(writer, (xmlChar*) "downmap");
+    if (rc < 0) throw MapWriteException(name);
+    
+    //   type=
+    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "type", "%s", Map::shortForMoveType(map.getDownMoveType()).c_str());
+    if (rc < 0) throw MapWriteException(name);
+    
+    if (Map::moveTypeTakesMap(map.getDownMoveType()))
+    {
+      // map=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "map", "%d", map.getDownMoveMapID());
+      if (rc < 0) throw MapWriteException(name);
+    }
+    
+    //   </downmap>
+    rc = xmlTextWriterEndElement(writer);
     if (rc < 0) throw MapWriteException(name);
   
     //   <entities>

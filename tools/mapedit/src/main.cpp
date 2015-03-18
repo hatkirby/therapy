@@ -4,7 +4,6 @@
 #include <wx/wx.h>
 #endif
 
-#include "map.h"
 #include "frame.h"
 
 class MapeditApp : public wxApp {

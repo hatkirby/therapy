@@ -12,10 +12,10 @@ class World;
 #include <wx/treectrl.h>
 #include <map>
 #include <memory>
-#include "map.h"
 #include <list>
 
 class MapeditFrame;
+class Map;
 
 class World {
   public:

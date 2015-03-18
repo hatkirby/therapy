@@ -7,27 +7,25 @@
 #include <wx/wx.h>
 #endif
 
-#include "map.h"
-#include "widget.h"
-#include "tile_widget.h"
 #include <list>
 #include <wx/notebook.h>
 #include <memory>
 #include <wx/treectrl.h>
 #include <wx/splitter.h>
-#include "undo.h"
 
-class MapPtrCtr : public wxTreeItemData {
-  public:
-    Map* map;
-  
-    MapPtrCtr(Map* map) : map(map) {}
-};
+class Map;
+class MapeditWidget;
+class TileWidget;
+class Undoable;
+class UndoableTextBox;
+
+#include "world.h"
 
 class MapeditFrame : public wxFrame {
   public:
     MapeditFrame() {}
-    MapeditFrame(std::unique_ptr<World> world);
+    MapeditFrame(World* world);
+    ~MapeditFrame() { delete world; }
     
     MapeditWidget* GetMapEditor();
     void SetIsAddingEntity(bool isAddingEntity);
@@ -39,7 +37,7 @@ class MapeditFrame : public wxFrame {
     
     std::list<wxWindow*>::iterator closer;
 
-    static void LaunchWindow(std::unique_ptr<World> world);
+    static void LaunchWindow(World* world);
     void populateMapTree(wxTreeItemId node, std::list<std::shared_ptr<Map>> maps);
     void SelectMap(Map* map);
     wxTreeItemId MoveTreeNode(wxTreeItemId toCopy, wxTreeItemId newParent);
@@ -68,8 +66,16 @@ class MapeditFrame : public wxFrame {
     void OnCancelSetStartpos(wxCommandEvent& event);
     void OnOneMovingSash(wxSplitterEvent& event);
     void OnThreeMovingSash(wxSplitterEvent& event);
+    void OnSetLeftmapType(wxCommandEvent& event);
+    void OnSetLeftmapMap(wxCommandEvent& event);
+    void OnSetRightmapType(wxCommandEvent& event);
+    void OnSetRightmapMap(wxCommandEvent& event);
+    void OnSetUpmapType(wxCommandEvent& event);
+    void OnSetUpmapMap(wxCommandEvent& event);
+    void OnSetDownmapType(wxCommandEvent& event);
+    void OnSetDownmapMap(wxCommandEvent& event);
     
-    std::unique_ptr<World> world;
+    World* world;
     Map* currentMap;
     
     MapeditWidget* mapEditor;
