@@ -38,17 +38,20 @@ void MapeditWidget::Init()
   
   this->FitInside();
   this->SetScrollRate(5, 5);
-  
-  SetVirtualSize(EDITOR_WIDTH, EDITOR_HEIGHT);
-  
-  int cW, cH;
+}
+
+void MapeditWidget::SetUpZoom(int zoom)
+{
+  int cW, cH, vXX, vXY;
   GetClientSize(&cW, &cH);
+  GetScrollPixelsPerUnit(&vXX, &vXY);
+  
   mousePos.x = cW / 2;
   mousePos.y = cH / 2;
   
-//  Scroll(GAME_WIDTH*1.5-mousePos.x, GAME_HEIGHT*1.5-mousePos.y);
-  
-  SetZoomSize(2);
+  scale = zoom;
+  SetVirtualSize(EDITOR_WIDTH * scale, EDITOR_HEIGHT * scale);
+  Scroll((EDITOR_WIDTH*scale-cW)/2/vXX, (EDITOR_HEIGHT*scale-cH)/2/vXY);
 }
 
 wxSize MapeditWidget::DoGetBestSize() const

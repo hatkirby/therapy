@@ -30,6 +30,7 @@ class MapeditWidget : public wxScrolledCanvas {
     MapeditWidget();
     MapeditWidget(wxWindow* parent, wxWindowID winid, Map* map, TileWidget* tileWidget, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
     
+    void SetUpZoom(int zoom);
     void ZoomIn();
     void ZoomOut();
     void SetEditMode(EditMode editMode);

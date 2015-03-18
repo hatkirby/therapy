@@ -341,6 +341,7 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   dontSelectMap = false;
   
   SetStartposLabel();
+  mapEditor->SetUpZoom(2);
 }
 
 void MapeditFrame::OnExit(wxCloseEvent& event)
