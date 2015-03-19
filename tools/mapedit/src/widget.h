@@ -16,7 +16,7 @@ class MapeditFrame;
 class TileWidget;
 class Map;
 class MapObject;
-struct MapObjectEntry;
+class MapObjectEntry;
 
 #include "consts.h"
 
@@ -76,5 +76,10 @@ class MapeditWidget : public wxScrolledCanvas {
     DECLARE_DYNAMIC_CLASS(MapeditWidget)
     DECLARE_EVENT_TABLE()
 };
+
+// sends when an entity is selected OR deselected.
+// client data will be a pointer to the MapObjectEntry if selection.
+// client data will be nullptr if deselection.
+wxDECLARE_EVENT(EVT_MAP_SELECTED_ENTITY, wxCommandEvent);
     
 #endif

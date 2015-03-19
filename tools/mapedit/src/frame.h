@@ -74,6 +74,7 @@ class MapeditFrame : public wxFrame {
     void OnSetUpmapMap(wxCommandEvent& event);
     void OnSetDownmapType(wxCommandEvent& event);
     void OnSetDownmapMap(wxCommandEvent& event);
+    void OnSelectEntity(wxCommandEvent& event);
     
     World* world;
     Map* currentMap;

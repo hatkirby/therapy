@@ -28,7 +28,7 @@ wxBEGIN_EVENT_TABLE(UndoableTextBox, wxTextCtrl)
   EVT_KILL_FOCUS(UndoableTextBox::OnKillFocus)
 wxEND_EVENT_TABLE()
 
-UndoableTextBox::UndoableTextBox(wxWindow* parent, wxWindowID id, wxString startText, std::string undoType, MapeditFrame* realParent, wxPoint pos, wxSize size, long style) : wxTextCtrl(parent, id, startText, pos, size, style)
+UndoableTextBox::UndoableTextBox(wxWindow* parent, wxWindowID id, wxString startText, std::string undoType, MapeditFrame* realParent, const wxPoint& pos, const wxSize& size, long style) : wxTextCtrl(parent, id, startText, pos, size, style)
 {
   this->undoText = undoType;
   this->realParent = realParent;
@@ -92,4 +92,76 @@ void UndoableTextBox::Undo::undo()
 void UndoableTextBox::Undo::endChanges()
 {
   parent.undo.reset();
+}
+
+UndoableChoice::UndoableChoice()
+{
+  Init();
+}
+
+UndoableChoice::UndoableChoice(wxWindow* parent, wxWindowID id, MapeditFrame* realParent, const wxPoint& pos, const wxSize& size, int n, const wxString choices[], long style, const wxValidator& validator, const wxString& name) : wxChoice(parent, id, pos, size, n, choices, style, validator, name)
+{
+  this->realParent = realParent;
+  
+  Init();
+}
+
+void UndoableChoice::Init()
+{
+  Bind(wxEVT_CHOICE, &UndoableChoice::OnChoose, this);
+}
+
+void UndoableChoice::OnChoose(wxCommandEvent& event)
+{
+  int new_selection = GetSelection();
+  GetValidator()->TransferToWindow();
+  int old_selection = GetSelection();
+  
+  realParent->commitAction(std::make_shared<Undoable>(("Set " + GetName()).ToStdString(), [=] () {
+    SetSelection(new_selection);
+    GetValidator()->TransferFromWindow();
+  }, [=] () {
+    SetSelection(old_selection);
+    GetValidator()->TransferFromWindow();
+  }));
+  
+  event.Skip();
+}
+
+wxBEGIN_EVENT_TABLE(UndoableSlider, wxSlider)
+  EVT_SCROLL(UndoableSlider::OnSlide)
+wxEND_EVENT_TABLE()
+
+UndoableSlider::UndoableSlider()
+{
+  Init();
+}
+
+UndoableSlider::UndoableSlider(wxWindow* parent, wxWindowID id, MapeditFrame* realParent, int value, int minvalue, int maxvalue, const wxPoint& pos, const wxSize& size, long style, const wxValidator& validator, const wxString& name) : wxSlider(parent, id, value, minvalue, maxvalue, pos, size, style, validator, name)
+{
+  this->realParent = realParent;
+  
+  Init();
+}
+  
+void UndoableSlider::Init()
+{
+
+}
+
+void UndoableSlider::OnSlide(wxScrollEvent& event)
+{
+  int new_value = GetValue();
+  GetValidator()->TransferToWindow();
+  int old_value = GetValue();
+  
+  realParent->commitAction(std::make_shared<Undoable>(("Set " + GetName()).ToStdString(), [=] () {
+    SetValue(new_value);
+    GetValidator()->TransferFromWindow();
+  }, [=] () {
+    SetValue(old_value);
+    GetValidator()->TransferFromWindow();
+  }));
+  
+  event.Skip();
 }

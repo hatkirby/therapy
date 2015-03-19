@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<entities>
+  <entity id="checkpoint" name="Checkpoint" sprite="res/keyring.png" width="8" height="11">
+    <event name="touch">
+      <action type="save" />
+    </event>
+  </entity>
+  
+  <entity id="movplat" name="Moving Platform" sprite="res/platform.png" action="carry" width="24" height="8">
+    <input id="dir" name="Direction" type="choice">
+      <value id="0">Left</value>
+      <value id="1">Right</value>
+      <value id="2">Up</value>
+      <value id="3">Down</value>
+    </input>
+    <input id="len" name="Length" type="slider" minvalue="0" maxvalue="320" />
+    <input id="speed" name="Speed (px/s)" type="slider" minvalue="1" maxvalue="320" />
+    <event name="touch">
+      <action type="carry" />
+    </event>
+  </entity>
+</entities>

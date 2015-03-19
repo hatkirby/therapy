@@ -8,10 +8,11 @@
 #include <memory>
 #include <wx/treectrl.h>
 #include <map>
+#include "object.h"
 
-class MapObject;
 class World;
 class MapeditFrame;
+class MapEntryObject;
 
 class MapLoadException: public std::exception
 {
@@ -39,21 +40,6 @@ class MapWriteException: public std::exception
     
   private:
     std::string mapname;
-};
-
-struct MapObjectEntry {
-  MapObject* object;
-  std::pair<int, int> position;
-  
-  bool operator==(MapObjectEntry& other) const
-  {
-    return (object == other.object) && (position == other.position);
-  }
-  
-  bool operator!=(MapObjectEntry& other) const
-  {
-    return (object != other.object) && (position != other.position);
-  }
 };
 
 class Map {

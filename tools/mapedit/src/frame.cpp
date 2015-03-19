@@ -2,6 +2,7 @@
 #include "mapselect_combo.h"
 #include <wx/statline.h>
 #include <list>
+#include <wx/valgen.h>
 #include <exception>
 #include <sstream>
 #include "widget.h"
@@ -29,6 +30,7 @@ enum {
   TOOL_FILE_SAVE,
   TOOL_MAP_ADD_ROOT,
   TOOL_MAP_ADD_CHILD,
+  MAP_EDITOR_WIDGET,
   MAP_EDITOR_NOTEBOOK,
   MAP_EDITOR_TREE,
   MAP_TITLE_TEXTBOX,
@@ -45,7 +47,10 @@ enum {
   UPMAP_TYPE_CHOICE,
   UPMAP_MAP_CHOICE,
   DOWNMAP_TYPE_CHOICE,
-  DOWNMAP_MAP_CHOICE
+  DOWNMAP_MAP_CHOICE,
+  ENTITY_EDITOR,
+  ENTITY_PROPERTY_EDITOR,
+  PROPERTY_EDITOR
 };
 
 wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
@@ -87,6 +92,7 @@ wxBEGIN_EVENT_TABLE(MapeditFrame, wxFrame)
   EVT_COMBOBOX_CLOSEUP(RIGHTMAP_MAP_CHOICE, MapeditFrame::OnSetRightmapMap)
   EVT_COMBOBOX_CLOSEUP(UPMAP_MAP_CHOICE, MapeditFrame::OnSetUpmapMap)
   EVT_COMBOBOX_CLOSEUP(DOWNMAP_MAP_CHOICE, MapeditFrame::OnSetDownmapMap)
+  EVT_COMMAND(wxID_ANY, EVT_MAP_SELECTED_ENTITY, MapeditFrame::OnSelectEntity)
 wxEND_EVENT_TABLE()
 
 MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
@@ -171,7 +177,7 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   tileEditor = new TileWidget(notebook, wxID_ANY, 6, 6, wxPoint(0,0), wxSize(TILE_WIDTH*6*6,TILE_HEIGHT*10*6));
   notebook->AddPage(tileEditor, "Tile Chooser", false);
   
-  mapEditor = new MapeditWidget(layout3, wxID_ANY, currentMap, tileEditor, wxPoint(0,0), wxSize(GAME_WIDTH*2, GAME_HEIGHT*2));
+  mapEditor = new MapeditWidget(layout3, MAP_EDITOR_WIDGET, currentMap, tileEditor, wxPoint(0,0), wxSize(GAME_WIDTH*2, GAME_HEIGHT*2));
   mapEditor->frame = this;
   
   // Set up property editor
@@ -181,7 +187,7 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   
   wxStaticText* titleLabel = new wxStaticText(propertyEditor, wxID_ANY, "Title:");
   
-  startposLabel = new wxStaticText(propertyEditor, wxID_ANY, "Starting Position:");
+  startposLabel = new wxStaticText(propertyEditor, PROPERTY_EDITOR, "Starting Position:");
   
   setStartposButton = new wxButton(propertyEditor, SET_STARTPOS_BUTTON, "Set Starting Position");
   cancelStartposButton = new wxButton(propertyEditor, CANCEL_STARTPOS_BUTTON, "Cancel");
@@ -264,7 +270,7 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   propertySizer->SetSizeHints(propertyEditor);
   
   // Set up entity editor
-  wxPanel* entityEditor = new wxPanel(notebook, wxID_ANY);
+  wxPanel* entityEditor = new wxPanel(notebook, ENTITY_EDITOR);
   notebook->AddPage(entityEditor, "Entity Manager", false);
   
   wxStaticText* entityHeader = new wxStaticText(entityEditor, wxID_ANY, "Add Entity");
@@ -275,9 +281,9 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   wxStaticText* entityTypeLabel = new wxStaticText(entityEditor, wxID_ANY, "Entity Type:");
   
   entityTypeBox = new wxChoice(entityEditor, wxID_ANY);
-  for (auto entry : MapObject::getAllObjects())
+  for (auto& entry : MapObject::getAllObjects())
   {
-    entityTypeBox->Append(entry.second->getType(), entry.second.get());
+    entityTypeBox->Append(entry.second.getName(), (void*) &entry.second);
   }
   
   addEntityButton = new wxButton(entityEditor, ADD_ENTITY_BUTTON, "Add Entity");
@@ -285,6 +291,8 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   cancelEntityButton->Disable();
   
   wxStaticText* entityInfoLabel = new wxStaticText(entityEditor, wxID_ANY, "Click and drag an entity to move it.\nRight click an entity to delete it.");
+  
+  wxPanel* entityPropertyEditor = new wxPanel(entityEditor, ENTITY_PROPERTY_EDITOR);
   
   wxBoxSizer* entitySizer = new wxBoxSizer(wxVERTICAL);
   entitySizer->Add(entityHeader, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
@@ -298,6 +306,12 @@ MapeditFrame::MapeditFrame(World* world) : wxFrame(NULL, wxID_ANY, "Map Editor")
   entitySizer->Add(entitySizer2, 0, wxEXPAND | wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
   entitySizer->Add(new wxStaticLine(entityEditor), 0, wxEXPAND | wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
   entitySizer->Add(entityInfoLabel, 0, wxEXPAND | wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
+  entitySizer->Add(entityPropertyEditor, 1, wxEXPAND | wxALIGN_LEFT | wxALIGN_TOP | wxALL, 5);
+  wxBoxSizer* entityPropertySizer = new wxBoxSizer(wxVERTICAL);
+  entityPropertySizer->Add(new wxStaticLine(entityPropertyEditor), 1, wxEXPAND, 0);
+  entityPropertyEditor->SetSizer(entityPropertySizer);
+  entityPropertySizer->SetSizeHints(entityPropertyEditor);
+  //entitySizer->Add(entityPropertySizer, 1, wxEXPAND, 0);
   entityEditor->SetSizer(entitySizer);
   entitySizer->SetSizeHints(entityEditor);
   
@@ -838,6 +852,62 @@ void MapeditFrame::OnSetDownmapMap(wxCommandEvent&)
     combo->SetValue(world->getMap(old)->getTitle());
     currentMap->setAdjacent(dir, adjacent.type, old);
   }));
+}
+
+void MapeditFrame::OnSelectEntity(wxCommandEvent& event)
+{
+  MapObjectEntry* entry = (MapObjectEntry*) event.GetClientData();
+  wxPanel* entityPropertyEditor = (wxPanel*) wxWindow::FindWindowById(ENTITY_PROPERTY_EDITOR, this);
+  
+  if (entry == nullptr)
+  {
+    entityPropertyEditor->GetSizer()->Clear();
+    entityPropertyEditor->DestroyChildren();
+  } else {
+    wxSizer* sizer = entityPropertyEditor->GetSizer();
+    for (auto input : entry->getObject().getInputs())
+    {
+      wxStaticText* inputText = new wxStaticText(entityPropertyEditor, wxID_ANY, input.second.name + ":");
+      sizer->Add(inputText, 0, wxEXPAND | wxALIGN_LEFT | wxBOTTOM, 0);
+      
+      MapObjectEntry::Item& item = entry->getItem(input.first);
+      
+      wxWindow* inputObject = nullptr;
+      switch (input.second.type)
+      {
+        case MapObject::Input::Type::Choice:
+        {
+          UndoableChoice* thechoice = new UndoableChoice(entityPropertyEditor, wxID_ANY, this, wxDefaultPosition, wxDefaultSize, 0, NULL, 0, VariableChoiceValidator(*world, item), input.second.name);
+          int selected = 0;
+          for (auto choice : input.second.choices)
+          {
+            thechoice->Append(choice.second, (void*) choice.first);
+            
+            if (item.intvalue == choice.first)
+            {
+              selected = thechoice->GetCount()-1;
+            }
+          }
+          
+          thechoice->SetSelection(selected);
+          inputObject = thechoice;
+          break;
+        }
+          
+        case MapObject::Input::Type::Slider:
+        {
+          if (item.intvalue < input.second.minvalue) item.intvalue = input.second.minvalue;
+          if (item.intvalue > input.second.maxvalue) item.intvalue = input.second.maxvalue;
+          inputObject = new UndoableSlider(entityPropertyEditor, wxID_ANY, this, item.intvalue, input.second.minvalue, input.second.maxvalue, wxDefaultPosition, wxDefaultSize, wxHORIZONTAL | wxSL_LABELS, SliderItemValidator(*world, item), input.second.name);
+          break;
+        }
+      }
+      
+      sizer->Add(inputObject, 0, wxEXPAND | wxALIGN_LEFT | wxBOTTOM, 10);
+    }
+    
+    entityPropertyEditor->Layout();
+  }
 }
 
 void MapeditFrame::NewWorld()

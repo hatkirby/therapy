@@ -22,18 +22,18 @@ World::World(std::string filename)
   xmlDocPtr doc = xmlParseFile(filename.c_str());
   if (doc == nullptr)
   {
-    throw MapLoadException(filename);
+    throw MapLoadException("file not found");
   }
   
   xmlNodePtr top = xmlDocGetRootElement(doc);
   if (top == nullptr)
   {
-    throw MapLoadException(filename);
+    throw MapLoadException("no root element");
   }
   
   if (xmlStrcmp(top->name, (const xmlChar*) "world"))
   {
-    throw MapLoadException(filename);
+    throw MapLoadException("no world element");
   }
   
   xmlChar* nextmapKey = xmlGetProp(top, (xmlChar*) "nextmap");
@@ -51,17 +51,17 @@ World::World(std::string filename)
   xmlFree(lastmapKey);
   
   xmlChar* startxKey = xmlGetProp(top, (xmlChar*) "startx");
-  if (startxKey == 0) throw MapLoadException(filename);
+  if (startxKey == 0) throw MapLoadException("world missing startx attribute");
   startingPosition.first = atoi((char*) startxKey);
   xmlFree(startxKey);
   
   xmlChar* startyKey = xmlGetProp(top, (xmlChar*) "starty");
-  if (startyKey == 0) throw MapLoadException(filename);
+  if (startyKey == 0) throw MapLoadException("world missing starty attribute");
   startingPosition.second = atoi((char*) startyKey);
   xmlFree(startyKey);
   
   xmlChar* startmapKey = xmlGetProp(top, (xmlChar*) "startmap");
-  if (startxKey == 0) throw MapLoadException(filename);
+  if (startxKey == 0) throw MapLoadException("world missing startmap attribute");
   startingMap = atoi((char*) startmapKey);
   xmlFree(startmapKey);
   
@@ -69,14 +69,14 @@ World::World(std::string filename)
   {
     if (!xmlStrcmp(node->name, (const xmlChar*) "root"))
     {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      if (key == 0) throw MapLoadException(filename);
+      xmlChar* key = xmlNodeGetContent(node);
+      if (key == 0) throw MapLoadException("root missing content");
       rootChildren.push_back(atoi((char*) key));
       xmlFree(key);
     } else if (!xmlStrcmp(node->name, (const xmlChar*) "map"))
     {
       xmlChar* idKey = xmlGetProp(node, (xmlChar*) "id");
-      if (idKey == 0) throw MapLoadException(filename);
+      if (idKey == 0) throw MapLoadException("map missing id attribute");
       int id = atoi((char*) idKey);
       xmlFree(idKey);
       
@@ -90,7 +90,7 @@ World::World(std::string filename)
       xmlFree(expandKey);
       
       xmlChar* titleKey = xmlGetProp(node, (xmlChar*) "title");
-      if (titleKey == 0) throw MapLoadException(filename);
+      if (titleKey == 0) throw MapLoadException("map missing title attribute");
       map->setTitle((char*) titleKey, false);
       xmlFree(titleKey);
       
@@ -98,7 +98,8 @@ World::World(std::string filename)
       {
         if (!xmlStrcmp(mapNode->name, (const xmlChar*) "environment"))
         {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
+          xmlChar* key = xmlNodeGetContent(mapNode);
+          if (key == 0) throw MapLoadException("map missing environment content");
           int* mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
           mapdata[0] = atoi(strtok((char*) key, ",\n"));
           for (int i=1; i<(MAP_WIDTH*MAP_HEIGHT); i++)
@@ -109,24 +110,52 @@ World::World(std::string filename)
           xmlFree(key);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "entity"))
         {
-          auto data = std::make_shared<MapObjectEntry>();
-          
           xmlChar* typeKey = xmlGetProp(mapNode, (const xmlChar*) "type");
-          if (typeKey == 0) throw MapLoadException(filename);
-          data->object = MapObject::getAllObjects().at((char*) typeKey).get();
+          if (typeKey == 0) throw MapLoadException("entity missing type attribute");
+          const MapObject& obj = MapObject::getAllObjects().at((char*) typeKey);
           xmlFree(typeKey);
           
           xmlChar* xKey = xmlGetProp(mapNode, (const xmlChar*) "x");
-          if (xKey == 0) throw MapLoadException(filename);
-          data->position.first = atoi((char*) xKey);
+          if (xKey == 0) throw MapLoadException("entity missing x attribute");
+          int xpos = atoi((char*) xKey);
           xmlFree(xKey);
           
           xmlChar* yKey = xmlGetProp(mapNode, (const xmlChar*) "y");
-          if (yKey == 0) throw MapLoadException(filename);
-          data->position.second = atoi((char*) yKey);
+          if (yKey == 0) throw MapLoadException("entity missing y attribute");
+          int ypos = atoi((char*) yKey);
           xmlFree(yKey);
           
+          auto data = std::make_shared<MapObjectEntry>(obj, xpos, ypos);
+          
           map->addObject(data, false);
+          
+          for (xmlNodePtr objectNode = mapNode->xmlChildrenNode; objectNode != NULL; objectNode = objectNode->next)
+          {
+            if (!xmlStrcmp(objectNode->name, (const xmlChar*) "item"))
+            {
+              xmlChar* key = xmlGetProp(objectNode, (const xmlChar*) "id");
+              if (key == 0) throw MapLoadException("item missing id attribute");
+              std::string itemID = (char*) key;
+              xmlFree(key);
+              
+              MapObjectEntry::Item item;
+              item.type = data->getObject().getInput(itemID).type;
+              
+              key = xmlNodeGetContent(objectNode);
+              if (key == 0) throw MapLoadException("item missing content");
+              switch (item.type)
+              {
+                case MapObject::Input::Type::Choice:
+                case MapObject::Input::Type::Slider:
+                {
+                  item.intvalue = atoi((char*) key);
+                  break;
+                }
+              }
+              
+              data->addItem(itemID, item);
+            }
+          }
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "adjacent"))
         {
           Map::MoveDir direction;
@@ -134,12 +163,12 @@ World::World(std::string filename)
           int mapId = 0;
           
           xmlChar* dirKey = xmlGetProp(mapNode, (const xmlChar*) "dir");
-          if (dirKey == 0) throw MapLoadException(filename);
+          if (dirKey == 0) throw MapLoadException("adjacent missing dir attribute");
           direction = Map::moveDirForShort((char*) dirKey);
           xmlFree(dirKey);
           
           xmlChar* typeKey = xmlGetProp(mapNode, (const xmlChar*) "type");
-          if (typeKey == 0) throw MapLoadException(filename);
+          if (typeKey == 0) throw MapLoadException("adjacent missing type attribute");
           moveType = Map::moveTypeForShort((char*) typeKey);
           xmlFree(typeKey);
           
@@ -153,7 +182,7 @@ World::World(std::string filename)
           map->setAdjacent(direction, moveType, mapId, false);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "child"))
         {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
+          xmlChar* key = xmlNodeGetContent(mapNode);
           if (key != 0)
           {
             map->addChild(atoi((char*) key));
@@ -281,7 +310,7 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
     }
     
     // title=
-    rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "name", (xmlChar*) map.getTitle().c_str());
+    rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "title", (xmlChar*) map.getTitle().c_str());
     if (rc < 0) throw MapWriteException(name);
   
     //   <environment
@@ -304,7 +333,7 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
       mapdata_out << std::endl;
     }
   
-    rc = xmlTextWriterWriteElement(writer, (xmlChar*) "environment", (xmlChar*) mapdata_out.str().c_str());
+    rc = xmlTextWriterWriteString(writer, (xmlChar*) mapdata_out.str().c_str());
     if (rc < 0) throw MapWriteException(name);
     
     //   </environment>
@@ -318,16 +347,42 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
       if (rc < 0) throw MapWriteException(name);
     
       // type=
-      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "type", (xmlChar*) object->object->getType().c_str());
+      rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "type", (xmlChar*) object->getObject().getID().c_str());
       if (rc < 0) throw MapWriteException(name);
     
       // x=
-      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "x", "%d", object->position.first);
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "x", "%d", object->getPosition().first);
       if (rc < 0) throw MapWriteException(name);
       
       // y=
-      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "y", "%d", object->position.second);
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "y", "%d", object->getPosition().second);
       if (rc < 0) throw MapWriteException(name);
+      
+      for (auto item : object->getItems())
+      {
+        // <item
+        rc = xmlTextWriterStartElement(writer, (xmlChar*) "item");
+        if (rc < 0) throw MapWriteException(name);
+        
+        // id=
+        rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "id", (xmlChar*) item.first.c_str());
+        if (rc < 0) throw MapWriteException(name);
+        
+        // >
+        switch (item.second.type)
+        {
+          case MapObject::Input::Type::Slider:
+          case MapObject::Input::Type::Choice:
+          {
+            rc = xmlTextWriterWriteFormatString(writer, "%d", item.second.intvalue);
+            break;
+          }
+        }
+        
+        // </item>
+        rc = xmlTextWriterEndElement(writer);
+        if (rc < 0) throw MapWriteException(name);
+      }
     
       // </entity>
       rc = xmlTextWriterEndElement(writer);

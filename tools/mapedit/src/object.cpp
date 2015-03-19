@@ -2,29 +2,130 @@
 #include <dirent.h>
 #include <libxml/parser.h>
 #include <memory>
+#include "world.h"
 
-static std::map<std::string, std::shared_ptr<MapObject>> allObjects;
+static std::map<std::string, MapObject> allObjects;
 static bool objsInit = false;
 
-const std::map<std::string, std::shared_ptr<MapObject>> MapObject::getAllObjects()
+const std::map<std::string, MapObject>& MapObject::getAllObjects()
 {
   if (!objsInit)
   {
-    DIR* dir = opendir("entities/");
-    if (dir != NULL)
+    try
     {
-      struct dirent* ent;
-      while ((ent = readdir(dir)) != NULL)
+      xmlDocPtr doc = xmlParseFile("res/entities.xml");
+      if (doc == nullptr)
       {
-        std::string path = ent->d_name;
-        if ((path.length() >= 4) && (path.substr(path.length() - 4, 4) == ".xml"))
+        throw MapObjectLoadException("can't open file");
+      }
+  
+      xmlNodePtr top = xmlDocGetRootElement(doc);
+      if (top == nullptr)
+      {
+        throw MapObjectLoadException("missing root element");
+      }
+  
+      if (xmlStrcmp(top->name, (const xmlChar*) "entities"))
+      {
+        throw MapObjectLoadException("root element is not entities");
+      }
+
+      for (xmlNodePtr node = top->xmlChildrenNode; node != NULL; node = node->next)
+      {
+        if (!xmlStrcmp(node->name, (const xmlChar*) "entity"))
         {
-          std::string name = path.substr(0, path.length() - 4);
-          auto obj = std::make_shared<MapObject>(name.c_str());
-        
-          allObjects[name] = obj;
+          xmlChar* idKey = xmlGetProp(node, (xmlChar*) "id");
+          if (idKey == 0) throw MapObjectLoadException("entity missing id");
+          std::string theID = (char*) idKey;
+          xmlFree(idKey);
+      
+          allObjects.emplace(theID, theID);
+          MapObject& mapObject = allObjects.at(theID);
+      
+          xmlChar* nameKey = xmlGetProp(node, (xmlChar*) "name");
+          if (nameKey == 0) throw MapObjectLoadException("entity missing name");
+          mapObject.name = (char*) nameKey;
+          xmlFree(nameKey);
+      
+          xmlChar* spriteKey = xmlGetProp(node, (xmlChar*) "sprite");
+          if (spriteKey == 0) throw MapObjectLoadException("entity missing sprite");
+          mapObject.sprite = wxImage((char*) spriteKey);
+          xmlFree(spriteKey);
+      
+          xmlChar* widthKey = xmlGetProp(node, (xmlChar*) "width");
+          if (widthKey == 0) throw MapObjectLoadException("entity missing width");
+          mapObject.width = atoi((char*) widthKey);
+          xmlFree(widthKey);
+      
+          xmlChar* heightKey = xmlGetProp(node, (xmlChar*) "height");
+          if (heightKey == 0) throw MapObjectLoadException("entity missing height");
+          mapObject.height = atoi((char*) heightKey);
+          xmlFree(heightKey);
+      
+          for (xmlNodePtr entityNode = node->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
+          {
+            if (!xmlStrcmp(entityNode->name, (const xmlChar*) "input"))
+            {
+              xmlChar* key = xmlGetProp(entityNode, (xmlChar*) "id");
+              if (key == 0) throw MapObjectLoadException("input missing id");
+              std::string inputID = (char*) key;
+              xmlFree(key);
+          
+              Input& input = mapObject.inputs[inputID];
+          
+              key = xmlGetProp(entityNode, (xmlChar*) "name");
+              if (key == 0) throw MapObjectLoadException("input missing name");
+              input.name = (char*) key;
+              xmlFree(key);
+          
+              key = xmlGetProp(entityNode, (xmlChar*) "type");
+              if (key == 0) throw MapObjectLoadException("input missing type");
+              std::string inputType = (char*) key;
+              xmlFree(key);
+          
+              if (inputType == "choice")
+              {
+                input.type = Input::Type::Choice;
+                
+                for (xmlNodePtr choiceNode = entityNode->xmlChildrenNode; choiceNode != NULL; choiceNode = choiceNode->next)
+                {
+                  if (!xmlStrcmp(choiceNode->name, (xmlChar*) "value"))
+                  {
+                    key = xmlGetProp(choiceNode, (xmlChar*) "id");
+                    if (key == 0) throw MapObjectLoadException("input value missing id");
+                    int valueId = atoi((char*) key);
+                    xmlFree(key);
+                    
+                    key = xmlNodeGetContent(choiceNode);
+                    if (key == 0) throw MapObjectLoadException("input value missing content");
+                    std::string choiceText = (char*) key;
+                    xmlFree(key);
+                    
+                    input.choices[valueId] = choiceText;
+                  }
+                }
+              } else if (inputType == "slider")
+              {
+                input.type = Input::Type::Slider;
+            
+                key = xmlGetProp(entityNode, (xmlChar*) "minvalue");
+                if (key == 0) throw MapObjectLoadException("integer input missing minvalue");
+                input.minvalue = atoi((char*) key);
+                xmlFree(key);
+            
+                key = xmlGetProp(entityNode, (xmlChar*) "maxvalue");
+                if (key == 0) throw MapObjectLoadException("integer input missing maxvalue");
+                input.maxvalue = atoi((char*) key);
+                xmlFree(key);
+              }
+            }
+          }
         }
       }
+    } catch (std::exception& ex)
+    {
+      wxMessageBox(ex.what(), "Error loading objects", wxOK | wxCENTRE | wxICON_ERROR);
+      exit(3);
     }
     
     objsInit = true;
@@ -33,54 +134,24 @@ const std::map<std::string, std::shared_ptr<MapObject>> MapObject::getAllObjects
   return allObjects;
 }
 
-MapObject::MapObject(const char* filename)
+MapObject::MapObject(std::string id) : id(id)
 {
-  type = filename;
   
-  xmlDocPtr doc = xmlParseFile(("entities/" + std::string(filename) + ".xml").c_str());
-  if (doc == nullptr) throw MapObjectLoadException(filename);
+}
 
-  xmlNodePtr top = xmlDocGetRootElement(doc);
-  if (top == nullptr) throw MapObjectLoadException(filename);
+std::string MapObject::getID() const
+{
+  return id;
+}
 
-  if (xmlStrcmp(top->name, (const xmlChar*) "entity-def"))
-  {
-    throw MapObjectLoadException(filename);
-  }
-
-  for (xmlNodePtr node = top->xmlChildrenNode; node != NULL; node = node->next)
-  {
-    if (!xmlStrcmp(node->name, (const xmlChar*) "sprite"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      std::string spriteFile = (char*) key;
-      xmlFree(key);
-      
-      sprite = wxImage(spriteFile);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "action"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      action = (char*) key;
-      xmlFree(key);
-    } else if (!xmlStrcmp(node->name, (const xmlChar*) "size"))
-    {
-      xmlChar* key = xmlNodeListGetString(doc, node->xmlChildrenNode, 1);
-      sscanf((char*) key, "%d,%d", &width, &height);
-      xmlFree(key);
-    }
-  }
-
-  xmlFreeDoc(doc);
+std::string MapObject::getName() const
+{
+  return name;
 }
 
 wxBitmap MapObject::getSprite() const
 {
   return sprite;
-}
-
-std::string MapObject::getAction() const
-{
-  return action;
 }
 
 int MapObject::getWidth() const
@@ -93,7 +164,140 @@ int MapObject::getHeight() const
   return height;
 }
 
-std::string MapObject::getType() const
+const std::map<std::string, MapObject::Input>& MapObject::getInputs() const
 {
-  return type;
+  return inputs;
+}
+
+const MapObject::Input& MapObject::getInput(std::string id) const
+{
+  return inputs.at(id);
+}
+
+bool MapObject::operator==(const MapObject& other) const
+{
+  return id == other.id;
+}
+
+bool MapObject::operator!=(const MapObject& other) const
+{
+  return id != other.id;
+}
+
+MapObjectEntry::MapObjectEntry(const MapObject& object, int posx, int posy) : object(object)
+{
+  position = std::make_pair(posx, posy);
+}
+
+const MapObject& MapObjectEntry::getObject() const
+{
+  return object;
+}
+
+std::pair<int, int> MapObjectEntry::getPosition() const
+{
+  return position;
+}
+
+MapObjectEntry::Item& MapObjectEntry::getItem(std::string str)
+{
+  return items[str];
+}
+
+const std::map<std::string, MapObjectEntry::Item>& MapObjectEntry::getItems() const
+{
+  return items;
+}
+
+void MapObjectEntry::addItem(std::string id, Item& item)
+{
+  items[id] = item;
+}
+
+void MapObjectEntry::setPosition(int x, int y)
+{
+  position = std::make_pair(x, y);
+}
+
+bool MapObjectEntry::operator==(const MapObjectEntry& other) const
+{
+  return (object == other.object) && (position == other.position);
+}
+
+bool MapObjectEntry::operator!=(const MapObjectEntry& other) const
+{
+  return (object != other.object) && (position != other.position);
+}
+
+VariableChoiceValidator::VariableChoiceValidator(World& world, MapObjectEntry::Item& item) : world(world), item(item)
+{
+  
+}
+
+wxObject* VariableChoiceValidator::Clone() const
+{
+  return new VariableChoiceValidator(world, item);
+}
+
+bool VariableChoiceValidator::TransferFromWindow()
+{
+  wxChoice* choice = (wxChoice*) GetWindow();
+  int sel = choice->GetSelection();
+  int val = (intptr_t) choice->GetClientData(sel);
+  item.intvalue = val;
+  world.setDirty(true);
+  
+  return true;
+}
+
+bool VariableChoiceValidator::TransferToWindow()
+{
+  wxChoice* choice = (wxChoice*) GetWindow();
+  for (size_t i=0; i<choice->GetCount(); i++)
+  {
+    if ((intptr_t) choice->GetClientData(i) == item.intvalue)
+    {
+      choice->SetSelection(i);
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+bool VariableChoiceValidator::Validate(wxWindow*)
+{
+  return true;
+}
+
+SliderItemValidator::SliderItemValidator(World& world, MapObjectEntry::Item& item) : world(world), item(item)
+{
+  
+}
+
+wxObject* SliderItemValidator::Clone() const
+{
+  return new SliderItemValidator(world, item);
+}
+
+bool SliderItemValidator::TransferFromWindow()
+{
+  wxSlider* slider = (wxSlider*) GetWindow();
+  item.intvalue = slider->GetValue();
+  world.setDirty(true);
+  
+  return true;
+}
+
+bool SliderItemValidator::TransferToWindow()
+{
+  wxSlider* slider = (wxSlider*) GetWindow();
+  slider->SetValue(item.intvalue);
+  
+  return true;
+}
+
+bool SliderItemValidator::Validate(wxWindow*)
+{
+  return true;
 }
