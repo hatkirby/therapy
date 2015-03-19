@@ -5,10 +5,10 @@
 
 MapCollisionComponent::MapCollisionComponent(const Map& map) : map(map)
 {
-  addCollision(-6, 0, GAME_HEIGHT, Direction::left, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Left).type));
-  addCollision(GAME_WIDTH+6, 0, GAME_HEIGHT, Direction::right, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Right).type));
-  addCollision(-7, 0, GAME_WIDTH, Direction::up, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Up).type));
-  addCollision(GAME_HEIGHT+6, 0, GAME_WIDTH, Direction::down, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Down).type));
+  addCollision(-6, 0, MAP_HEIGHT*TILE_HEIGHT, Direction::left, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Left).type));
+  addCollision(GAME_WIDTH+6, 0, MAP_HEIGHT*TILE_HEIGHT, Direction::right, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Right).type));
+  addCollision(-6, 0, GAME_WIDTH, Direction::up, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Up).type));
+  addCollision(MAP_HEIGHT*TILE_HEIGHT+6, 0, GAME_WIDTH, Direction::down, collisionFromMoveType(map.getAdjacent(Map::MoveDir::Down).type));
   
   for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
   {
@@ -204,7 +204,7 @@ void MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
       game.loadMap(game.getWorld().getMap(map.getAdjacent(Map::MoveDir::Right).map), std::make_pair(-collider.size.first/2, old_position.second));
     } else if (dir == Direction::up)
     {
-      game.loadMap(game.getWorld().getMap(map.getAdjacent(Map::MoveDir::Up).map), std::make_pair(old_position.first, GAME_HEIGHT-collider.size.second/2));
+      game.loadMap(game.getWorld().getMap(map.getAdjacent(Map::MoveDir::Up).map), std::make_pair(old_position.first, MAP_HEIGHT*TILE_HEIGHT-collider.size.second/2));
     } else if (dir == Direction::down)
     {
       game.loadMap(game.getWorld().getMap(map.getAdjacent(Map::MoveDir::Down).map), std::make_pair(old_position.first, -collider.size.second/2));
