@@ -34,6 +34,7 @@ class Map {
     struct EntityData {
       std::string name;
       std::pair<int, int> position;
+      std::map<std::string, int> items;
     };
     
     struct Adjacent {

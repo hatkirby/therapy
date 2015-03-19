@@ -57,7 +57,7 @@ World::World(const char* filename)
       {
         if (!xmlStrcmp(mapNode->name, (const xmlChar*) "environment"))
         {
-          xmlChar* key = xmlNodeListGetString(doc, mapNode->xmlChildrenNode, 1);
+          xmlChar* key = xmlNodeGetContent(mapNode);
           int* mapdata = (int*) malloc(MAP_WIDTH*MAP_HEIGHT*sizeof(int));
           mapdata[0] = atoi(strtok((char*) key, ",\n"));
           for (int i=1; i<(MAP_WIDTH*MAP_HEIGHT); i++)
@@ -84,6 +84,22 @@ World::World(const char* filename)
           if (yKey == 0) exit(2);
           data.position.second = atoi((char*) yKey);
           xmlFree(yKey);
+          
+          for (xmlNodePtr entityNode = mapNode->xmlChildrenNode; entityNode != NULL; entityNode = entityNode->next)
+          {
+            if (!xmlStrcmp(entityNode->name, (xmlChar*) "item"))
+            {
+              xmlChar* itemIdKey = xmlGetProp(entityNode, (const xmlChar*) "id");
+              if (itemIdKey == 0) exit(2);
+              std::string itemId = (char*) itemIdKey;
+              xmlFree(itemIdKey);
+              
+              xmlChar* itemIdVal = xmlNodeGetContent(entityNode);
+              if (itemIdVal == 0) exit(2);
+              data.items[itemId] = atoi((char*) itemIdVal);
+              xmlFree(itemIdVal);
+            }
+          }
           
           map.addEntity(data);
         } else if (!xmlStrcmp(mapNode->name, (const xmlChar*) "adjacent"))

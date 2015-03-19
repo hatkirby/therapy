@@ -156,15 +156,24 @@ void MapCollisionComponent::processCollision(Game& game, Entity& collider, Colli
     if (dir == Direction::left)
     {
       collider.position.first = collision.axis;
-      collider.send(game, Message::Type::stopMovingHorizontally);
+      
+      Message msg(Message::Type::setHorizontalVelocity);
+      msg.velocity = 0.0;
+      collider.send(game, msg);
     } else if (dir == Direction::right)
     {
       collider.position.first = collision.axis - collider.size.first;
-      collider.send(game, Message::Type::stopMovingHorizontally);
+
+      Message msg(Message::Type::setHorizontalVelocity);
+      msg.velocity = 0.0;
+      collider.send(game, msg);
     } else if (dir == Direction::up)
     {
       collider.position.second = collision.axis;
-      collider.send(game, Message::Type::stopMovingVertically);
+
+      Message msg(Message::Type::setVerticalVelocity);
+      msg.velocity = 0.0;
+      collider.send(game, msg);
     } else if (dir == Direction::down)
     {
       collider.position.second = collision.axis - collider.size.second;

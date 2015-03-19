@@ -29,12 +29,12 @@ void PlayerPhysicsComponent::receive(Game&, Entity& entity, const Message& msg)
   {
     velocity.first = 0.0;
     direction = 0;
-  } else if (msg.type == Message::Type::stopMovingHorizontally)
+  } else if (msg.type == Message::Type::setHorizontalVelocity)
   {
-    velocity.first = 0.0;
-  } else if (msg.type == Message::Type::stopMovingVertically)
+    velocity.first = msg.velocity;
+  } else if (msg.type == Message::Type::setVerticalVelocity)
   {
-    velocity.second = 0.0;
+    velocity.second = msg.velocity;
   } else if (msg.type == Message::Type::hitTheGround)
   {
     if (isFalling)

@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <entities>
-  <entity id="checkpoint" name="Checkpoint" sprite="res/keyring.png" width="8" height="11">
-    <event name="touch">
-      <action type="save" />
-    </event>
-  </entity>
+  <entity id="checkpoint" name="Checkpoint" sprite="res/keyring.png" width="8" height="11" action="save" />
   
-  <entity id="movplat" name="Moving Platform" sprite="res/platform.png" action="carry" width="24" height="8">
+  <entity id="movplat" name="Moving Platform" sprite="res/platform.png" width="24" height="8" action="carry">
     <input id="dir" name="Direction" type="choice">
       <value id="0">Left</value>
       <value id="1">Right</value>
@@ -15,8 +11,25 @@
     </input>
     <input id="len" name="Length" type="slider" minvalue="0" maxvalue="320" />
     <input id="speed" name="Speed (px/s)" type="slider" minvalue="1" maxvalue="320" />
-    <event name="touch">
-      <action type="carry" />
-    </event>
+    <ai chance="1">
+      <switch item="dir">
+        <case value="0">
+          <move direction="left" length-var="len" speed-var="speed" />
+          <move direction="right" length-var="len" speed-var="speed" />
+        </case>
+        <case value="1">
+          <move direction="right" length-var="len" speed-var="speed" />
+          <move direction="left" length-var="len" speed-var="speed" />
+        </case>
+        <case value="2">
+          <move direction="up" length-var="len" speed-var="speed" />
+          <move direction="down" length-var="len" speed-var="speed" />
+        </case>
+        <case value="3">
+          <move direction="down" length-var="len" speed-var="speed" />
+          <move direction="up" length-var="len" speed-var="speed" />
+        </case>
+      </switch>
+    </ai>
   </entity>
 </entities>

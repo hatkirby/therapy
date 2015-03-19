@@ -15,8 +15,8 @@ class Message {
       walkLeft,
       walkRight,
       stopWalking,
-      stopMovingHorizontally,
-      stopMovingVertically,
+      setHorizontalVelocity,
+      setVerticalVelocity,
       collision,
       jump,
       stopJump,
@@ -33,6 +33,7 @@ class Message {
     Type type;
     Entity* collisionEntity;
     int dropAxis;
+    double velocity;
 };
 
 class Entity {

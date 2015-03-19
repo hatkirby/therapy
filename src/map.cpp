@@ -69,7 +69,7 @@ void Map::createEntities(std::list<std::shared_ptr<Entity>>& entities) const
 {
   for (auto data : this->entities)
   {
-    auto entity = EntityFactory::createNamedEntity(data.name);
+    auto entity = EntityFactory::createNamedEntity(data.name, data.items);
     entity->position = data.position;
     
     entities.push_back(entity);
