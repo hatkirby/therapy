@@ -1,9 +1,9 @@
 #include <ctime>
 #include <list>
-#include "renderer.h"
 #include <cstdlib>
-#include "game.h"
+#include "renderer.h"
 #include "muxer.h"
+#include "entity_manager.h"
 
 int main()
 {
@@ -14,8 +14,12 @@ int main()
   
   // Put this in a block so game goes out of scope before we destroy the renderer
   {
-    Game game {"res/maps.xml"};
-    game.execute(window);
+    EntityManager manager;
+    
+    int eRef = manager.emplaceEntity();
+    int eRef2 = manager.emplaceEntity();
+    manager.setParent(eRef, eRef2);
+    printf("%d\n", manager.getParent(eRef));
   }
   
   destroyMuxer();
