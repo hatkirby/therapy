@@ -11,4 +11,7 @@ const int MAP_HEIGHT = GAME_HEIGHT/TILE_HEIGHT - 1;
 const int FRAMES_PER_SECOND = 60;
 const double SECONDS_PER_FRAME = 1.0 / FRAMES_PER_SECOND;
 
+#define JUMP_VELOCITY(h, l) (-2 * (h) / (l))
+#define JUMP_GRAVITY(h, l) (2 * ((h) / (l)) / (l))
+
 #endif

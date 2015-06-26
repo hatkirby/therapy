@@ -7,7 +7,10 @@
 
 class RenderingSystem : public System {
   public:
-    void tick(EntityManager& manager, float dt);
+    RenderingSystem(Game& game)
+      : System(game) {}
+    
+    void tick(double dt);
     
   private:
     Texture texture {GAME_WIDTH, GAME_HEIGHT};

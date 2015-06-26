@@ -50,9 +50,15 @@ add_executable(Aromatherapy
   src/renderer.cpp
   src/muxer.cpp
   src/entity_manager.cpp
-  src/components/sprite_renderable.cpp
+  src/game.cpp
   src/components/transformable.cpp
+  src/components/droppable.cpp
+  src/components/controllable.cpp
+  src/components/ponderable.cpp
+  src/components/animatable.cpp
   src/systems/rendering.cpp
+  src/systems/controlling.cpp
+  src/systems/pondering.cpp
 )
 target_link_libraries(Aromatherapy ${ALL_LIBS})
 install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})
