@@ -21,18 +21,20 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 	endif()
 endif()
 
+find_package(PkgConfig)
+
 # Look up SDL2 and add the include directory to our include path
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
-find_package(GLFW REQUIRED)
+pkg_check_modules(GLFW REQUIRED glfw3)
 find_package(portaudio REQUIRED)
 find_package(libsndfile REQUIRED)
 find_package(libxml2 REQUIRED)
 
 set(ALL_LIBS
-  ${OPENGL_LIBRARY}
-  ${GLEW_LIBRARY}
-  ${GLFW_LIBRARY}
+  ${OPENGL_LIBRARIES}
+  ${GLEW_LIBRARIES}
+  ${GLFW_LIBRARIES}
   ${PORTAUDIO_LIBRARIES}
   ${LIBSNDFILE_LIBRARY}
   ${LIBXML2_LIBRARIES}
@@ -40,6 +42,7 @@ set(ALL_LIBS
 
 include_directories(
   ${LIBXML2_INCLUDE_DIR}
+  ${GLFW_INCLUDE_DIRS}
   src
 )
 
