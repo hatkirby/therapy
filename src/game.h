@@ -8,12 +8,12 @@
 class Game {
   public:
     Game(GLFWwindow* window);
-    
+
     void execute();
     EntityManager& getEntityManager();
-    
+
     friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    
+
   private:
     EntityManager entityManager;
     SystemManager systemManager;

@@ -8,10 +8,10 @@ class ControllingSystem : public System {
   public:
     ControllingSystem(Game& game)
       : System(game) {}
-    
+
     void tick(double dt);
     void input(int key, int action);
-    
+
   private:
     void walkLeft(int entity);
     void walkRight(int entity);
@@ -19,7 +19,7 @@ class ControllingSystem : public System {
     void jump(int entity);
     void stopJumping(int entity);
     void drop(int entity, bool start);
-    
+
     std::queue<std::pair<int,int>> actions;
 };
 

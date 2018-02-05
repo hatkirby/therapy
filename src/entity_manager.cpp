@@ -10,13 +10,13 @@ std::set<int> EntityManager::getEntitiesWithComponents<>(std::set<std::type_inde
   {
     return cachedComponents[componentTypes];
   }
-  
+
   std::set<int>& cache = cachedComponents[componentTypes];
   for (auto& entity : entities)
   {
     EntityData& data = entity.second;
     bool cacheEntity = true;
-    
+
     for (auto& componentType : componentTypes)
     {
       if (data.components.count(componentType) == 0)
@@ -25,13 +25,13 @@ std::set<int> EntityManager::getEntitiesWithComponents<>(std::set<std::type_inde
         break;
       }
     }
-    
+
     if (cacheEntity)
     {
       cache.insert(entity.first);
     }
   }
-  
+
   return cache;
 }
 

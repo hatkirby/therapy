@@ -24,7 +24,7 @@ class Texture {
     void blit(const Texture& src, Rectangle srcrect, Rectangle dstrect, double alpha = 1.0);
     void renderScreen() const;
     Rectangle entirety() const;
-    
+
   private:
     GLuint texID;
     int width;

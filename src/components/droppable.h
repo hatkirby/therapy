@@ -7,7 +7,7 @@ class DroppableComponent : public Component {
   public:
     void setDroppable(bool can);
     bool isDroppable() const;
-    
+
   private:
     bool droppable = false;
 };

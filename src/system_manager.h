@@ -18,18 +18,18 @@ class SystemManager {
     {
       std::unique_ptr<T> ptr = std::unique_ptr<T>(new T(game, std::forward<Args>(args)...));
       std::type_index systemType = typeid(T);
-      
+
       systems[systemType] = ptr.get();
       loop.push_back(std::move(ptr));
     }
-    
+
     template <class T>
     T& getSystem()
     {
       std::type_index systemType = typeid(T);
-      
+
       assert(systems.count(systemType) == 1);
-      
+
       return *((T*)systems[systemType]);
     }
 };

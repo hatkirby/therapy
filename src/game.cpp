@@ -45,24 +45,24 @@ void Game::execute()
   double lastTime = glfwGetTime();
   const double dt = 0.01;
   double accumulator = 0.0;
-  
+
   while (!(shouldQuit || glfwWindowShouldClose(window)))
   {
     double currentTime = glfwGetTime();
     double frameTime = currentTime - lastTime;
     lastTime = currentTime;
-    
+
     glfwPollEvents();
-    
+
     accumulator += frameTime;
     while (accumulator >= dt)
     {
       systemManager.getSystem<ControllingSystem>().tick(dt);
       systemManager.getSystem<PonderingSystem>().tick(dt);
-      
+
       accumulator -= dt;
     }
-    
+
     systemManager.getSystem<RenderingSystem>().tick(frameTime);
   }
 }

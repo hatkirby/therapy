@@ -13,7 +13,7 @@ class PonderableComponent : public Component {
     void setAccelX(double v);
     double getAccelY() const;
     void setAccelY(double v);
-    
+
   private:
     double velocityX = 0.0;
     double velocityY = 0.0;

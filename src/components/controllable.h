@@ -14,20 +14,20 @@ class ControllableComponent : public Component {
     void setJumpKey(int k);
     int getDropKey() const;
     void setDropKey(int k);
-    
+
     bool isFrozen() const;
     void setFrozen(bool f);
     bool isHoldingLeft() const;
     void setHoldingLeft(bool f);
     bool isHoldingRight() const;
     void setHoldingRight(bool f);
-    
+
   private:
     int leftKey = GLFW_KEY_LEFT;
     int rightKey = GLFW_KEY_RIGHT;
     int jumpKey = GLFW_KEY_UP;
     int dropKey = GLFW_KEY_DOWN;
-    
+
     bool frozen = false;
     bool holdingLeft = false;
     bool holdingRight = false;

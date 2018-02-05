@@ -7,9 +7,9 @@ class System {
   public:
     System(Game& game)
       : game(game) {}
-    
+
     virtual void tick(double dt) = 0;
-    
+
   protected:
     Game& game;
 };

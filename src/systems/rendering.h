@@ -9,9 +9,9 @@ class RenderingSystem : public System {
   public:
     RenderingSystem(Game& game)
       : System(game) {}
-    
+
     void tick(double dt);
-    
+
   private:
     Texture texture {GAME_WIDTH, GAME_HEIGHT};
 };

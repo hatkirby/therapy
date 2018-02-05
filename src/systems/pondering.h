@@ -7,7 +7,7 @@ class PonderingSystem : public System {
   public:
     PonderingSystem(Game& game)
       : System(game) {}
-    
+
     void tick(double dt);
 };
 

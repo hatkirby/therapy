@@ -3,7 +3,7 @@
 TransformableComponent::TransformableComponent(double x, double y, int w, int h)
   : x(x), y(y), w(w), h(h)
 {
-  
+
 }
 
 double TransformableComponent::getX() const

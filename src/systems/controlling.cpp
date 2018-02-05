@@ -14,12 +14,12 @@ void ControllingSystem::tick(double dt)
   {
     int key = actions.front().first;
     int action = actions.front().second;
-    
+
     auto entities = game.getEntityManager().getEntitiesWithComponents<ControllableComponent, PonderableComponent, AnimatableComponent, DroppableComponent>();
     for (auto entity : entities)
     {
       auto& controllable = game.getEntityManager().getComponent<ControllableComponent>(entity);
-      
+
       if (action == GLFW_PRESS)
       {
         if (key == controllable.getLeftKey())
@@ -33,7 +33,7 @@ void ControllingSystem::tick(double dt)
         } else if (key == controllable.getRightKey())
         {
           controllable.setHoldingRight(true);
-      
+
           if (!controllable.isFrozen())
           {
             walkRight(entity);
@@ -56,7 +56,7 @@ void ControllingSystem::tick(double dt)
         if (key == controllable.getLeftKey())
         {
           controllable.setHoldingLeft(false);
-      
+
           if (!controllable.isFrozen())
           {
             if (controllable.isHoldingRight())
@@ -69,7 +69,7 @@ void ControllingSystem::tick(double dt)
         } else if (key == controllable.getRightKey())
         {
           controllable.setHoldingRight(false);
-      
+
           if (!controllable.isFrozen())
           {
             if (controllable.isHoldingRight())
@@ -94,7 +94,7 @@ void ControllingSystem::tick(double dt)
         }
       }
     }
-    
+
     actions.pop();
   }
 }
