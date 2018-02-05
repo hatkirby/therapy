@@ -363,7 +363,7 @@ GLFWwindow* initRenderer()
   std::vector<glm::vec3> mesh_vertices;
   std::vector<glm::vec2> mesh_uvs;
   std::vector<glm::vec3> mesh_normals;
-  loadMesh("res/monitor-fef.obj", mesh_vertices, mesh_uvs, mesh_normals);
+  loadMesh("res/monitor-old.obj", mesh_vertices, mesh_uvs, mesh_normals);
   
   mesh_numvertices = mesh_vertices.size();
   
@@ -795,8 +795,8 @@ void Texture::renderScreen() const
   glUniform1i(glGetUniformLocation(finalShader, "scanlinestex"), 1);
   
   // Initialize the MVP matrices
-  glm::mat4 p_matrix = glm::perspective(42.5f, (float) buffer_width / (float) buffer_height, 0.1f, 100.0f);
-  glm::mat4 v_matrix = glm::lookAt(glm::vec3(2,0,0), glm::vec3(0,0,0), glm::vec3(0,1,0));
+  glm::mat4 p_matrix = glm::perspective(glm::radians(25.0f), (float) buffer_width / (float) buffer_height, 0.1f, 100.0f);
+  glm::mat4 v_matrix = glm::lookAt(glm::vec3(3.75,0,0), glm::vec3(0,0,0), glm::vec3(0,1,0));
   glm::mat4 m_matrix = glm::mat4(1.0);
   glm::mat4 mvp_matrix = p_matrix * v_matrix * m_matrix;
   
@@ -804,6 +804,7 @@ void Texture::renderScreen() const
   glUniformMatrix4fv(glGetUniformLocation(finalShader, "worldMat"), 1, GL_FALSE, &m_matrix[0][0]);
   glUniform2f(glGetUniformLocation(finalShader, "resolution"), buffer_width, buffer_height);
   glUniform1f(glGetUniformLocation(finalShader, "iGlobalTime"), glfwGetTime());
+  glUniform3f(glGetUniformLocation(finalShader, "frameColor"), 0.76f, 0.78f, 0.81f);
   
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_vertexbuffer);
