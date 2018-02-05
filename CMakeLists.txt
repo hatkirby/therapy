@@ -43,7 +43,13 @@ set(ALL_LIBS
 include_directories(
   ${LIBXML2_INCLUDE_DIR}
   ${GLFW_INCLUDE_DIRS}
+  ${OPENGL_INCLUDE_DIRS}
+  ${GLEW_INCLUDE_DIRS}
   src
+)
+
+link_directories(
+  ${GLFW_LIBRARY_DIRS}
 )
 
 # include_directories(${SDL2_INCLUDE_DIR})
