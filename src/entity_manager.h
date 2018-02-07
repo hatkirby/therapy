@@ -2,151 +2,196 @@
 #define ENTITY_MANAGER_H_C5832F11
 
 #include <map>
+#include <vector>
 #include <typeindex>
 #include <set>
-#include <cassert>
+#include <stdexcept>
 #include "component.h"
 #include "algorithms.h"
 
 class EntityManager {
-  private:
-    struct EntityData {
-      std::map<std::type_index, std::unique_ptr<Component>> components;
-    };
+private:
 
-    std::map<int, EntityData> entities;
-    std::map<std::set<std::type_index>, std::set<int>> cachedComponents;
+  struct EntityData {
+    std::map<std::type_index, std::unique_ptr<Component>> components;
+  };
 
-    int nextEntityID = 0;
+  using database_type = std::vector<EntityData>;
 
-    template <class T, class... R>
-    std::set<int> getEntitiesWithComponentsHelper(std::set<std::type_index>& componentTypes)
+public:
+
+  using id_type = database_type::size_type;
+
+private:
+
+  database_type entities;
+  std::vector<bool> slotAvailable;
+  std::map<std::set<std::type_index>, std::set<id_type>> cachedComponents;
+
+  id_type nextEntityID = 0;
+
+  template <class T, class... R>
+  std::set<id_type> getEntitiesWithComponentsHelper(
+    std::set<std::type_index>& componentTypes)
+  {
+    componentTypes.insert(typeid(T));
+
+    return getEntitiesWithComponents<R...>(componentTypes);
+  }
+
+  template <class... R>
+  std::set<id_type> getEntitiesWithComponents(
+    std::set<std::type_index>& componentTypes)
+  {
+    return getEntitiesWithComponentsHelper<R...>(componentTypes);
+  }
+
+public:
+
+  EntityManager() = default;
+
+  EntityManager(const EntityManager& copy) = delete;
+
+  id_type emplaceEntity()
+  {
+    if (nextEntityID >= entities.size())
     {
-      componentTypes.insert(typeid(T));
+      // If the database is saturated, add a new element for the new entity.
+      entities.emplace_back();
+      slotAvailable.push_back(false);
 
-      return getEntitiesWithComponents<R...>(componentTypes);
-    }
+      return nextEntityID++;
+    } else {
+      // If there is an available slot in the database, use it.
+      id_type id = nextEntityID++;
+      slotAvailable[id] = false;
 
-    template <class... R>
-    std::set<int> getEntitiesWithComponents(std::set<std::type_index>& componentTypes)
-    {
-      return getEntitiesWithComponentsHelper<R...>(componentTypes);
-    }
-
-  public:
-    EntityManager() = default;
-    EntityManager(const EntityManager& copy) = delete;
-
-    int emplaceEntity()
-    {
-      // Find a suitable entity ID
-      while ((entities.count(nextEntityID) == 1) && (nextEntityID >= 0))
+      // Fast forward the next available slot pointer to an available slot.
+      while ((nextEntityID < entities.size()) && !slotAvailable[nextEntityID])
       {
         nextEntityID++;
       }
 
-      if (nextEntityID < 0)
-      {
-        nextEntityID = 0;
-
-        while ((entities.count(nextEntityID) == 1) && (nextEntityID >= 0))
-        {
-          nextEntityID++;
-        }
-
-        assert(nextEntityID >= 0);
-      }
-
-      // Initialize the data
-      int id = nextEntityID++;
-      entities[id];
-
       return id;
     }
+  }
 
-    void deleteEntity(int entity)
+  void deleteEntity(id_type entity)
+  {
+    if ((entity >= entities.size()) || slotAvailable[entity])
     {
-      assert(entities.count(entity) == 1);
+      throw std::invalid_argument("Cannot delete non-existent entity");
+    }
 
-      // Uncache components
-      for (auto& cache : cachedComponents)
+    // Uncache components
+    for (auto& cache : cachedComponents)
+    {
+      cache.second.erase(entity);
+    }
+
+    // Destroy the data
+    entities[entity].components.clear();
+
+    // Mark the slot as available
+    slotAvailable[entity] = true;
+
+    if (entity < nextEntityID)
+    {
+      nextEntityID = entity;
+    }
+  }
+
+  template <class T, class... Args>
+  T& emplaceComponent(id_type entity, Args&&... args)
+  {
+    if ((entity >= entities.size()) || slotAvailable[entity])
+    {
+      throw std::invalid_argument("Cannot delete non-existent entity");
+    }
+
+    EntityData& data = entities[entity];
+    std::type_index componentType = typeid(T);
+
+    if (data.components.count(componentType))
+    {
+      throw std::invalid_argument("Cannot emplace already-existent component");
+    }
+
+    // Initialize the component
+    std::unique_ptr<T> ptr(new T(std::forward<Args>(args)...));
+    T& component = *ptr;
+    data.components[componentType] = std::move(ptr);
+
+    // Invalidate related caches
+    erase_if(
+      cachedComponents,
+      [&componentType] (
+        std::pair<const std::set<std::type_index>, std::set<id_type>>& cache) {
+          return cache.first.count(componentType) == 1;
+        });
+
+    return component;
+  }
+
+  template <class T>
+  void removeComponent(id_type entity)
+  {
+    if ((entity >= entities.size()) || slotAvailable[entity])
+    {
+      throw std::invalid_argument("Cannot delete non-existent entity");
+    }
+
+    EntityData& data = entities[entity];
+    std::type_index componentType = typeid(T);
+
+    if (!data.components.count(componentType))
+    {
+      throw std::invalid_argument("Cannot delete non-existent component");
+    }
+
+    // Destroy the component
+    data.components.erase(componentType);
+
+    // Uncache the component
+    for (auto& cache : cachedComponents)
+    {
+      if (cache.first.count(componentType) == 1)
       {
         cache.second.erase(entity);
       }
-
-      // Destroy the data
-      entities.erase(entity);
     }
+  }
 
-    template <class T, class... Args>
-    T& emplaceComponent(int entity, Args&&... args)
+  template <class T>
+  T& getComponent(id_type entity)
+  {
+    if ((entity >= entities.size()) || slotAvailable[entity])
     {
-      assert(entities.count(entity) == 1);
-
-      EntityData& data = entities[entity];
-      std::type_index componentType = typeid(T);
-
-      assert(data.components.count(componentType) == 0);
-
-      // Initialize the component
-      std::unique_ptr<T> ptr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-      T& component = *ptr;
-      data.components[componentType] = std::move(ptr);
-
-      // Invalidate related caches
-      erase_if(cachedComponents, [&componentType] (std::pair<const std::set<std::type_index>, std::set<int>>& cache) {
-        return cache.first.count(componentType) == 1;
-      });
-
-      return component;
+      throw std::invalid_argument("Cannot delete non-existent entity");
     }
 
-    template <class T>
-    void removeComponent(int entity)
+    EntityData& data = entities[entity];
+    std::type_index componentType = typeid(T);
+
+    if (!data.components.count(componentType))
     {
-      assert(entities.count(entity) == 1);
-
-      EntityData& data = entities[entity];
-      std::type_index componentType = typeid(T);
-
-      assert(data.components.count(componentType) == 1);
-
-      // Destroy the component
-      data.components.erase(componentType);
-
-      // Uncache the component
-      for (auto& cache : cachedComponents)
-      {
-        if (cache.first.count(componentType) == 1)
-        {
-          cache.second.erase(entity);
-        }
-      }
+      throw std::invalid_argument("Cannot get non-existent component");
     }
 
-    template <class T>
-    T& getComponent(int entity)
-    {
-      assert(entities.count(entity) == 1);
+    return *dynamic_cast<T*>(data.components[componentType].get());
+  }
 
-      EntityData& data = entities[entity];
-      std::type_index componentType = typeid(T);
+  template <class... R>
+  std::set<id_type> getEntitiesWithComponents()
+  {
+    std::set<std::type_index> componentTypes;
 
-      assert(data.components.count(componentType) == 1);
-
-      return *((T*)data.components[componentType].get());
-    }
-
-    template <class... R>
-    std::set<int> getEntitiesWithComponents()
-    {
-      std::set<std::type_index> componentTypes;
-
-      return getEntitiesWithComponentsHelper<R...>(componentTypes);
-    }
+    return getEntitiesWithComponentsHelper<R...>(componentTypes);
+  }
 };
 
 template <>
-std::set<int> EntityManager::getEntitiesWithComponents<>(std::set<std::type_index>& componentTypes);
+std::set<EntityManager::id_type> EntityManager::getEntitiesWithComponents<>(
+  std::set<std::type_index>& componentTypes);
 
 #endif /* end of include guard: ENTITY_MANAGER_H_C5832F11 */

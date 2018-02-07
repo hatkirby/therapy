@@ -4,17 +4,18 @@
 #include "entity_manager.h"
 
 template <>
-std::set<int> EntityManager::getEntitiesWithComponents<>(std::set<std::type_index>& componentTypes)
+std::set<EntityManager::id_type> EntityManager::getEntitiesWithComponents<>(
+  std::set<std::type_index>& componentTypes)
 {
   if (cachedComponents.count(componentTypes) == 1)
   {
     return cachedComponents[componentTypes];
   }
 
-  std::set<int>& cache = cachedComponents[componentTypes];
-  for (auto& entity : entities)
+  std::set<id_type>& cache = cachedComponents[componentTypes];
+  for (id_type entity = 0; entity < entities.size(); entity++)
   {
-    EntityData& data = entity.second;
+    EntityData& data = entities[entity];
     bool cacheEntity = true;
 
     for (auto& componentType : componentTypes)
@@ -28,7 +29,7 @@ std::set<int> EntityManager::getEntitiesWithComponents<>(std::set<std::type_inde
 
     if (cacheEntity)
     {
-      cache.insert(entity.first);
+      cache.insert(entity);
     }
   }
 
