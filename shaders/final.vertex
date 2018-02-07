@@ -23,6 +23,6 @@ void main()
   mat3 invWorldRot = transpose(mat3(worldMat[0].xyz, worldMat[1].xyz, worldMat[2].xyz));
   vec3 worldPos = (worldMat * vec4(vertexPosition_modelspace,1)).xyz;
   
-  camDirIn = invWorldRot * (vec3(2,0,0) - worldPos);
+  camDirIn = invWorldRot * (vec3(3.75,0,0) - worldPos);
   lightDirIn = invWorldRot * (Tuning_LightPos - worldPos);
 }
