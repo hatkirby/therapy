@@ -4,24 +4,66 @@
 #include "component.h"
 
 class TransformableComponent : public Component {
-  public:
-    TransformableComponent(double x, double y, int w, int h);
+public:
 
-    double getX() const;
-    double getY() const;
-    int getW() const;
-    int getH() const;
+  TransformableComponent(
+    double x,
+    double y,
+    int w,
+    int h) :
+      x_(x),
+      y_(y),
+      w_(w),
+      h_(h)
+  {
+  }
 
-    void setX(double v);
-    void setY(double v);
-    void setW(int v);
-    void setH(int v);
+  inline double getX() const
+  {
+    return x_;
+  }
 
-  private:
-    double x;
-    double y;
-    int w;
-    int h;
+  inline void setX(double v)
+  {
+    x_ = v;
+  }
+
+  inline double getY() const
+  {
+    return y_;
+  }
+
+  inline void setY(double v)
+  {
+    y_ = v;
+  }
+
+  inline int getW() const
+  {
+    return w_;
+  }
+
+  inline void setW(int v)
+  {
+    w_ = v;
+  }
+
+  inline int getH() const
+  {
+    return h_;
+  }
+
+  inline void setH(int v)
+  {
+    h_ = v;
+  }
+
+private:
+
+  double x_;
+  double y_;
+  int w_;
+  int h_;
 };
 
 #endif /* end of include guard: LOCATABLE_H_39E526CA */

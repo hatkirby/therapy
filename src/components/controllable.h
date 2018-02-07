@@ -5,32 +5,88 @@
 #include "renderer.h"
 
 class ControllableComponent : public Component {
-  public:
-    int getLeftKey() const;
-    void setLeftKey(int k);
-    int getRightKey() const;
-    void setRightKey(int k);
-    int getJumpKey() const;
-    void setJumpKey(int k);
-    int getDropKey() const;
-    void setDropKey(int k);
+public:
 
-    bool isFrozen() const;
-    void setFrozen(bool f);
-    bool isHoldingLeft() const;
-    void setHoldingLeft(bool f);
-    bool isHoldingRight() const;
-    void setHoldingRight(bool f);
+  inline int getLeftKey() const
+  {
+    return leftKey_;
+  }
 
-  private:
-    int leftKey = GLFW_KEY_LEFT;
-    int rightKey = GLFW_KEY_RIGHT;
-    int jumpKey = GLFW_KEY_UP;
-    int dropKey = GLFW_KEY_DOWN;
+  inline void setLeftKey(int k)
+  {
+    leftKey_ = k;
+  }
 
-    bool frozen = false;
-    bool holdingLeft = false;
-    bool holdingRight = false;
+  inline int getRightKey() const
+  {
+    return rightKey_;
+  }
+
+  inline void setRightKey(int k)
+  {
+    rightKey_ = k;
+  }
+
+  inline int getJumpKey() const
+  {
+    return jumpKey_;
+  }
+
+  inline void setJumpKey(int k)
+  {
+    jumpKey_ = k;
+  }
+
+  inline int getDropKey() const
+  {
+    return dropKey_;
+  }
+
+  inline void setDropKey(int k)
+  {
+    dropKey_ = k;
+  }
+
+  inline bool isFrozen() const
+  {
+    return frozen_;
+  }
+
+  inline void setFrozen(bool f)
+  {
+    frozen_ = f;
+  }
+
+  inline bool isHoldingLeft() const
+  {
+    return holdingLeft_;
+  }
+
+  inline void setHoldingLeft(bool f)
+  {
+    holdingLeft_ = f;
+  }
+
+  inline bool isHoldingRight() const
+  {
+    return holdingRight_;
+  }
+
+  inline void setHoldingRight(bool f)
+  {
+    holdingRight_ = f;
+  }
+
+private:
+
+  int leftKey_ = GLFW_KEY_LEFT;
+  int rightKey_ = GLFW_KEY_RIGHT;
+  int jumpKey_ = GLFW_KEY_UP;
+  int dropKey_ = GLFW_KEY_DOWN;
+
+  bool frozen_ = false;
+  bool holdingLeft_ = false;
+  bool holdingRight_ = false;
 };
 
 #endif /* end of include guard: CONTROLLABLE_H_4E0B85B4 */

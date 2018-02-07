@@ -4,12 +4,21 @@
 #include "component.h"
 
 class DroppableComponent : public Component {
-  public:
-    void setDroppable(bool can);
-    bool isDroppable() const;
+public:
 
-  private:
-    bool droppable = false;
+  inline bool isDroppable() const
+  {
+    return droppable_;
+  }
+
+  inline void setDroppable(bool can)
+  {
+    droppable_ = can;
+  }
+
+private:
+
+  bool droppable_ = false;
 };
 
 #endif /* end of include guard: DROPPABLE_H_5DB254EF */
