@@ -72,7 +72,7 @@ void ControllingSystem::tick(double dt)
 
           if (!controllable.isFrozen())
           {
-            if (controllable.isHoldingRight())
+            if (controllable.isHoldingLeft())
             {
               walkLeft(entity);
             } else {
