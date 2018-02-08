@@ -5,12 +5,14 @@
 
 void PonderingSystem::tick(double dt)
 {
-  auto entities = game.getEntityManager().getEntitiesWithComponents<PonderableComponent, TransformableComponent>();
+  auto entities = game_.getEntityManager().getEntitiesWithComponents<
+    PonderableComponent,
+    TransformableComponent>();
 
-  for (auto entity : entities)
+  for (id_type entity : entities)
   {
-    auto& transformable = game.getEntityManager().getComponent<TransformableComponent>(entity);
-    auto& ponderable = game.getEntityManager().getComponent<PonderableComponent>(entity);
+    auto& transformable = game_.getEntityManager().getComponent<TransformableComponent>(entity);
+    auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
 
     // Accelerate
     ponderable.setVelocityX(ponderable.getVelocityX() + ponderable.getAccelX() * dt);

@@ -6,19 +6,35 @@
 #include "system_manager.h"
 
 class Game {
-  public:
-    Game(GLFWwindow* window);
+public:
 
-    void execute();
-    EntityManager& getEntityManager();
+  Game(GLFWwindow* window);
 
-    friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+  void execute();
 
-  private:
-    EntityManager entityManager;
-    SystemManager systemManager;
-    GLFWwindow* const window;
-    bool shouldQuit = false;
+  inline EntityManager& getEntityManager()
+  {
+    return entityManager_;
+  }
+
+  inline SystemManager& getSystemManager()
+  {
+    return systemManager_;
+  }
+
+  friend void key_callback(
+    GLFWwindow* window,
+    int key,
+    int scancode,
+    int action,
+    int mods);
+
+private:
+
+  EntityManager entityManager_;
+  SystemManager systemManager_;
+  GLFWwindow* const window_;
+  bool shouldQuit_ = false;
 };
 
 #endif /* end of include guard: GAME_H_1014DDC9 */

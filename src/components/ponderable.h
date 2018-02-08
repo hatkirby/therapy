@@ -6,6 +6,13 @@
 class PonderableComponent : public Component {
 public:
 
+  enum class state {
+    grounded,
+    jumping,
+    falling,
+    dropping
+  };
+
   inline double getVelocityX() const
   {
     return velX_;
@@ -51,12 +58,18 @@ public:
     return state_;
   }
 
+  inline void setState(state arg)
+  {
+    state_ = arg;
+  }
+
 private:
 
   double velX_ = 0.0;
   double velY_ = 0.0;
   double accelX_ = 0.0;
   double accelY_ = 0.0;
+  state state_ = state::grounded;
 };
 
 #endif /* end of include guard: TANGIBLE_H_746DB3EE */

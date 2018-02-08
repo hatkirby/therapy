@@ -4,40 +4,59 @@
 #include "components/controllable.h"
 #include "components/droppable.h"
 #include "components/ponderable.h"
+#include "components/orientable.h"
 #include "systems/rendering.h"
 #include "systems/controlling.h"
 #include "systems/pondering.h"
+#include "systems/animating.h"
+#include "animation.h"
 
 void key_callback(GLFWwindow* window, int key, int, int action, int)
 {
   Game& game = *((Game*) glfwGetWindowUserPointer(window));
-  
+
   if ((action == GLFW_PRESS) && (key == GLFW_KEY_ESCAPE))
   {
-    game.shouldQuit = true;
-    
+    game.shouldQuit_ = true;
+
     return;
   }
-  
-  game.systemManager.getSystem<ControllingSystem>().input(key, action);
+
+  game.systemManager_.getSystem<ControllingSystem>().input(key, action);
 }
 
-Game::Game(GLFWwindow* window) : window(window)
+Game::Game(GLFWwindow* window) : window_(window)
 {
-  systemManager.emplaceSystem<ControllingSystem>(*this);
-  systemManager.emplaceSystem<RenderingSystem>(*this);
-  systemManager.emplaceSystem<PonderingSystem>(*this);
-  
-  int player = entityManager.emplaceEntity();
-  entityManager.emplaceComponent<AnimatableComponent>(player, "res/Starla.png", 10, 12, 6);
-  entityManager.emplaceComponent<TransformableComponent>(player, 203, 44, 10, 12);
-  entityManager.emplaceComponent<DroppableComponent>(player);
-  entityManager.emplaceComponent<PonderableComponent>(player);
-  entityManager.emplaceComponent<ControllableComponent>(player);
-  
+  systemManager_.emplaceSystem<ControllingSystem>(*this);
+  systemManager_.emplaceSystem<PonderingSystem>(*this);
+  systemManager_.emplaceSystem<RenderingSystem>(*this);
+  systemManager_.emplaceSystem<AnimatingSystem>(*this);
+
+  int player = entityManager_.emplaceEntity();
+
+  AnimationSet playerGraphics {"res/Starla2.bmp", 10, 12, 6};
+  playerGraphics.emplaceAnimation("stillLeft", 3, 1, 1);
+  playerGraphics.emplaceAnimation("stillRight", 0, 1, 1);
+  playerGraphics.emplaceAnimation("walkingLeft", 4, 2, 10);
+  playerGraphics.emplaceAnimation("walkingRight", 1, 2, 10);
+
+  entityManager_.emplaceComponent<AnimatableComponent>(
+    player,
+    std::move(playerGraphics),
+    "stillLeft");
+
+  entityManager_.emplaceComponent<TransformableComponent>(
+    player,
+    203, 44, 10, 12);
+
+  entityManager_.emplaceComponent<DroppableComponent>(player);
+  entityManager_.emplaceComponent<PonderableComponent>(player);
+  entityManager_.emplaceComponent<ControllableComponent>(player);
+  entityManager_.emplaceComponent<OrientableComponent>(player);
+
   glfwSwapInterval(1);
-  glfwSetWindowUserPointer(window, this);
-  glfwSetKeyCallback(window, key_callback);
+  glfwSetWindowUserPointer(window_, this);
+  glfwSetKeyCallback(window_, key_callback);
 }
 
 void Game::execute()
@@ -46,7 +65,7 @@ void Game::execute()
   const double dt = 0.01;
   double accumulator = 0.0;
 
-  while (!(shouldQuit || glfwWindowShouldClose(window)))
+  while (!(shouldQuit_ || glfwWindowShouldClose(window_)))
   {
     double currentTime = glfwGetTime();
     double frameTime = currentTime - lastTime;
@@ -57,19 +76,13 @@ void Game::execute()
     accumulator += frameTime;
     while (accumulator >= dt)
     {
-      systemManager.getSystem<ControllingSystem>().tick(dt);
-      systemManager.getSystem<PonderingSystem>().tick(dt);
+      systemManager_.getSystem<ControllingSystem>().tick(dt);
+      systemManager_.getSystem<PonderingSystem>().tick(dt);
+      systemManager_.getSystem<AnimatingSystem>().tick(dt);
 
       accumulator -= dt;
     }
 
-    systemManager.getSystem<RenderingSystem>().tick(frameTime);
+    systemManager_.getSystem<RenderingSystem>().tick(frameTime);
   }
 }
-
-EntityManager& Game::getEntityManager()
-{
-  return entityManager;
-}
-
-

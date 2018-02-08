@@ -6,14 +6,17 @@
 #include "consts.h"
 
 class RenderingSystem : public System {
-  public:
-    RenderingSystem(Game& game)
-      : System(game) {}
+public:
 
-    void tick(double dt);
+  RenderingSystem(Game& game) : System(game)
+  {
+  }
 
-  private:
-    Texture texture {GAME_WIDTH, GAME_HEIGHT};
+  void tick(double dt);
+
+private:
+
+  Texture texture_ {GAME_WIDTH, GAME_HEIGHT};
 };
 
 #endif /* end of include guard: RENDERING_H_76ABC02A */

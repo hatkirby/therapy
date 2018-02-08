@@ -4,21 +4,30 @@
 #include "components/ponderable.h"
 #include "components/animatable.h"
 #include "components/droppable.h"
+#include "components/orientable.h"
+#include "systems/animating.h"
 #include "direction.h"
 #include "muxer.h"
 #include "consts.h"
 
-void ControllingSystem::tick(double dt)
+void ControllingSystem::tick(double)
 {
-  while (!actions.empty())
+  while (!actions_.empty())
   {
-    int key = actions.front().first;
-    int action = actions.front().second;
+    int key = actions_.front().first;
+    int action = actions_.front().second;
 
-    auto entities = game.getEntityManager().getEntitiesWithComponents<ControllableComponent, PonderableComponent, AnimatableComponent, DroppableComponent>();
+    auto entities = game_.getEntityManager().getEntitiesWithComponents<
+      ControllableComponent,
+      PonderableComponent,
+      AnimatableComponent,
+      DroppableComponent,
+      OrientableComponent>();
+
     for (auto entity : entities)
     {
-      auto& controllable = game.getEntityManager().getComponent<ControllableComponent>(entity);
+      auto& controllable = game_.getEntityManager().
+        getComponent<ControllableComponent>(entity);
 
       if (action == GLFW_PRESS)
       {
@@ -95,74 +104,107 @@ void ControllingSystem::tick(double dt)
       }
     }
 
-    actions.pop();
+    actions_.pop();
   }
 }
 
 void ControllingSystem::input(int key, int action)
 {
-  actions.push(std::make_pair(key, action));
+  actions_.push(std::make_pair(key, action));
 }
 
-void ControllingSystem::walkLeft(int entity)
+void ControllingSystem::walkLeft(id_type entity)
 {
-  auto& ponderable = game.getEntityManager().getComponent<PonderableComponent>(entity);
-  auto& animatable = game.getEntityManager().getComponent<AnimatableComponent>(entity);
-  
+  auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
+  auto& orientable = game_.getEntityManager().getComponent<OrientableComponent>(entity);
+
+  orientable.setFacingRight(false);
   ponderable.setVelocityX(-90);
-  
-  animatable.setDirection(Direction::Left);
-  animatable.setWalking(true);
+
+  auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
+
+  if (ponderable.getState() == PonderableComponent::state::grounded)
+  {
+    animating.startAnimation(entity, "walkingLeft");
+  } else {
+    animating.startAnimation(entity, "stillLeft");
+  }
 }
 
-void ControllingSystem::walkRight(int entity)
+void ControllingSystem::walkRight(id_type entity)
 {
-  auto& ponderable = game.getEntityManager().getComponent<PonderableComponent>(entity);
-  auto& animatable = game.getEntityManager().getComponent<AnimatableComponent>(entity);
-  
+  auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
+  auto& orientable = game_.getEntityManager().getComponent<OrientableComponent>(entity);
+
+  orientable.setFacingRight(true);
   ponderable.setVelocityX(90);
 
-  animatable.setDirection(Direction::Right);
-  animatable.setWalking(true);
+  auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
+
+  if (ponderable.getState() == PonderableComponent::state::grounded)
+  {
+    animating.startAnimation(entity, "walkingRight");
+  } else {
+    animating.startAnimation(entity, "stillRight");
+  }
 }
 
-void ControllingSystem::stopWalking(int entity)
+void ControllingSystem::stopWalking(id_type entity)
 {
-  auto& ponderable = game.getEntityManager().getComponent<PonderableComponent>(entity);
-  auto& animatable = game.getEntityManager().getComponent<AnimatableComponent>(entity);
-  
+  auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
+  auto& orientable = game_.getEntityManager().getComponent<OrientableComponent>(entity);
+
   ponderable.setVelocityX(0);
-  
-  animatable.setWalking(false);
+
+  if (ponderable.getState() == PonderableComponent::state::grounded)
+  {
+    auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
+
+    if (orientable.isFacingRight())
+    {
+      animating.startAnimation(entity, "stillRight");
+    } else {
+      animating.startAnimation(entity, "stillLeft");
+    }
+  }
 }
 
-void ControllingSystem::jump(int entity)
+void ControllingSystem::jump(id_type entity)
 {
-  auto& ponderable = game.getEntityManager().getComponent<PonderableComponent>(entity);
-  auto& animatable = game.getEntityManager().getComponent<AnimatableComponent>(entity);
-  
-  playSound("res/Randomize87.wav", 0.25);
+  auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
 
-  ponderable.setVelocityY(JUMP_VELOCITY(TILE_HEIGHT*4.5, 0.3));
-  ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*4.5, 0.3));
-  
-  animatable.setJumping(true);
+  if (ponderable.getState() == PonderableComponent::state::grounded)
+  {
+    playSound("res/Randomize87.wav", 0.25);
+
+    ponderable.setVelocityY(JUMP_VELOCITY(TILE_HEIGHT*4.5, 0.3));
+    ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*4.5, 0.3));
+    ponderable.setState(PonderableComponent::state::jumping);
+  }
 }
 
-void ControllingSystem::stopJumping(int entity)
+void ControllingSystem::stopJumping(id_type entity)
 {
-  auto& ponderable = game.getEntityManager().getComponent<PonderableComponent>(entity);
-  auto& animatable = game.getEntityManager().getComponent<AnimatableComponent>(entity);
-  
-  ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*3.5, 0.233));
-  animatable.setJumping(false);
+  auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
+
+  if (ponderable.getState() == PonderableComponent::state::jumping)
+  {
+    ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*3.5, 0.233));
+    ponderable.setState(PonderableComponent::state::falling);
+  }
 }
 
-void ControllingSystem::drop(int entity, bool start)
+void ControllingSystem::drop(id_type entity, bool start)
 {
-  auto& animatable = game.getEntityManager().getComponent<AnimatableComponent>(entity);
-  auto& droppable = game.getEntityManager().getComponent<DroppableComponent>(entity);
-  
+  auto& droppable = game_.getEntityManager().getComponent<DroppableComponent>(entity);
+  auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
+
+  if (start && (ponderable.getState() == PonderableComponent::state::grounded))
+  {
+    ponderable.setState(PonderableComponent::state::dropping);
+  } else if ((!start) && (ponderable.getState() == PonderableComponent::state::dropping))
+  {
+    ponderable.setState(PonderableComponent::state::grounded);
+  }
   droppable.setDroppable(start);
-  animatable.setCrouching(start);
 }

@@ -3,24 +3,28 @@
 
 #include "system.h"
 #include <queue>
+#include "entity_manager.h"
 
 class ControllingSystem : public System {
-  public:
-    ControllingSystem(Game& game)
-      : System(game) {}
+public:
 
-    void tick(double dt);
-    void input(int key, int action);
+  ControllingSystem(Game& game) : System(game)
+  {
+  }
 
-  private:
-    void walkLeft(int entity);
-    void walkRight(int entity);
-    void stopWalking(int entity);
-    void jump(int entity);
-    void stopJumping(int entity);
-    void drop(int entity, bool start);
+  void tick(double dt);
+  void input(int key, int action);
 
-    std::queue<std::pair<int,int>> actions;
+private:
+
+  void walkLeft(id_type entity);
+  void walkRight(id_type entity);
+  void stopWalking(id_type entity);
+  void jump(id_type entity);
+  void stopJumping(id_type entity);
+  void drop(id_type entity, bool start);
+
+  std::queue<std::pair<int,int>> actions_;
 };
 
 #endif /* end of include guard: CONTROLLING_H_80B1BB8D */

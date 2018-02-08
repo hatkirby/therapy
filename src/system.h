@@ -1,12 +1,18 @@
 #ifndef SYSTEM_H_B61A8CEA
 #define SYSTEM_H_B61A8CEA
 
+#include "entity_manager.h"
+
 class Game;
 
 class System {
 public:
-  System(Game& game)
-    : game(game) {}
+
+  using id_type = EntityManager::id_type;
+
+  System(Game& game) : game_(game)
+  {
+  }
 
   virtual ~System() = default;
 
@@ -14,7 +20,7 @@ public:
 
 protected:
 
-  Game& game;
+  Game& game_;
 };
 
 #endif /* end of include guard: SYSTEM_H_B61A8CEA */
