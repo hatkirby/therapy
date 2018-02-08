@@ -3,6 +3,7 @@
 
 #include "system.h"
 #include <string>
+#include "renderer.h"
 
 class AnimatingSystem : public System {
 public:
@@ -12,6 +13,8 @@ public:
   }
 
   void tick(double dt);
+
+  void render(Texture& texture);
 
   void startAnimation(id_type entity, std::string animation);
 

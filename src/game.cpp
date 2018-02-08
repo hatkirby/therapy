@@ -5,11 +5,12 @@
 #include "components/droppable.h"
 #include "components/ponderable.h"
 #include "components/orientable.h"
-#include "systems/rendering.h"
 #include "systems/controlling.h"
 #include "systems/pondering.h"
 #include "systems/animating.h"
 #include "animation.h"
+#include "renderer.h"
+#include "consts.h"
 
 void key_callback(GLFWwindow* window, int key, int, int action, int)
 {
@@ -22,14 +23,13 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
     return;
   }
 
-  game.systemManager_.getSystem<ControllingSystem>().input(key, action);
+  game.systemManager_.input(key, action);
 }
 
 Game::Game(GLFWwindow* window) : window_(window)
 {
   systemManager_.emplaceSystem<ControllingSystem>(*this);
   systemManager_.emplaceSystem<PonderingSystem>(*this);
-  systemManager_.emplaceSystem<RenderingSystem>(*this);
   systemManager_.emplaceSystem<AnimatingSystem>(*this);
 
   int player = entityManager_.emplaceEntity();
@@ -64,6 +64,7 @@ void Game::execute()
   double lastTime = glfwGetTime();
   const double dt = 0.01;
   double accumulator = 0.0;
+  Texture texture(GAME_WIDTH, GAME_HEIGHT);
 
   while (!(shouldQuit_ || glfwWindowShouldClose(window_)))
   {
@@ -76,13 +77,14 @@ void Game::execute()
     accumulator += frameTime;
     while (accumulator >= dt)
     {
-      systemManager_.getSystem<ControllingSystem>().tick(dt);
-      systemManager_.getSystem<PonderingSystem>().tick(dt);
-      systemManager_.getSystem<AnimatingSystem>().tick(dt);
+      systemManager_.tick(dt);
 
       accumulator -= dt;
     }
 
-    systemManager_.getSystem<RenderingSystem>().tick(frameTime);
+    // Render
+    texture.fill(texture.entirety(), 0, 0, 0);
+    systemManager_.render(texture);
+    texture.renderScreen();
   }
 }

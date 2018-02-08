@@ -39,6 +39,30 @@ public:
     return *dynamic_cast<T*>(systems[systemType]);
   }
 
+  void tick(double dt)
+  {
+    for (std::unique_ptr<System>& sys : loop)
+    {
+      sys->tick(dt);
+    }
+  }
+
+  virtual void render(Texture& texture)
+  {
+    for (std::unique_ptr<System>& sys : loop)
+    {
+      sys->render(texture);
+    }
+  }
+
+  virtual void input(int key, int action)
+  {
+    for (std::unique_ptr<System>& sys : loop)
+    {
+      sys->input(key, action);
+    }
+  }
+
 };
 
 #endif /* end of include guard: SYSTEM_MANAGER_H_544E6056 */

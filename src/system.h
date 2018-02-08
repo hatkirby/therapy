@@ -4,6 +4,7 @@
 #include "entity_manager.h"
 
 class Game;
+class Texture;
 
 class System {
 public:
@@ -16,7 +17,35 @@ public:
 
   virtual ~System() = default;
 
-  virtual void tick(double dt) = 0;
+  /**
+   * Updates the state of a system.
+   *
+   * @param dt - The amount of time in seconds that have passed since the last
+   *             update.
+   */
+  virtual void tick(double)
+  {
+  }
+
+  /**
+   * Renders to a texture.
+   *
+   * @param texture - The surface to render to.
+   */
+  virtual void render(Texture&)
+  {
+  }
+
+  /**
+   * Processes keyboard input.
+   *
+   * @param key - The relevant key.
+   *
+   * @param action - The action performed (press, released, etc).
+   */
+  virtual void input(int, int)
+  {
+  }
 
 protected:
 
