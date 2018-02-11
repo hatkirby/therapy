@@ -8,6 +8,7 @@
 #include "systems/controlling.h"
 #include "systems/pondering.h"
 #include "systems/animating.h"
+#include "systems/mapping.h"
 #include "animation.h"
 #include "renderer.h"
 #include "consts.h"
@@ -26,10 +27,14 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
   game.systemManager_.input(key, action);
 }
 
-Game::Game(GLFWwindow* window) : window_(window)
+Game::Game(
+  GLFWwindow* window) :
+    window_(window),
+    world_("res/maps.xml")
 {
   systemManager_.emplaceSystem<ControllingSystem>(*this);
   systemManager_.emplaceSystem<PonderingSystem>(*this);
+  systemManager_.emplaceSystem<MappingSystem>(*this);
   systemManager_.emplaceSystem<AnimatingSystem>(*this);
 
   int player = entityManager_.emplaceEntity();
@@ -49,10 +54,15 @@ Game::Game(GLFWwindow* window) : window_(window)
     player,
     203, 44, 10, 12);
 
+  systemManager_.getSystem<PonderingSystem>().initializeBody(
+    player,
+    PonderableComponent::Type::freefalling);
+
   entityManager_.emplaceComponent<DroppableComponent>(player);
-  entityManager_.emplaceComponent<PonderableComponent>(player);
   entityManager_.emplaceComponent<ControllableComponent>(player);
   entityManager_.emplaceComponent<OrientableComponent>(player);
+
+  systemManager_.getSystem<MappingSystem>().loadMap(world_.getStartingMapId());
 
   glfwSwapInterval(1);
   glfwSetWindowUserPointer(window_, this);

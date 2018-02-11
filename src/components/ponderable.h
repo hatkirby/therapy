@@ -6,12 +6,26 @@
 class PonderableComponent : public Component {
 public:
 
-  enum class state {
+  enum class Type {
+    vacuumed,
+    freefalling
+  };
+
+  enum class State {
     grounded,
     jumping,
     falling,
     dropping
   };
+
+  PonderableComponent(Type type) : type_(type)
+  {
+  }
+
+  inline Type getType() const
+  {
+    return type_;
+  }
 
   inline double getVelocityX() const
   {
@@ -53,12 +67,12 @@ public:
     accelY_ = v;
   }
 
-  inline state getState() const
+  inline State getState() const
   {
     return state_;
   }
 
-  inline void setState(state arg)
+  inline void setState(State arg)
   {
     state_ = arg;
   }
@@ -69,7 +83,8 @@ private:
   double velY_ = 0.0;
   double accelX_ = 0.0;
   double accelY_ = 0.0;
-  state state_ = state::grounded;
+  Type type_ = Type::vacuumed;
+  State state_ = State::grounded;
 };
 
 #endif /* end of include guard: TANGIBLE_H_746DB3EE */

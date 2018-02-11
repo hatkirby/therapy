@@ -61,9 +61,11 @@ add_executable(Aromatherapy
   src/entity_manager.cpp
   src/game.cpp
   src/animation.cpp
+  src/world.cpp
   src/systems/controlling.cpp
   src/systems/pondering.cpp
   src/systems/animating.cpp
+  src/systems/mapping.cpp
 )
 target_link_libraries(Aromatherapy ${ALL_LIBS})
 install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})

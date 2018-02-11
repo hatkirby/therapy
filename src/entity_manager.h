@@ -106,7 +106,7 @@ public:
   {
     if ((entity >= entities.size()) || slotAvailable[entity])
     {
-      throw std::invalid_argument("Cannot delete non-existent entity");
+      throw std::invalid_argument("Cannot get non-existent entity");
     }
 
     EntityData& data = entities[entity];
@@ -138,7 +138,7 @@ public:
   {
     if ((entity >= entities.size()) || slotAvailable[entity])
     {
-      throw std::invalid_argument("Cannot delete non-existent entity");
+      throw std::invalid_argument("Cannot get non-existent entity");
     }
 
     EntityData& data = entities[entity];
@@ -167,7 +167,7 @@ public:
   {
     if ((entity >= entities.size()) || slotAvailable[entity])
     {
-      throw std::invalid_argument("Cannot delete non-existent entity");
+      throw std::invalid_argument("Cannot get non-existent entity");
     }
 
     EntityData& data = entities[entity];
@@ -179,6 +179,20 @@ public:
     }
 
     return *dynamic_cast<T*>(data.components[componentType].get());
+  }
+
+  template <class T>
+  bool hasComponent(id_type entity)
+  {
+    if ((entity >= entities.size()) || slotAvailable[entity])
+    {
+      throw std::invalid_argument("Cannot get non-existent entity");
+    }
+
+    EntityData& data = entities[entity];
+    std::type_index componentType = typeid(T);
+
+    return data.components.count(componentType);
   }
 
   template <class... R>

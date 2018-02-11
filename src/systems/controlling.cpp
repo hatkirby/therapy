@@ -123,7 +123,7 @@ void ControllingSystem::walkLeft(id_type entity)
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
 
-  if (ponderable.getState() == PonderableComponent::state::grounded)
+  if (ponderable.getState() == PonderableComponent::State::grounded)
   {
     animating.startAnimation(entity, "walkingLeft");
   } else {
@@ -141,7 +141,7 @@ void ControllingSystem::walkRight(id_type entity)
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
 
-  if (ponderable.getState() == PonderableComponent::state::grounded)
+  if (ponderable.getState() == PonderableComponent::State::grounded)
   {
     animating.startAnimation(entity, "walkingRight");
   } else {
@@ -156,7 +156,7 @@ void ControllingSystem::stopWalking(id_type entity)
 
   ponderable.setVelocityX(0);
 
-  if (ponderable.getState() == PonderableComponent::state::grounded)
+  if (ponderable.getState() == PonderableComponent::State::grounded)
   {
     auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
 
@@ -173,13 +173,13 @@ void ControllingSystem::jump(id_type entity)
 {
   auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
 
-  if (ponderable.getState() == PonderableComponent::state::grounded)
+  if (ponderable.getState() == PonderableComponent::State::grounded)
   {
     playSound("res/Randomize87.wav", 0.25);
 
     ponderable.setVelocityY(JUMP_VELOCITY(TILE_HEIGHT*4.5, 0.3));
     ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*4.5, 0.3));
-    ponderable.setState(PonderableComponent::state::jumping);
+    ponderable.setState(PonderableComponent::State::jumping);
   }
 }
 
@@ -187,10 +187,10 @@ void ControllingSystem::stopJumping(id_type entity)
 {
   auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
 
-  if (ponderable.getState() == PonderableComponent::state::jumping)
+  if (ponderable.getState() == PonderableComponent::State::jumping)
   {
     ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*3.5, 0.233));
-    ponderable.setState(PonderableComponent::state::falling);
+    ponderable.setState(PonderableComponent::State::falling);
   }
 }
 
@@ -199,12 +199,12 @@ void ControllingSystem::drop(id_type entity, bool start)
   auto& droppable = game_.getEntityManager().getComponent<DroppableComponent>(entity);
   auto& ponderable = game_.getEntityManager().getComponent<PonderableComponent>(entity);
 
-  if (start && (ponderable.getState() == PonderableComponent::state::grounded))
+  if (start && (ponderable.getState() == PonderableComponent::State::grounded))
   {
-    ponderable.setState(PonderableComponent::state::dropping);
-  } else if ((!start) && (ponderable.getState() == PonderableComponent::state::dropping))
+    ponderable.setState(PonderableComponent::State::dropping);
+  } else if ((!start) && (ponderable.getState() == PonderableComponent::State::dropping))
   {
-    ponderable.setState(PonderableComponent::state::grounded);
+    ponderable.setState(PonderableComponent::State::grounded);
   }
   droppable.setDroppable(start);
 }

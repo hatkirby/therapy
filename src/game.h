@@ -4,6 +4,7 @@
 #include "renderer.h"
 #include "entity_manager.h"
 #include "system_manager.h"
+#include "world.h"
 
 class Game {
 public:
@@ -22,6 +23,11 @@ public:
     return systemManager_;
   }
 
+  inline const World& getWorld()
+  {
+    return world_;
+  }
+
   friend void key_callback(
     GLFWwindow* window,
     int key,
@@ -31,9 +37,10 @@ public:
 
 private:
 
+  GLFWwindow* const window_;
   EntityManager entityManager_;
   SystemManager systemManager_;
-  GLFWwindow* const window_;
+  World world_;
   bool shouldQuit_ = false;
 };
 
