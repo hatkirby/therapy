@@ -3,8 +3,6 @@
 #include "game.h"
 #include "consts.h"
 
-#include <iostream>
-
 template <typename Storage>
 inline void addBoundary(
   Storage& boundaries,

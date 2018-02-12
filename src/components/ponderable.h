@@ -11,13 +11,6 @@ public:
     freefalling
   };
 
-  enum class State {
-    grounded,
-    jumping,
-    falling,
-    dropping
-  };
-
   PonderableComponent(Type type) : type_(type)
   {
   }
@@ -67,14 +60,14 @@ public:
     accelY_ = v;
   }
 
-  inline State getState() const
+  inline bool isGrounded() const
   {
-    return state_;
+    return grounded_;
   }
 
-  inline void setState(State arg)
+  inline void setGrounded(bool v)
   {
-    state_ = arg;
+    grounded_ = v;
   }
 
 private:
@@ -84,7 +77,7 @@ private:
   double accelX_ = 0.0;
   double accelY_ = 0.0;
   Type type_ = Type::vacuumed;
-  State state_ = State::grounded;
+  bool grounded_ = false;
 };
 
 #endif /* end of include guard: TANGIBLE_H_746DB3EE */

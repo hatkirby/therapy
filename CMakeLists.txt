@@ -66,6 +66,7 @@ add_executable(Aromatherapy
   src/systems/pondering.cpp
   src/systems/animating.cpp
   src/systems/mapping.cpp
+  src/systems/orienting.cpp
 )
 target_link_libraries(Aromatherapy ${ALL_LIBS})
 install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})

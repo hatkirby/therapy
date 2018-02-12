@@ -3,7 +3,6 @@
 
 #include "system.h"
 #include <queue>
-#include "entity_manager.h"
 
 class ControllingSystem : public System {
 public:
@@ -16,13 +15,6 @@ public:
   void input(int key, int action);
 
 private:
-
-  void walkLeft(id_type entity);
-  void walkRight(id_type entity);
-  void stopWalking(id_type entity);
-  void jump(id_type entity);
-  void stopJumping(id_type entity);
-  void drop(id_type entity, bool start);
 
   std::queue<std::pair<int,int>> actions_;
 };

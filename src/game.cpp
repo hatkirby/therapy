@@ -2,13 +2,13 @@
 #include "components/animatable.h"
 #include "components/transformable.h"
 #include "components/controllable.h"
-#include "components/droppable.h"
 #include "components/ponderable.h"
 #include "components/orientable.h"
 #include "systems/controlling.h"
 #include "systems/pondering.h"
 #include "systems/animating.h"
 #include "systems/mapping.h"
+#include "systems/orienting.h"
 #include "animation.h"
 #include "renderer.h"
 #include "consts.h"
@@ -33,6 +33,7 @@ Game::Game(
     world_("res/maps.xml")
 {
   systemManager_.emplaceSystem<ControllingSystem>(*this);
+  systemManager_.emplaceSystem<OrientingSystem>(*this);
   systemManager_.emplaceSystem<PonderingSystem>(*this);
   systemManager_.emplaceSystem<MappingSystem>(*this);
   systemManager_.emplaceSystem<AnimatingSystem>(*this);
@@ -58,7 +59,6 @@ Game::Game(
     player,
     PonderableComponent::Type::freefalling);
 
-  entityManager_.emplaceComponent<DroppableComponent>(player);
   entityManager_.emplaceComponent<ControllableComponent>(player);
   entityManager_.emplaceComponent<OrientableComponent>(player);
 

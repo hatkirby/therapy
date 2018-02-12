@@ -2,7 +2,9 @@
 #include "game.h"
 #include "components/ponderable.h"
 #include "components/transformable.h"
-#include "components/droppable.h"
+#include "components/orientable.h"
+#include "components/mappable.h"
+#include "systems/orienting.h"
 #include "consts.h"
 
 void PonderingSystem::tick(double dt)
@@ -37,10 +39,8 @@ void PonderingSystem::tick(double dt)
     double newX = oldX + ponderable.getVelocityX() * dt;
     double newY = oldY + ponderable.getVelocityY() * dt;
 
-    if (ponderable.getVelocityY() > 0.0)
-    {
-      ponderable.setState(PonderableComponent::State::falling);
-    }
+    bool oldGrounded = ponderable.isGrounded();
+    ponderable.setGrounded(false);
 
     for (id_type mapEntity : maps)
     {
@@ -64,8 +64,6 @@ void PonderingSystem::tick(double dt)
               newY,
               it->first,
               it->second.getType());
-
-            break;
           }
         }
       } else if (newX > oldX)
@@ -86,8 +84,6 @@ void PonderingSystem::tick(double dt)
               newY,
               it->first,
               it->second.getType());
-
-            break;
           }
         }
       }
@@ -109,8 +105,6 @@ void PonderingSystem::tick(double dt)
               newY,
               it->first,
               it->second.getType());
-
-            break;
           }
         }
       } else if (newY > oldY)
@@ -131,8 +125,6 @@ void PonderingSystem::tick(double dt)
               newY,
               it->first,
               it->second.getType());
-
-            break;
           }
         }
       }
@@ -141,6 +133,31 @@ void PonderingSystem::tick(double dt)
     // Move
     transformable.setX(newX);
     transformable.setY(newY);
+
+    // Perform cleanup for orientable entites
+    if (game_.getEntityManager().hasComponent<OrientableComponent>(entity))
+    {
+      auto& orientable = game_.getEntityManager().
+        getComponent<OrientableComponent>(entity);
+
+      // Handle changes in groundedness
+      if (ponderable.isGrounded() != oldGrounded)
+      {
+        if (ponderable.isGrounded())
+        {
+          game_.getSystemManager().getSystem<OrientingSystem>().land(entity);
+        } else {
+          game_.getSystemManager().
+            getSystem<OrientingSystem>().startFalling(entity);
+        }
+      }
+
+      // Complete dropping, if necessary
+      if (orientable.getDropState() == OrientableComponent::DropState::active)
+      {
+        orientable.setDropState(OrientableComponent::DropState::none);
+      }
+    }
   }
 }
 
@@ -153,8 +170,7 @@ void PonderingSystem::initializeBody(
 
   if (type == PonderableComponent::Type::freefalling)
   {
-    ponderable.setAccelY(JUMP_GRAVITY(TILE_HEIGHT*3.5, 0.233));
-    ponderable.setState(PonderableComponent::State::falling);
+    ponderable.setAccelY(NORMAL_GRAVITY);
   }
 }
 
@@ -171,6 +187,8 @@ void PonderingSystem::processCollision(
 
   auto& transformable = game_.getEntityManager().
     getComponent<TransformableComponent>(entity);
+
+  bool touchedGround = false;
 
   switch (type)
   {
@@ -204,13 +222,7 @@ void PonderingSystem::processCollision(
 
         case Direction::down:
         {
-          newY = axis - transformable.getH();
-          ponderable.setVelocityY(0.0);
-
-          if (ponderable.getState() == PonderableComponent::State::falling)
-          {
-            ponderable.setState(PonderableComponent::State::grounded);
-          }
+          touchedGround = true;
 
           break;
         }
@@ -221,31 +233,19 @@ void PonderingSystem::processCollision(
 
     case MappableComponent::Boundary::Type::platform:
     {
-      if (game_.getEntityManager().hasComponent<DroppableComponent>(entity))
+      if (game_.getEntityManager().hasComponent<OrientableComponent>(entity))
       {
-        auto& droppable = game_.getEntityManager().
-          getComponent<DroppableComponent>(entity);
+        auto& orientable = game_.getEntityManager().
+          getComponent<OrientableComponent>(entity);
 
-        if (droppable.isDroppable())
+        if (orientable.getDropState() != OrientableComponent::DropState::none)
         {
-          droppable.setDroppable(false);
+          orientable.setDropState(OrientableComponent::DropState::active);
         } else {
-          newY = axis - transformable.getH();
-          ponderable.setVelocityY(0.0);
-
-          if (ponderable.getState() == PonderableComponent::State::falling)
-          {
-            ponderable.setState(PonderableComponent::State::grounded);
-          }
+          touchedGround = true;
         }
       } else {
-        newY = axis - transformable.getH();
-        ponderable.setVelocityY(0.0);
-
-        if (ponderable.getState() == PonderableComponent::State::falling)
-        {
-          ponderable.setState(PonderableComponent::State::grounded);
-        }
+        touchedGround = true;
       }
 
       break;
@@ -257,5 +257,12 @@ void PonderingSystem::processCollision(
 
       break;
     }
+  }
+
+  if (touchedGround)
+  {
+    newY = axis - transformable.getH();
+    ponderable.setVelocityY(0.0);
+    ponderable.setGrounded(true);
   }
 }
