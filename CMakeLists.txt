@@ -1,32 +1,18 @@
-cmake_minimum_required(VERSION 2.6)
-project(Aromatherapy)
+cmake_minimum_required (VERSION 3.1)
+project (Aromatherapy)
 
-# Use our modified FindSDL2* modules
+set(CMAKE_BUILD_TYPE Debug)
+
+# Set directory to look for package helpers.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${Aromatherapy_SOURCE_DIR}/cmake")
-# Set an output directory for our binaries
-set(BIN_DIR ${Aromatherapy_SOURCE_DIR}/bin)
 
-# Bump up warning levels appropriately for clang, gcc & msvc
-# Also set debug/optimization flags depending on the build type. IDE users choose this when
-# selecting the build mode in their IDE
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -std=c++11")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -g")
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE} -O2")
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-	if (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-		string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-	endif()
-endif()
+# Get dependencies.
 
 find_package(PkgConfig)
+pkg_check_modules(GLFW REQUIRED glfw3)
 
-# Look up SDL2 and add the include directory to our include path
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
 find_package(portaudio REQUIRED)
 find_package(libsndfile REQUIRED)
 find_package(libxml2 REQUIRED)
@@ -52,8 +38,6 @@ link_directories(
   ${GLFW_LIBRARY_DIRS}
 )
 
-# include_directories(${SDL2_INCLUDE_DIR})
-set(CMAKE_BUILD_TYPE Debug)
 add_executable(Aromatherapy
   src/main.cpp
   src/renderer.cpp
@@ -68,5 +52,7 @@ add_executable(Aromatherapy
   src/systems/mapping.cpp
   src/systems/orienting.cpp
 )
+
+set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 11)
+set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(Aromatherapy ${ALL_LIBS})
-install(TARGETS Aromatherapy RUNTIME DESTINATION ${BIN_DIR})

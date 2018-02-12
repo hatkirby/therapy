@@ -15,6 +15,7 @@
 static std::list<wxWindow*> openWindows;
 
 enum {
+  IGNORE,
   MENU_VIEW_ZOOM_IN,
   MENU_VIEW_ZOOM_OUT,
   MENU_FILE_NEW,
