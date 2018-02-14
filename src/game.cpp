@@ -40,7 +40,7 @@ Game::Game(
 
   int player = entityManager_.emplaceEntity();
 
-  AnimationSet playerGraphics {"res/Starla2.bmp", 10, 12, 6};
+  AnimationSet playerGraphics {"res/Starla.png", 10, 12, 6};
   playerGraphics.emplaceAnimation("stillLeft", 3, 1, 1);
   playerGraphics.emplaceAnimation("stillRight", 0, 1, 1);
   playerGraphics.emplaceAnimation("walkingLeft", 4, 2, 10);

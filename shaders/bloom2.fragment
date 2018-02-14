@@ -2,7 +2,7 @@
 
 in vec2 UV;
 
-out vec3 color;
+out vec4 color;
 
 uniform sampler2D clearTex;
 uniform sampler2D blurTex;
@@ -15,19 +15,21 @@ float nrand(vec2 n)
 
 void main()
 {
-  color = vec3(0.0);
-  color += texture(clearTex, UV).rgb / 2.0;
-  color += texture(blurTex, UV).rgb;
-  color = max(vec3(0.0), color - 0.5);
-  color *= color;
-  
+  vec3 mval = vec3(0.0);
+  mval += texture(clearTex, UV).rgb / 2.0;
+  mval += texture(blurTex, UV).rgb;
+  mval = max(vec3(0.0), mval - 0.5);
+  mval *= mval;
+
   float flicker =  0.5 + nrand(vec2(iGlobalTime));
   flicker *= (flicker);
   //flicker = sqrt(flicker);
   //flicker = pow(flicker, 1.0/8.0);
-  //color *= flicker;
-  color *= mix(vec3(0.0), color, flicker);
-  
-  color += texture(clearTex, UV).rgb;
-  color = clamp(color, vec3(0.0), vec3(1.0));
+  //mval *= flicker;
+  mval *= mix(vec3(0.0), mval, flicker);
+
+  mval += texture(clearTex, UV).rgb;
+  mval = clamp(mval, vec3(0.0), vec3(1.0));
+
+  color = vec4(mval, 1.0);
 }

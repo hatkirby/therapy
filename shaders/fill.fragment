@@ -1,10 +1,10 @@
 #version 330 core
 
-out vec3 color;
+out vec4 color;
 
 uniform vec3 vecColor;
 
 void main()
 {
-  color = vecColor;
+  color = vec4(vecColor, 1.0);
 }

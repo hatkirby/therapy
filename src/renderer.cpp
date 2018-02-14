@@ -33,8 +33,6 @@ static GLuint bloom1Shader;
 static GLuint bloom2Shader;
 
 // The buffers for the NTSC rendering process
-static GLuint renderedTex1;
-static GLuint renderedTex2;
 static GLuint renderedTexBufs[2];
 static int curBuf;
 static GLuint artifactsTex;
@@ -148,6 +146,10 @@ void flipImageData(unsigned char* data, int width, int height, int comps)
 
 void loadMesh(const char* filename, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals)
 {
+  out_vertices.clear();
+  out_uvs.clear();
+  out_normals.clear();
+
   FILE* file = fopen(filename, "r");
   if (file == nullptr)
   {
@@ -308,34 +310,33 @@ GLFWwindow* initRenderer()
   GLenum DrawBuffers2[1] = {GL_COLOR_ATTACHMENT1};
   glDrawBuffers(1, DrawBuffers2);
 
+  glfwGetFramebufferSize(window, &buffer_width, &buffer_height);
+
   glGenRenderbuffers(1, &bloom_depthbuffer);
   glBindRenderbuffer(GL_RENDERBUFFER, bloom_depthbuffer);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, buffer_width, buffer_height);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, bloom_depthbuffer);
 
   // Set up the NTSC rendering buffers
-  glGenTextures(1, &renderedTex1);
-  glBindTexture(GL_TEXTURE_2D, renderedTex1);
+  glGenTextures(2, renderedTexBufs);
+  glBindTexture(GL_TEXTURE_2D, renderedTexBufs[0]);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GAME_WIDTH, GAME_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  renderedTexBufs[0] = renderedTex1;
 
-  glGenTextures(1, &renderedTex2);
-  glBindTexture(GL_TEXTURE_2D, renderedTex2);
+  glBindTexture(GL_TEXTURE_2D, renderedTexBufs[1]);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, GAME_WIDTH, GAME_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  renderedTexBufs[1] = renderedTex2;
 
   // Set up bloom rendering buffers
   glGenTextures(1, &preBloomTex);
   glBindTexture(GL_TEXTURE_2D, preBloomTex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, buffer_width, buffer_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -343,7 +344,7 @@ GLFWwindow* initRenderer()
 
   glGenTextures(1, &bloomPassTex1);
   glBindTexture(GL_TEXTURE_2D, bloomPassTex1);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024/4, 768/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, buffer_width/4, buffer_height/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -351,7 +352,7 @@ GLFWwindow* initRenderer()
 
   glGenTextures(1, &bloomPassTex2);
   glBindTexture(GL_TEXTURE_2D, bloomPassTex2);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024/4, 768/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, buffer_width/4, buffer_height/4, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -370,15 +371,15 @@ GLFWwindow* initRenderer()
 
   glGenBuffers(1, &mesh_vertexbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh_vertices.size() * sizeof(glm::vec3), &mesh_vertices[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh_vertices.size() * sizeof(glm::vec3), mesh_vertices.data(), GL_STATIC_DRAW);
 
   glGenBuffers(1, &mesh_uvbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_uvbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh_uvs.size() * sizeof(glm::vec3), &mesh_uvs[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh_uvs.size() * sizeof(glm::vec2), mesh_uvs.data(), GL_STATIC_DRAW);
 
   glGenBuffers(1, &mesh_normalbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, mesh_normalbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh_normals.size() * sizeof(glm::vec3), &mesh_normals[0], GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh_normals.size() * sizeof(glm::vec3), mesh_normals.data(), GL_STATIC_DRAW);
 
   // Load the vertices of a flat surface
   GLfloat g_quad_vertex_buffer_data[] = {
@@ -452,8 +453,7 @@ void destroyRenderer()
   glDeleteProgram(bloom2Shader);
 
   // Delete the NTSC rendering buffers
-  glDeleteTextures(1, &renderedTex1);
-  glDeleteTextures(1, &renderedTex2);
+  glDeleteTextures(2, renderedTexBufs);
   glDeleteTextures(1, &artifactsTex);
   glDeleteTextures(1, &scanlinesTex);
   glDeleteTextures(1, &preBloomTex);

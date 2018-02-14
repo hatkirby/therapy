@@ -5,7 +5,7 @@ in vec3 normIn;
 in vec3 camDirIn;
 in vec3 lightDirIn;
 
-out vec3 color;
+out vec4 color;
 
 uniform sampler2D rendertex;
 uniform sampler2D scanlinestex;
@@ -71,5 +71,5 @@ void main()
   vec4 nearfinal = colorfres + colordiff + colorspec + emissive;
   //vec4 final = nearfinal * mix(vec4(1,1,1,1), vec4(0,0,0, 0), Tuning_Dimming);
   
-  color = nearfinal.rgb;
+  color = nearfinal;
 }
