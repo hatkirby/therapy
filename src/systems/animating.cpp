@@ -51,8 +51,9 @@ void AnimatingSystem::render(Texture& texture)
       transform.getH()};
 
     const AnimationSet& aset = sprite.getAnimationSet();
-    texture.blit(
+    game_.getRenderer().blit(
       aset.getTexture(),
+      texture,
       aset.getFrameRect(sprite.getFrame()),
       dstrect);
   }

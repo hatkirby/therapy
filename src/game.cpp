@@ -10,12 +10,11 @@
 #include "systems/mapping.h"
 #include "systems/orienting.h"
 #include "animation.h"
-#include "renderer.h"
 #include "consts.h"
 
 void key_callback(GLFWwindow* window, int key, int, int action, int)
 {
-  Game& game = *((Game*) glfwGetWindowUserPointer(window));
+  Game& game = *static_cast<Game*>(glfwGetWindowUserPointer(window));
 
   if ((action == GLFW_PRESS) && (key == GLFW_KEY_ESCAPE))
   {
@@ -27,10 +26,7 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
   game.systemManager_.input(key, action);
 }
 
-Game::Game(
-  GLFWwindow* window) :
-    window_(window),
-    world_("res/maps.xml")
+Game::Game() : world_("res/maps.xml")
 {
   systemManager_.emplaceSystem<ControllingSystem>(*this);
   systemManager_.emplaceSystem<OrientingSystem>(*this);
@@ -65,8 +61,8 @@ Game::Game(
   systemManager_.getSystem<MappingSystem>().loadMap(world_.getStartingMapId());
 
   glfwSwapInterval(1);
-  glfwSetWindowUserPointer(window_, this);
-  glfwSetKeyCallback(window_, key_callback);
+  glfwSetWindowUserPointer(renderer_.getWindow().getHandle(), this);
+  glfwSetKeyCallback(renderer_.getWindow().getHandle(), key_callback);
 }
 
 void Game::execute()
@@ -76,7 +72,8 @@ void Game::execute()
   double accumulator = 0.0;
   Texture texture(GAME_WIDTH, GAME_HEIGHT);
 
-  while (!(shouldQuit_ || glfwWindowShouldClose(window_)))
+  while (!(shouldQuit_ ||
+    glfwWindowShouldClose(renderer_.getWindow().getHandle())))
   {
     double currentTime = glfwGetTime();
     double frameTime = currentTime - lastTime;
@@ -93,8 +90,8 @@ void Game::execute()
     }
 
     // Render
-    texture.fill(texture.entirety(), 0, 0, 0);
+    renderer_.fill(texture, texture.entirety(), 0, 0, 0);
     systemManager_.render(texture);
-    texture.renderScreen();
+    renderer_.renderScreen(texture);
   }
 }

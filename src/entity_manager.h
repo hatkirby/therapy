@@ -7,7 +7,7 @@
 #include <set>
 #include <stdexcept>
 #include "component.h"
-#include "algorithms.h"
+#include "util.h"
 
 class EntityManager {
 private:

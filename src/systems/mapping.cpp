@@ -48,7 +48,11 @@ void MappingSystem::render(Texture& texture)
           TILE_WIDTH,
           TILE_HEIGHT};
 
-        texture.blit(mappable.getTileset(), std::move(src), std::move(dst));
+        game_.getRenderer().blit(
+          mappable.getTileset(),
+          texture,
+          std::move(src),
+          std::move(dst));
       }
     }
 
@@ -67,7 +71,11 @@ void MappingSystem::render(Texture& texture)
         TILE_WIDTH,
         TILE_HEIGHT};
 
-      texture.blit(mappable.getFont(), std::move(src), std::move(dst));
+      game_.getRenderer().blit(
+        mappable.getFont(),
+        texture,
+        std::move(src),
+        std::move(dst));
     }
   }
 }

@@ -3,7 +3,7 @@
 
 #include <map>
 #include "component.h"
-#include "renderer.h"
+#include "renderer/texture.h"
 #include "map.h"
 
 class MappableComponent : public Component {

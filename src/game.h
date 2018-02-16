@@ -1,17 +1,22 @@
 #ifndef GAME_H_1014DDC9
 #define GAME_H_1014DDC9
 
-#include "renderer.h"
 #include "entity_manager.h"
 #include "system_manager.h"
 #include "world.h"
+#include "renderer/renderer.h"
 
 class Game {
 public:
 
-  Game(GLFWwindow* window);
+  Game();
 
   void execute();
+
+  inline Renderer& getRenderer()
+  {
+    return renderer_;
+  }
 
   inline EntityManager& getEntityManager()
   {
@@ -37,7 +42,7 @@ public:
 
 private:
 
-  GLFWwindow* const window_;
+  Renderer renderer_;
   EntityManager entityManager_;
   SystemManager systemManager_;
   World world_;

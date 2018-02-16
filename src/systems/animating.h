@@ -3,7 +3,7 @@
 
 #include "system.h"
 #include <string>
-#include "renderer.h"
+#include "renderer/texture.h"
 
 class AnimatingSystem : public System {
 public:

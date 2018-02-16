@@ -49,12 +49,16 @@ link_directories(
 
 add_executable(Aromatherapy
   src/main.cpp
-  src/renderer.cpp
   src/muxer.cpp
   src/entity_manager.cpp
   src/game.cpp
   src/animation.cpp
   src/world.cpp
+  src/util.cpp
+  src/renderer/renderer.cpp
+  src/renderer/mesh.cpp
+  src/renderer/shader.cpp
+  src/renderer/texture.cpp
   src/systems/controlling.cpp
   src/systems/pondering.cpp
   src/systems/animating.cpp

@@ -1,7 +1,7 @@
 #ifndef ANIMATION_H_74EB0901
 #define ANIMATION_H_74EB0901
 
-#include "renderer.h"
+#include "renderer/texture.h"
 #include <string>
 #include <map>
 #include <stdexcept>

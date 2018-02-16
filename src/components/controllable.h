@@ -2,7 +2,7 @@
 #define CONTROLLABLE_H_4E0B85B4
 
 #include "component.h"
-#include "renderer.h"
+#include "renderer/gl.h"
 
 class ControllableComponent : public Component {
 public:
