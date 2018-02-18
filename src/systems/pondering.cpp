@@ -27,6 +27,11 @@ void PonderingSystem::tick(double dt)
     auto& ponderable = game_.getEntityManager().
       getComponent<PonderableComponent>(entity);
 
+    if (ponderable.isFrozen())
+    {
+      continue;
+    }
+
     // Accelerate
     ponderable.setVelocityX(
       ponderable.getVelocityX() + ponderable.getAccelX() * dt);
@@ -289,6 +294,17 @@ void PonderingSystem::tick(double dt)
               break;
             }
           }
+
+          break;
+        }
+
+        case Collision::Type::danger:
+        {
+          game_.getSystemManager().getSystem<PlayingSystem>().die();
+
+          stopProcessing = true;
+
+          break;
         }
 
         default:

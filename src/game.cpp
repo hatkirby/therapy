@@ -10,6 +10,7 @@
 #include "systems/mapping.h"
 #include "systems/orienting.h"
 #include "systems/playing.h"
+#include "systems/scheduling.h"
 #include "animation.h"
 #include "consts.h"
 
@@ -30,6 +31,7 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 Game::Game() : world_("res/maps.xml")
 {
   systemManager_.emplaceSystem<PlayingSystem>(*this);
+  systemManager_.emplaceSystem<SchedulingSystem>(*this);
   systemManager_.emplaceSystem<ControllingSystem>(*this);
   systemManager_.emplaceSystem<OrientingSystem>(*this);
   systemManager_.emplaceSystem<PonderingSystem>(*this);

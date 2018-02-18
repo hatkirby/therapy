@@ -12,7 +12,12 @@ public:
   }
 
   void tick(double dt);
+
   void input(int key, int action);
+
+  void freeze(id_type entity);
+
+  void unfreeze(id_type entity);
 
 private:
 

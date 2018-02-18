@@ -70,6 +70,26 @@ public:
     grounded_ = v;
   }
 
+  inline bool isFrozen() const
+  {
+    return frozen_;
+  }
+
+  inline void setFrozen(bool v)
+  {
+    frozen_ = v;
+  }
+
+  inline bool isCollidable() const
+  {
+    return collidable_;
+  }
+
+  inline void setCollidable(bool v)
+  {
+    collidable_ = v;
+  }
+
 private:
 
   double velX_ = 0.0;
@@ -78,6 +98,8 @@ private:
   double accelY_ = 0.0;
   Type type_ = Type::vacuumed;
   bool grounded_ = false;
+  bool frozen_ = false;
+  bool collidable_ = true;
 };
 
 #endif /* end of include guard: TANGIBLE_H_746DB3EE */

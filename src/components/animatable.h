@@ -51,12 +51,45 @@ public:
     animation_ = std::move(animation);
   }
 
+  inline bool isFlickering() const
+  {
+    return flickering_;
+  }
+
+  inline void setFlickering(bool v)
+  {
+    flickering_ = v;
+  }
+
+  inline size_t getFlickerTimer() const
+  {
+    return flickerTimer_;
+  }
+
+  inline void setFlickerTimer(size_t v)
+  {
+    flickerTimer_ = v;
+  }
+
+  inline bool isFrozen() const
+  {
+    return frozen_;
+  }
+
+  inline void setFrozen(bool v)
+  {
+    frozen_ = v;
+  }
+
 private:
 
   AnimationSet animationSet_;
   std::string animation_;
   size_t frame_ = 0;
   size_t countdown_ = 0;
+  bool flickering_ = false;
+  size_t flickerTimer_ = 0;
+  bool frozen_ = false;
 };
 
 #endif /* end of include guard: SPRITE_RENDERABLE_H_D3AACBBF */

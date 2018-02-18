@@ -13,7 +13,10 @@ void AnimatingSystem::tick(double)
     auto& sprite = game_.getEntityManager().
       getComponent<AnimatableComponent>(entity);
 
-    sprite.setCountdown(sprite.getCountdown() + 1);
+    if (!sprite.isFrozen())
+    {
+      sprite.setCountdown(sprite.getCountdown() + 1);
+    }
 
     const Animation& anim = sprite.getAnimation();
     if (sprite.getCountdown() >= anim.getDelay())
@@ -25,6 +28,11 @@ void AnimatingSystem::tick(double)
       {
         sprite.setFrame(anim.getFirstFrame());
       }
+    }
+
+    if (sprite.isFlickering())
+    {
+      sprite.setFlickerTimer((sprite.getFlickerTimer() + 1) % 6);
     }
   }
 }
@@ -44,6 +52,12 @@ void AnimatingSystem::render(Texture& texture)
     auto& transform = game_.getEntityManager().
       getComponent<TransformableComponent>(entity);
 
+    double alpha = 1.0;
+    if (sprite.isFlickering() && (sprite.getFlickerTimer() < 3))
+    {
+      alpha = 0.0;
+    }
+
     Rectangle dstrect {
       static_cast<int>(transform.getX()),
       static_cast<int>(transform.getY()),
@@ -55,7 +69,8 @@ void AnimatingSystem::render(Texture& texture)
       aset.getTexture(),
       texture,
       aset.getFrameRect(sprite.getFrame()),
-      dstrect);
+      dstrect,
+      alpha);
   }
 }
 

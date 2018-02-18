@@ -167,8 +167,29 @@ void MappingSystem::loadMap(size_t mapId)
     } else if (tile == 42)
     {
       addBoundary(
+        mappable.getRightBoundaries(),
+        x * TILE_WIDTH,
+        y * TILE_HEIGHT,
+        (y+1) * TILE_HEIGHT,
+        MappableComponent::Boundary::Type::danger);
+
+      addBoundary(
+        mappable.getLeftBoundaries(),
+        (x+1) * TILE_WIDTH,
+        y * TILE_HEIGHT,
+        (y+1) * TILE_HEIGHT,
+        MappableComponent::Boundary::Type::danger);
+
+      addBoundary(
         mappable.getDownBoundaries(),
         y * TILE_HEIGHT,
+        x * TILE_WIDTH,
+        (x+1) * TILE_WIDTH,
+        MappableComponent::Boundary::Type::danger);
+
+      addBoundary(
+        mappable.getUpBoundaries(),
+        (y+1) * TILE_HEIGHT,
         x * TILE_WIDTH,
         (x+1) * TILE_WIDTH,
         MappableComponent::Boundary::Type::danger);

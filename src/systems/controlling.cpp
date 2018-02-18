@@ -105,3 +105,32 @@ void ControllingSystem::input(int key, int action)
 {
   actions_.push(std::make_pair(key, action));
 }
+
+void ControllingSystem::freeze(id_type entity)
+{
+  auto& controllable = game_.getEntityManager().
+    getComponent<ControllableComponent>(entity);
+
+  controllable.setFrozen(true);
+}
+
+void ControllingSystem::unfreeze(id_type entity)
+{
+  auto& controllable = game_.getEntityManager().
+    getComponent<ControllableComponent>(entity);
+
+  if (controllable.isFrozen())
+  {
+    controllable.setFrozen(false);
+
+    auto& orienting = game_.getSystemManager().getSystem<OrientingSystem>();
+
+    if (controllable.isHoldingLeft())
+    {
+      orienting.moveLeft(entity);
+    } else if (controllable.isHoldingRight())
+    {
+      orienting.moveRight(entity);
+    }
+  }
+}

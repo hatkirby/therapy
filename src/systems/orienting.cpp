@@ -93,24 +93,18 @@ void OrientingSystem::moveRight(id_type entity)
 
 void OrientingSystem::stopWalking(id_type entity)
 {
-  auto& ponderable = game_.getEntityManager().
-    getComponent<PonderableComponent>(entity);
-
   auto& orientable = game_.getEntityManager().
     getComponent<OrientableComponent>(entity);
 
   orientable.setWalkState(OrientableComponent::WalkState::still);
 
-  if (ponderable.isGrounded())
-  {
-    auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
+  auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
 
-    if (orientable.isFacingRight())
-    {
-      animating.startAnimation(entity, "stillRight");
-    } else {
-      animating.startAnimation(entity, "stillLeft");
-    }
+  if (orientable.isFacingRight())
+  {
+    animating.startAnimation(entity, "stillRight");
+  } else {
+    animating.startAnimation(entity, "stillLeft");
   }
 }
 

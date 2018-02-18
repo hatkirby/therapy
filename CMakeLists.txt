@@ -66,6 +66,7 @@ add_executable(Aromatherapy
   src/systems/mapping.cpp
   src/systems/orienting.cpp
   src/systems/playing.cpp
+  src/systems/scheduling.cpp
 )
 
 set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 11)
