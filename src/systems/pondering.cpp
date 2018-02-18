@@ -1,11 +1,14 @@
 #include "pondering.h"
+#include <queue>
 #include "game.h"
 #include "components/ponderable.h"
 #include "components/transformable.h"
 #include "components/orientable.h"
 #include "components/mappable.h"
 #include "systems/orienting.h"
+#include "systems/playing.h"
 #include "consts.h"
+#include "collision.h"
 
 void PonderingSystem::tick(double dt)
 {
@@ -42,6 +45,9 @@ void PonderingSystem::tick(double dt)
     bool oldGrounded = ponderable.isGrounded();
     ponderable.setGrounded(false);
 
+    std::priority_queue<Collision> collisions;
+
+    // Find collisions
     for (id_type mapEntity : maps)
     {
       auto& mappable = game_.getEntityManager().
@@ -57,13 +63,13 @@ void PonderingSystem::tick(double dt)
             && (oldY < it->second.getUpper()))
           {
             // We have a collision!
-            processCollision(
-              entity,
+            collisions.emplace(
+              mapEntity,
               Direction::left,
-              newX,
-              newY,
+              it->second.getType(),
               it->first,
-              it->second.getType());
+              it->second.getLower(),
+              it->second.getUpper());
           }
         }
       } else if (newX > oldX)
@@ -77,13 +83,13 @@ void PonderingSystem::tick(double dt)
             && (oldY < it->second.getUpper()))
           {
             // We have a collision!
-            processCollision(
-              entity,
+            collisions.emplace(
+              mapEntity,
               Direction::right,
-              newX,
-              newY,
+              it->second.getType(),
               it->first,
-              it->second.getType());
+              it->second.getLower(),
+              it->second.getUpper());
           }
         }
       }
@@ -98,13 +104,13 @@ void PonderingSystem::tick(double dt)
             && (oldX < it->second.getUpper()))
           {
             // We have a collision!
-            processCollision(
-              entity,
+            collisions.emplace(
+              mapEntity,
               Direction::up,
-              newX,
-              newY,
+              it->second.getType(),
               it->first,
-              it->second.getType());
+              it->second.getLower(),
+              it->second.getUpper());
           }
         }
       } else if (newY > oldY)
@@ -118,13 +124,221 @@ void PonderingSystem::tick(double dt)
             && (oldX < it->second.getUpper()))
           {
             // We have a collision!
-            processCollision(
-              entity,
+            collisions.emplace(
+              mapEntity,
               Direction::down,
-              newX,
-              newY,
+              it->second.getType(),
               it->first,
-              it->second.getType());
+              it->second.getLower(),
+              it->second.getUpper());
+          }
+        }
+      }
+    }
+
+    // Process collisions in order of priority
+    while (!collisions.empty())
+    {
+      Collision collision = collisions.top();
+      collisions.pop();
+
+      // Make sure that they are still colliding
+      if (!collision.isColliding(
+        newX,
+        newY,
+        transformable.getW(),
+        transformable.getH()))
+      {
+        continue;
+      }
+
+      bool touchedWall = false;
+      bool stopProcessing = false;
+
+      switch (collision.getType())
+      {
+        case Collision::Type::wall:
+        {
+          touchedWall = true;
+
+          break;
+        }
+
+        case Collision::Type::platform:
+        {
+          if (game_.getEntityManager().
+            hasComponent<OrientableComponent>(entity))
+          {
+            auto& orientable = game_.getEntityManager().
+              getComponent<OrientableComponent>(entity);
+
+            if (orientable.getDropState() !=
+              OrientableComponent::DropState::none)
+            {
+              orientable.setDropState(OrientableComponent::DropState::active);
+            } else {
+              touchedWall = true;
+            }
+          } else {
+            touchedWall = true;
+          }
+
+          break;
+        }
+
+        case Collision::Type::adjacency:
+        {
+          auto& mappable = game_.getEntityManager().
+            getComponent<MappableComponent>(collision.getCollider());
+          const Map& map = game_.getWorld().getMap(mappable.getMapId());
+          auto& adj = [&] () -> const Map::Adjacent& {
+              switch (collision.getDirection())
+              {
+                case Direction::left: return map.getLeftAdjacent();
+                case Direction::right: return map.getRightAdjacent();
+                case Direction::up: return map.getUpAdjacent();
+                case Direction::down: return map.getDownAdjacent();
+              }
+            }();
+
+          switch (adj.getType())
+          {
+            case Map::Adjacent::Type::wall:
+            {
+              touchedWall = true;
+
+              break;
+            }
+
+            case Map::Adjacent::Type::wrap:
+            {
+              switch (collision.getDirection())
+              {
+                case Direction::left:
+                {
+                  newX = GAME_WIDTH + WALL_GAP - transformable.getW();
+
+                  break;
+                }
+
+                case Direction::right:
+                {
+                  newX = -WALL_GAP;
+
+                  break;
+                }
+
+                case Direction::up:
+                {
+                  newY = MAP_HEIGHT * TILE_HEIGHT + WALL_GAP -
+                    transformable.getH();
+
+                  break;
+                }
+
+                case Direction::down:
+                {
+                  newY = -WALL_GAP;
+
+                  break;
+                }
+              }
+            }
+
+            case Map::Adjacent::Type::warp:
+            {
+              double warpX = newX;
+              double warpY = newY;
+
+              switch (collision.getDirection())
+              {
+                case Direction::left:
+                {
+                  warpX = GAME_WIDTH + WALL_GAP - transformable.getW();
+
+                  break;
+                }
+
+                case Direction::right:
+                {
+                  warpX = -WALL_GAP;
+
+                  break;
+                }
+
+                case Direction::up:
+                {
+                  warpY = MAP_HEIGHT * TILE_HEIGHT - transformable.getH();
+
+                  break;
+                }
+
+                case Direction::down:
+                {
+                  warpY = -WALL_GAP;
+
+                  break;
+                }
+              }
+
+              game_.getSystemManager().getSystem<PlayingSystem>().
+                changeMap(adj.getMapId(), warpX, warpY);
+
+              stopProcessing = true;
+
+              break;
+            }
+          }
+        }
+
+        default:
+        {
+          // Not yet implemented.
+
+          break;
+        }
+      }
+
+      if (stopProcessing)
+      {
+        break;
+      }
+
+      if (touchedWall)
+      {
+        switch (collision.getDirection())
+        {
+          case Direction::left:
+          {
+            newX = collision.getAxis();
+            ponderable.setVelocityX(0.0);
+
+            break;
+          }
+
+          case Direction::right:
+          {
+            newX = collision.getAxis() - transformable.getW();
+            ponderable.setVelocityX(0.0);
+
+            break;
+          }
+
+          case Direction::up:
+          {
+            newY = collision.getAxis();
+            ponderable.setVelocityY(0.0);
+
+            break;
+          }
+
+          case Direction::down:
+          {
+            newY = collision.getAxis() - transformable.getH();
+            ponderable.setVelocityY(0.0);
+            ponderable.setGrounded(true);
+
+            break;
           }
         }
       }
@@ -171,98 +385,5 @@ void PonderingSystem::initializeBody(
   if (type == PonderableComponent::Type::freefalling)
   {
     ponderable.setAccelY(NORMAL_GRAVITY);
-  }
-}
-
-void PonderingSystem::processCollision(
-  id_type entity,
-  Direction dir,
-  double& newX,
-  double& newY,
-  int axis,
-  MappableComponent::Boundary::Type type)
-{
-  auto& ponderable = game_.getEntityManager().
-    getComponent<PonderableComponent>(entity);
-
-  auto& transformable = game_.getEntityManager().
-    getComponent<TransformableComponent>(entity);
-
-  bool touchedGround = false;
-
-  switch (type)
-  {
-    case MappableComponent::Boundary::Type::wall:
-    {
-      switch (dir)
-      {
-        case Direction::left:
-        {
-          newX = axis;
-          ponderable.setVelocityX(0.0);
-
-          break;
-        }
-
-        case Direction::right:
-        {
-          newX = axis - transformable.getW();
-          ponderable.setVelocityX(0.0);
-
-          break;
-        }
-
-        case Direction::up:
-        {
-          newY = axis;
-          ponderable.setVelocityY(0.0);
-
-          break;
-        }
-
-        case Direction::down:
-        {
-          touchedGround = true;
-
-          break;
-        }
-      }
-
-      break;
-    }
-
-    case MappableComponent::Boundary::Type::platform:
-    {
-      if (game_.getEntityManager().hasComponent<OrientableComponent>(entity))
-      {
-        auto& orientable = game_.getEntityManager().
-          getComponent<OrientableComponent>(entity);
-
-        if (orientable.getDropState() != OrientableComponent::DropState::none)
-        {
-          orientable.setDropState(OrientableComponent::DropState::active);
-        } else {
-          touchedGround = true;
-        }
-      } else {
-        touchedGround = true;
-      }
-
-      break;
-    }
-
-    default:
-    {
-      // Not yet implemented.
-
-      break;
-    }
-  }
-
-  if (touchedGround)
-  {
-    newY = axis - transformable.getH();
-    ponderable.setVelocityY(0.0);
-    ponderable.setGrounded(true);
   }
 }

@@ -4,6 +4,7 @@
 #include <map>
 #include "component.h"
 #include "renderer/texture.h"
+#include "collision.h"
 #include "map.h"
 
 class MappableComponent : public Component {
@@ -12,14 +13,7 @@ public:
   class Boundary {
   public:
 
-    enum class Type {
-      wall,
-      wrap,
-      teleport,
-      reverse,
-      platform,
-      danger
-    };
+    using Type = Collision::Type;
 
     Boundary(
       double axis,

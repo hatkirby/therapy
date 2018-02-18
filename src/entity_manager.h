@@ -26,6 +26,7 @@ private:
 
   database_type entities;
   std::vector<bool> slotAvailable;
+  std::set<id_type> allEntities;
   std::map<std::set<std::type_index>, std::set<id_type>> cachedComponents;
 
   id_type nextEntityID = 0;
@@ -59,12 +60,14 @@ public:
       // If the database is saturated, add a new element for the new entity.
       entities.emplace_back();
       slotAvailable.push_back(false);
+      allEntities.insert(nextEntityID);
 
       return nextEntityID++;
     } else {
       // If there is an available slot in the database, use it.
       id_type id = nextEntityID++;
       slotAvailable[id] = false;
+      allEntities.insert(id);
 
       // Fast forward the next available slot pointer to an available slot.
       while ((nextEntityID < entities.size()) && !slotAvailable[nextEntityID])
@@ -88,6 +91,8 @@ public:
     {
       cache.second.erase(entity);
     }
+
+    allEntities.erase(entity);
 
     // Destroy the data
     entities[entity].components.clear();
@@ -201,6 +206,11 @@ public:
     std::set<std::type_index> componentTypes;
 
     return getEntitiesWithComponentsHelper<R...>(componentTypes);
+  }
+
+  const std::set<id_type>& getEntities() const
+  {
+    return allEntities;
   }
 };
 

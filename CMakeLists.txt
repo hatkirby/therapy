@@ -55,6 +55,7 @@ add_executable(Aromatherapy
   src/animation.cpp
   src/world.cpp
   src/util.cpp
+  src/collision.cpp
   src/renderer/renderer.cpp
   src/renderer/mesh.cpp
   src/renderer/shader.cpp
@@ -64,6 +65,7 @@ add_executable(Aromatherapy
   src/systems/animating.cpp
   src/systems/mapping.cpp
   src/systems/orienting.cpp
+  src/systems/playing.cpp
 )
 
 set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 11)

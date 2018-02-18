@@ -93,6 +93,34 @@ void MappingSystem::loadMap(size_t mapId)
 
   const Map& map = game_.getWorld().getMap(mappable.getMapId());
 
+  addBoundary(
+    mappable.getLeftBoundaries(),
+    -WALL_GAP,
+    0,
+    MAP_HEIGHT * TILE_HEIGHT,
+    MappableComponent::Boundary::Type::adjacency);
+
+  addBoundary(
+    mappable.getRightBoundaries(),
+    GAME_WIDTH + WALL_GAP,
+    0,
+    MAP_HEIGHT * TILE_HEIGHT,
+    MappableComponent::Boundary::Type::adjacency);
+
+  addBoundary(
+    mappable.getUpBoundaries(),
+    -WALL_GAP,
+    0,
+    GAME_WIDTH,
+    MappableComponent::Boundary::Type::adjacency);
+
+  addBoundary(
+    mappable.getDownBoundaries(),
+    MAP_HEIGHT * TILE_HEIGHT + WALL_GAP,
+    0,
+    GAME_WIDTH,
+    MappableComponent::Boundary::Type::adjacency);
+
   for (size_t i = 0; i < MAP_WIDTH * MAP_HEIGHT; i++)
   {
     size_t x = i % MAP_WIDTH;

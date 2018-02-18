@@ -63,6 +63,10 @@ World::World(std::string filename)
       xmlFree(key);
 
       std::vector<int> mapTiles;
+      Map::Adjacent leftAdj;
+      Map::Adjacent rightAdj;
+      Map::Adjacent upAdj;
+      Map::Adjacent downAdj;
 
       for (xmlNodePtr mapNode = node->xmlChildrenNode;
         mapNode != nullptr;
@@ -82,6 +86,54 @@ World::World(std::string filename)
           }
 
           xmlFree(key);
+        } else if (!xmlStrcmp(
+          mapNode->name,
+          reinterpret_cast<const xmlChar*>("adjacent")))
+        {
+          key = getProp(mapNode, "type");
+          std::string adjTypeStr(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          Map::Adjacent::Type adjType;
+          if (adjTypeStr == "wall")
+          {
+            adjType = Map::Adjacent::Type::wall;
+          } else if (adjTypeStr == "wrap")
+          {
+            adjType = Map::Adjacent::Type::wrap;
+          } else if (adjTypeStr == "warp")
+          {
+            adjType = Map::Adjacent::Type::warp;
+          } else if (adjTypeStr == "reverseWarp")
+          {
+            adjType = Map::Adjacent::Type::reverse;
+          } else {
+            throw std::logic_error("Invalid adjacency type");
+          }
+
+          key = getProp(mapNode, "map");
+          int adjMapId = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          key = getProp(mapNode, "dir");
+          std::string adjDir(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          if (adjDir == "left")
+          {
+            leftAdj = {adjType, adjMapId};
+          } else if (adjDir == "right")
+          {
+            rightAdj = {adjType, adjMapId};
+          } else if (adjDir == "up")
+          {
+            upAdj = {adjType, adjMapId};
+          } else if (adjDir == "down")
+          {
+            downAdj = {adjType, adjMapId};
+          } else {
+            throw std::logic_error("Invalid adjacency direction");
+          }
         }
       }
 
@@ -91,7 +143,11 @@ World::World(std::string filename)
         std::forward_as_tuple(
           mapId,
           std::move(mapTiles),
-          std::move(mapTitle)));
+          std::move(mapTitle),
+          leftAdj,
+          rightAdj,
+          upAdj,
+          downAdj));
     }
   }
 
