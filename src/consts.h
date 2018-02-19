@@ -22,5 +22,6 @@ const double JUMP_GRAVITY = CALC_GRAVITY(TILE_HEIGHT*4.5, 0.3);
 const double JUMP_VELOCITY = CALC_VELOCITY(TILE_HEIGHT*4.5, 0.3);
 
 const double WALK_SPEED = 90;
+const double TERMINAL_VELOCITY = 240;
 
 #endif

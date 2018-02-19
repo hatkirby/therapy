@@ -39,6 +39,12 @@ void PonderingSystem::tick(double dt)
     ponderable.setVelocityY(
       ponderable.getVelocityY() + ponderable.getAccelY() * dt);
 
+    if ((ponderable.getType() == PonderableComponent::Type::freefalling)
+      && (ponderable.getVelocityY() > TERMINAL_VELOCITY))
+    {
+      ponderable.setVelocityY(TERMINAL_VELOCITY);
+    }
+
     const double oldX = transformable.getX();
     const double oldY = transformable.getY();
     const double oldRight = oldX + transformable.getW();
