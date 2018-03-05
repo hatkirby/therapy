@@ -184,9 +184,15 @@ bool MapObject::operator!=(const MapObject& other) const
   return id != other.id;
 }
 
-MapObjectEntry::MapObjectEntry(const MapObject& object, int posx, int posy) : object(object)
+MapObjectEntry::MapObjectEntry(
+  const MapObject& object,
+  int posx,
+  int posy,
+  size_t index) :
+    object(object),
+    position(std::make_pair(posx, posy)),
+    index(index)
 {
-  position = std::make_pair(posx, posy);
 }
 
 const MapObject& MapObjectEntry::getObject() const
@@ -207,6 +213,11 @@ MapObjectEntry::Item& MapObjectEntry::getItem(std::string str)
 const std::map<std::string, MapObjectEntry::Item>& MapObjectEntry::getItems() const
 {
   return items;
+}
+
+size_t MapObjectEntry::getIndex() const
+{
+  return index;
 }
 
 void MapObjectEntry::addItem(std::string id, Item& item)

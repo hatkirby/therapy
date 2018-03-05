@@ -188,6 +188,11 @@ const Map::Adjacent& Map::getAdjacent(MoveDir direction) const
   }
 }
 
+size_t Map::getNextObjectIndex() const
+{
+  return nextObjectIndex;
+}
+
 void Map::setTitle(std::string title, bool dirty)
 {
   this->title = title;
@@ -271,3 +276,12 @@ void Map::setAdjacent(MoveDir direction, MoveType type, int map, bool dirty)
   }
 }
 
+size_t Map::getAndIncrementNextObjectIndex()
+{
+  return nextObjectIndex++;
+}
+
+void Map::setNextObjectIndex(size_t v)
+{
+  nextObjectIndex = v;
+}

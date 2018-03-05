@@ -94,6 +94,11 @@ World::World(std::string filename)
       map->setTitle((char*) titleKey, false);
       xmlFree(titleKey);
       
+      xmlChar* noiKey = xmlGetProp(node, (xmlChar*) "nextObject");
+      if (noiKey == 0) throw MapLoadException("map missing nextObject attribute");
+      map->setNextObjectIndex(atoi((char*) noiKey));
+      xmlFree(noiKey);
+      
       for (xmlNodePtr mapNode = node->xmlChildrenNode; mapNode != NULL; mapNode = mapNode->next)
       {
         if (!xmlStrcmp(mapNode->name, (const xmlChar*) "environment"))
@@ -125,7 +130,12 @@ World::World(std::string filename)
           int ypos = atoi((char*) yKey);
           xmlFree(yKey);
           
-          auto data = std::make_shared<MapObjectEntry>(obj, xpos, ypos);
+          xmlChar* indexKey = xmlGetProp(mapNode, (const xmlChar*) "index");
+          if (indexKey == 0) throw MapLoadException("entity missing index attribute");
+          int objIndex = atoi((char*) indexKey);
+          xmlFree(indexKey);
+          
+          auto data = std::make_shared<MapObjectEntry>(obj, xpos, ypos, objIndex);
           
           map->addObject(data, false);
           
@@ -312,6 +322,10 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
     // title=
     rc = xmlTextWriterWriteAttribute(writer, (xmlChar*) "title", (xmlChar*) map.getTitle().c_str());
     if (rc < 0) throw MapWriteException(name);
+    
+    // nextObject=
+    rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "nextObject", "%zu", map.getNextObjectIndex());
+    if (rc < 0) throw MapWriteException(name);
   
     //   <environment
     rc = xmlTextWriterStartElement(writer, (xmlChar*) "environment");
@@ -356,6 +370,10 @@ void World::save(std::string name, wxTreeCtrl* mapTree)
       
       // y=
       rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "y", "%d", object->getPosition().second);
+      if (rc < 0) throw MapWriteException(name);
+      
+      // index=
+      rc = xmlTextWriterWriteFormatAttribute(writer, (xmlChar*) "index", "%zu", object->getIndex());
       if (rc < 0) throw MapWriteException(name);
       
       for (auto item : object->getItems())
