@@ -15,6 +15,7 @@ public:
     platform,
     adjacency,
     warp,
+    event,
     danger
   };
 

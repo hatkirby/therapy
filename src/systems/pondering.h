@@ -14,7 +14,14 @@ public:
 
   void tick(double dt);
 
-  void initializeBody(id_type entity, PonderableComponent::Type type);
+  void initializeBody(
+    id_type entity,
+    PonderableComponent::BodyType bodyType,
+    PonderableComponent::ColliderType colliderType);
+
+private:
+
+  void processBodyCollision(id_type body, id_type collider);
 
 };
 

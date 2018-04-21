@@ -125,6 +125,11 @@ public:
     font_ = std::move(v);
   }
 
+  inline std::map<size_t, id_type>& getInstances()
+  {
+    return instances_;
+  }
+
 private:
 
   size_t mapId_ = -1;
@@ -135,6 +140,7 @@ private:
   asc_boundaries_type downBoundaries_;
   Texture tileset_;
   Texture font_;
+  std::map<size_t, id_type> instances_;
 };
 
 #endif /* end of include guard: MAPPABLE_H_0B0316FB */

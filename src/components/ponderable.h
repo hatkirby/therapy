@@ -2,22 +2,44 @@
 #define TANGIBLE_H_746DB3EE
 
 #include "component.h"
+#include <functional>
+#include <array>
+
+class Game;
 
 class PonderableComponent : public Component {
 public:
 
-  enum class Type {
+  enum class BodyType {
     vacuumed,
     freefalling
   };
 
-  PonderableComponent(Type type) : type_(type)
+  enum class ColliderType {
+    player,
+    event
+  };
+
+  static const size_t COLLIDER_TYPES = 2;
+
+  PonderableComponent(
+    BodyType bodyType,
+    ColliderType colliderType) :
+      bodyType_(bodyType),
+      colliderType_(colliderType)
   {
   }
 
-  inline Type getType() const
+  using event_callback_type = std::function<void(Game& game)>;
+
+  inline BodyType getBodyType() const
   {
-    return type_;
+    return bodyType_;
+  }
+
+  inline ColliderType getColliderType() const
+  {
+    return colliderType_;
   }
 
   inline double getVelocityX() const
@@ -90,16 +112,28 @@ public:
     collidable_ = v;
   }
 
+  inline const event_callback_type& getEventCallback(ColliderType v) const
+  {
+    return eventCallbacks_[static_cast<size_t>(v)];
+  }
+
+  inline void setEventCallback(ColliderType v, event_callback_type callback)
+  {
+    eventCallbacks_[static_cast<size_t>(v)] = std::move(callback);
+  }
+
 private:
 
   double velX_ = 0.0;
   double velY_ = 0.0;
   double accelX_ = 0.0;
   double accelY_ = 0.0;
-  Type type_ = Type::vacuumed;
+  BodyType bodyType_;
+  ColliderType colliderType_;
   bool grounded_ = false;
   bool frozen_ = false;
   bool collidable_ = true;
+  std::array<event_callback_type, COLLIDER_TYPES> eventCallbacks_;
 };
 
 #endif /* end of include guard: TANGIBLE_H_746DB3EE */

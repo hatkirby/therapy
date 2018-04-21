@@ -23,6 +23,8 @@ public:
 
   void die();
 
+  void save();
+
 };
 
 #endif /* end of include guard: PLAYING_H_70A54F7D */

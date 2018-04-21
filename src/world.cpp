@@ -1,19 +1,8 @@
 #include "world.h"
-#include <libxml/parser.h>
 #include <stdexcept>
 #include <cstring>
 #include "consts.h"
-
-inline xmlChar* getProp(xmlNodePtr node, const char* attr)
-{
-  xmlChar* key = xmlGetProp(node, reinterpret_cast<const xmlChar*>(attr));
-  if (key == nullptr)
-  {
-    throw std::invalid_argument("Error parsing world file");
-  }
-
-  return key;
-}
+#include "xml.h"
 
 World::World(std::string filename)
 {
@@ -67,6 +56,7 @@ World::World(std::string filename)
       Map::Adjacent rightAdj;
       Map::Adjacent upAdj;
       Map::Adjacent downAdj;
+      std::list<Map::Object> objects;
 
       for (xmlNodePtr mapNode = node->xmlChildrenNode;
         mapNode != nullptr;
@@ -77,6 +67,10 @@ World::World(std::string filename)
           reinterpret_cast<const xmlChar*>("environment")))
         {
           key = xmlNodeGetContent(mapNode);
+          if (key == nullptr)
+          {
+            throw std::invalid_argument("Error parsing XML file");
+          }
 
           mapTiles.clear();
           mapTiles.push_back(atoi(strtok(reinterpret_cast<char*>(key), ",\n")));
@@ -86,6 +80,52 @@ World::World(std::string filename)
           }
 
           xmlFree(key);
+        } else if (!xmlStrcmp(
+          mapNode->name,
+          reinterpret_cast<const xmlChar*>("entity")))
+        {
+          key = getProp(mapNode, "type");
+          std::string entType(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          key = getProp(mapNode, "x");
+          int entX = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          key = getProp(mapNode, "y");
+          int entY = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          key = getProp(mapNode, "index");
+          int entIndex = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          std::map<std::string, int> items;
+
+          for (xmlNodePtr entityNode = mapNode->xmlChildrenNode;
+            entityNode != nullptr;
+            entityNode = entityNode->next)
+          {
+            key = getProp(entityNode, "id");
+            std::string itemId(reinterpret_cast<char*>(key));
+            xmlFree(key);
+
+            key = xmlNodeGetContent(entityNode);
+            if (key == nullptr)
+            {
+              throw std::invalid_argument("Error parsing XML file");
+            }
+
+            items[itemId] = atoi(reinterpret_cast<char*>(key));
+            xmlFree(key);
+          }
+
+          objects.emplace_back(
+            std::move(entType),
+            entX,
+            entY,
+            entIndex,
+            std::move(items));
         } else if (!xmlStrcmp(
           mapNode->name,
           reinterpret_cast<const xmlChar*>("adjacent")))
@@ -147,7 +187,8 @@ World::World(std::string filename)
           leftAdj,
           rightAdj,
           upAdj,
-          downAdj));
+          downAdj,
+          std::move(objects)));
     }
   }
 

@@ -28,7 +28,9 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
   game.systemManager_.input(key, action);
 }
 
-Game::Game() : world_("res/maps.xml")
+Game::Game() :
+  world_("res/maps.xml"),
+  prototypes_("res/entities.xml")
 {
   systemManager_.emplaceSystem<PlayingSystem>(*this);
   systemManager_.emplaceSystem<SchedulingSystem>(*this);

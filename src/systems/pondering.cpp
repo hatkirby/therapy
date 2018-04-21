@@ -39,7 +39,7 @@ void PonderingSystem::tick(double dt)
     ponderable.setVelocityY(
       ponderable.getVelocityY() + ponderable.getAccelY() * dt);
 
-    if ((ponderable.getType() == PonderableComponent::Type::freefalling)
+    if ((ponderable.getBodyType() == PonderableComponent::BodyType::freefalling)
       && (ponderable.getVelocityY() > TERMINAL_VELOCITY))
     {
       ponderable.setVelocityY(TERMINAL_VELOCITY);
@@ -58,7 +58,7 @@ void PonderingSystem::tick(double dt)
 
     std::priority_queue<Collision> collisions;
 
-    // Find collisions
+    // Find map collisions
     for (id_type mapEntity : maps)
     {
       auto& mappable = game_.getEntityManager().
@@ -366,6 +366,51 @@ void PonderingSystem::tick(double dt)
       }
     }
 
+    // Find body collisions
+    for (id_type body : entities)
+    {
+      // Can't collide with self
+      if (body == entity)
+      {
+        continue;
+      }
+
+      // Make sure the body is collidable
+      auto& colliderPonderable =
+        game_.getEntityManager().getComponent<PonderableComponent>(body);
+
+      if (!colliderPonderable.isCollidable())
+      {
+        continue;
+      }
+
+      // Test if the body was already colliding
+      auto& colliderTransformable =
+        game_.getEntityManager().getComponent<TransformableComponent>(body);
+
+      if ((oldRight > colliderTransformable.getX())
+        && (oldX < colliderTransformable.getX() + colliderTransformable.getW())
+        && (oldBottom > colliderTransformable.getY())
+        && (oldY < colliderTransformable.getY() + colliderTransformable.getH()))
+      {
+        continue;
+      }
+
+      // Test if there is a new collision
+      if (!((newX + transformable.getW() > colliderTransformable.getX())
+        && (newX < colliderTransformable.getX() + colliderTransformable.getW())
+        && (newY + transformable.getH() > colliderTransformable.getY())
+        && (newY <
+          colliderTransformable.getY() + colliderTransformable.getH())))
+      {
+        continue;
+      }
+
+      // Process the collision
+      processBodyCollision(entity, body);
+      processBodyCollision(body, entity);
+    }
+
     // Move
     transformable.setX(newX);
     transformable.setY(newY);
@@ -399,13 +444,46 @@ void PonderingSystem::tick(double dt)
 
 void PonderingSystem::initializeBody(
   id_type entity,
-  PonderableComponent::Type type)
+  PonderableComponent::BodyType bodyType,
+  PonderableComponent::ColliderType colliderType)
 {
   auto& ponderable = game_.getEntityManager().
-    emplaceComponent<PonderableComponent>(entity, type);
+    emplaceComponent<PonderableComponent>(entity, bodyType, colliderType);
 
-  if (type == PonderableComponent::Type::freefalling)
+  if (bodyType == PonderableComponent::BodyType::freefalling)
   {
     ponderable.setAccelY(NORMAL_GRAVITY);
+  }
+}
+
+void PonderingSystem::processBodyCollision(id_type body, id_type collider)
+{
+  auto& bodyPonderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(body);
+
+  auto& colliderPonderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(collider);
+
+  switch (colliderPonderable.getColliderType())
+  {
+    case PonderableComponent::ColliderType::event:
+    {
+      auto& callback = colliderPonderable.
+        getEventCallback(bodyPonderable.getColliderType());
+
+      if (callback)
+      {
+        callback(game_);
+      }
+
+      break;
+    }
+
+    default:
+    {
+      // Do nothing.
+
+      break;
+    }
   }
 }

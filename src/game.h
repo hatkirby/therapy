@@ -5,6 +5,7 @@
 #include "system_manager.h"
 #include "world.h"
 #include "renderer/renderer.h"
+#include "prototype_manager.h"
 
 class Game {
 public:
@@ -28,9 +29,14 @@ public:
     return systemManager_;
   }
 
-  inline const World& getWorld()
+  inline const World& getWorld() const
   {
     return world_;
+  }
+
+  inline const PrototypeManager& getPrototypeManager() const
+  {
+    return prototypes_;
   }
 
   friend void key_callback(
@@ -46,6 +52,7 @@ private:
   EntityManager entityManager_;
   SystemManager systemManager_;
   World world_;
+  PrototypeManager prototypes_;
   bool shouldQuit_ = false;
 };
 

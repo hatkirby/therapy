@@ -5,6 +5,7 @@
 #include "components/playable.h"
 #include "components/controllable.h"
 #include "components/orientable.h"
+#include "components/mappable.h"
 #include "systems/mapping.h"
 #include "systems/pondering.h"
 #include "systems/orienting.h"
@@ -84,7 +85,8 @@ void PlayingSystem::initPlayer()
 
   game_.getSystemManager().getSystem<PonderingSystem>().initializeBody(
     player,
-    PonderableComponent::Type::freefalling);
+    PonderableComponent::BodyType::freefalling,
+    PonderableComponent::ColliderType::player);
 
   game_.getEntityManager().emplaceComponent<ControllableComponent>(player);
   game_.getEntityManager().emplaceComponent<OrientableComponent>(player);
@@ -171,5 +173,34 @@ void PlayingSystem::die()
           controlling.unfreeze(player);
         });
     });
+  }
+}
+
+void PlayingSystem::save()
+{
+  playSound("res/Pickup_Coin23.wav", 0.25);
+
+  auto players = game_.getEntityManager().getEntitiesWithComponents<
+    TransformableComponent,
+    PlayableComponent>();
+
+  auto maps = game_.getEntityManager().getEntitiesWithComponents<
+    MappableComponent>();
+
+  auto& mappable = game_.getEntityManager().
+    getComponent<MappableComponent>(*maps.begin());
+
+  for (id_type player : players)
+  {
+    auto& transformable = game_.getEntityManager().
+      getComponent<TransformableComponent>(player);
+
+    auto& playable = game_.getEntityManager().
+      getComponent<PlayableComponent>(player);
+
+    playable.checkpointMapId = mappable.getMapId();
+    playable.checkpointX = transformable.getX();
+    playable.checkpointY = transformable.getY();
+    playable.checkpointObjectActivated = false;
   }
 }

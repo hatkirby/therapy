@@ -18,6 +18,8 @@ public:
   int checkpointMapId = -1;
   double checkpointX = 0;
   double checkpointY = 0;
+  bool checkpointObjectActivated = false;
+  size_t checkpointObjectIndex = 0;
 
 };
 

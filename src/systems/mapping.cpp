@@ -195,4 +195,18 @@ void MappingSystem::loadMap(size_t mapId)
         MappableComponent::Boundary::Type::danger);
     }
   }
+
+  for (const Map::Object& object : map.getObjects())
+  {
+    const Prototype& prototype = game_.getPrototypeManager().
+      getPrototype(object.getType());
+
+    id_type emplacedObject = prototype.instantiate(
+      game_,
+      object.getX(),
+      object.getY(),
+      object.getItems());
+
+    mappable.getInstances()[object.getIndex()] = emplacedObject;
+  }
 }
