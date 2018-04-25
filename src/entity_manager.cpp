@@ -5,7 +5,7 @@
 
 template <>
 std::set<EntityManager::id_type> EntityManager::getEntitiesWithComponents<>(
-  std::set<std::type_index>& componentTypes)
+  std::set<std::type_index>& componentTypes) const
 {
   if (cachedComponents.count(componentTypes) == 1)
   {
@@ -15,7 +15,7 @@ std::set<EntityManager::id_type> EntityManager::getEntitiesWithComponents<>(
   std::set<id_type>& cache = cachedComponents[componentTypes];
   for (id_type entity = 0; entity < entities.size(); entity++)
   {
-    EntityData& data = entities[entity];
+    const EntityData& data = entities[entity];
     bool cacheEntity = true;
 
     for (auto& componentType : componentTypes)

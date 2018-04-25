@@ -27,13 +27,15 @@ private:
   database_type entities;
   std::vector<bool> slotAvailable;
   std::set<id_type> allEntities;
-  std::map<std::set<std::type_index>, std::set<id_type>> cachedComponents;
+
+  mutable std::map<std::set<std::type_index>, std::set<id_type>>
+    cachedComponents;
 
   id_type nextEntityID = 0;
 
   template <class T, class... R>
   std::set<id_type> getEntitiesWithComponentsHelper(
-    std::set<std::type_index>& componentTypes)
+    std::set<std::type_index>& componentTypes) const
   {
     componentTypes.insert(typeid(T));
 
@@ -42,7 +44,7 @@ private:
 
   template <class... R>
   std::set<id_type> getEntitiesWithComponents(
-    std::set<std::type_index>& componentTypes)
+    std::set<std::type_index>& componentTypes) const
   {
     return getEntitiesWithComponentsHelper<R...>(componentTypes);
   }
@@ -168,14 +170,14 @@ public:
   }
 
   template <class T>
-  T& getComponent(id_type entity)
+  const T& getComponent(id_type entity) const
   {
     if ((entity >= entities.size()) || slotAvailable[entity])
     {
       throw std::invalid_argument("Cannot get non-existent entity");
     }
 
-    EntityData& data = entities[entity];
+    const EntityData& data = entities[entity];
     std::type_index componentType = typeid(T);
 
     if (!data.components.count(componentType))
@@ -183,25 +185,32 @@ public:
       throw std::invalid_argument("Cannot get non-existent component");
     }
 
-    return *dynamic_cast<T*>(data.components[componentType].get());
+    return *dynamic_cast<const T*>(data.components.at(componentType).get());
   }
 
   template <class T>
-  bool hasComponent(id_type entity)
+  T& getComponent(id_type entity)
+  {
+    return const_cast<T&>(
+      static_cast<const EntityManager&>(*this).getComponent<T>(entity));
+  }
+
+  template <class T>
+  bool hasComponent(id_type entity) const
   {
     if ((entity >= entities.size()) || slotAvailable[entity])
     {
       throw std::invalid_argument("Cannot get non-existent entity");
     }
 
-    EntityData& data = entities[entity];
+    const EntityData& data = entities[entity];
     std::type_index componentType = typeid(T);
 
     return data.components.count(componentType);
   }
 
   template <class... R>
-  std::set<id_type> getEntitiesWithComponents()
+  std::set<id_type> getEntitiesWithComponents() const
   {
     std::set<std::type_index> componentTypes;
 
@@ -216,6 +225,6 @@ public:
 
 template <>
 std::set<EntityManager::id_type> EntityManager::getEntitiesWithComponents<>(
-  std::set<std::type_index>& componentTypes);
+  std::set<std::type_index>& componentTypes) const;
 
 #endif /* end of include guard: ENTITY_MANAGER_H_C5832F11 */
