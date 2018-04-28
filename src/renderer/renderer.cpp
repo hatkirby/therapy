@@ -1,14 +1,9 @@
 #include "renderer.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <stb_image.h>
 #include "consts.h"
 #include "game.h"
-#include <glm/gtc/matrix_transform.hpp>
 #include "texture.h"
-
-// include stb_image
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#define STBI_ONLY_BMP
-#include "stb_image.h"
 
 void setFramebufferSize(GLFWwindow* w, int width, int height)
 {

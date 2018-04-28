@@ -41,6 +41,7 @@ include_directories(
   ${OPENGL_INCLUDE_DIRS}
   ${GLEW_INCLUDE_DIRS}
   src
+  vendor
 )
 
 link_directories(
@@ -67,6 +68,7 @@ add_executable(Aromatherapy
   src/systems/playing.cpp
   src/systems/scheduling.cpp
   src/systems/realizing.cpp
+  vendor/stb_image.cpp
 )
 
 set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 11)

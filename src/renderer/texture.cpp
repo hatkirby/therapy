@@ -1,12 +1,8 @@
 #include "texture.h"
 #include <stdexcept>
+#include <stb_image.h>
 #include "renderer.h"
 #include "util.h"
-
-// include stb_image
-#define STBI_ONLY_PNG
-#define STBI_ONLY_BMP
-#include "stb_image.h"
 
 Texture::Texture(
   int width,
