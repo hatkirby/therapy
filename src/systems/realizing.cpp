@@ -2,8 +2,10 @@
 #include <stdexcept>
 #include <libxml/parser.h>
 #include <cstring>
+#include <map>
 #include "game.h"
 #include "consts.h"
+#include "animation.h"
 #include "components/realizable.h"
 #include "components/mappable.h"
 #include "components/animatable.h"
@@ -27,16 +29,58 @@ inline xmlChar* getProp(xmlNodePtr node, const char* attr)
 
 // TODO: neither the XML doc nor any of the emplaced entities are properly
 // destroyed if this method throws an exception.
-EntityManager::id_type RealizingSystem::initSingleton(std::string filename)
+EntityManager::id_type RealizingSystem::initSingleton(
+  std::string worldFile,
+  std::string prototypeFile)
 {
   id_type world = game_.getEntityManager().emplaceEntity();
 
   auto& realizable = game_.getEntityManager().
     emplaceComponent<RealizableComponent>(world);
 
+  realizable.worldFile = worldFile;
+  realizable.prototypeFile = prototypeFile;
+
   auto& mapping = game_.getSystemManager().getSystem<MappingSystem>();
 
-  xmlDocPtr doc = xmlParseFile(filename.c_str());
+  xmlChar* key = nullptr;
+
+  // Create a mapping between prototype names and the XML trees defining them.
+  xmlDocPtr protoXml = xmlParseFile(prototypeFile.c_str());
+  if (protoXml == nullptr)
+  {
+    throw std::invalid_argument("Cannot find prototypes file");
+  }
+
+  xmlNodePtr protoTop = xmlDocGetRootElement(protoXml);
+  if (protoTop == nullptr)
+  {
+    throw std::invalid_argument("Error parsing prototypes file");
+  }
+
+  if (xmlStrcmp(protoTop->name, reinterpret_cast<const xmlChar*>("entities")))
+  {
+    throw std::invalid_argument("Error parsing prototypes file");
+  }
+
+  std::map<std::string, xmlNodePtr> prototypes;
+
+  for (xmlNodePtr node = protoTop->xmlChildrenNode;
+       node != nullptr;
+       node = node->next)
+  {
+    if (!xmlStrcmp(node->name, reinterpret_cast<const xmlChar*>("entity")))
+    {
+      key = getProp(node, "id");
+      std::string prototypeId = reinterpret_cast<char*>(key);
+      xmlFree(key);
+
+      prototypes[prototypeId] = node;
+    }
+  }
+
+  // Create entities from the world definition.
+  xmlDocPtr doc = xmlParseFile(worldFile.c_str());
   if (doc == nullptr)
   {
     throw std::invalid_argument("Cannot find world file");
@@ -52,8 +96,6 @@ EntityManager::id_type RealizingSystem::initSingleton(std::string filename)
   {
     throw std::invalid_argument("Error parsing world file");
   }
-
-  xmlChar* key = nullptr;
 
   key = getProp(top, "startx");
   realizable.startingX = atoi(reinterpret_cast<char*>(key));
@@ -115,6 +157,59 @@ EntityManager::id_type RealizingSystem::initSingleton(std::string filename)
           xmlFree(key);
         } else if (!xmlStrcmp(
           mapNode->name,
+          reinterpret_cast<const xmlChar*>("entity")))
+        {
+          id_type mapObject = game_.getEntityManager().emplaceEntity();
+
+          key = getProp(mapNode, "type");
+          std::string prototypeId = reinterpret_cast<char*>(key);
+          xmlFree(key);
+
+          xmlNodePtr prototypeNode = prototypes[prototypeId];
+
+          // Set the coordinates from the object definition.
+          auto& transformable = game_.getEntityManager().
+            emplaceComponent<TransformableComponent>(mapObject);
+
+          key = getProp(mapNode, "x");
+          transformable.origX = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          key = getProp(mapNode, "y");
+          transformable.origY = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          // Set the sprite and size using the prototype definition.
+          key = getProp(prototypeNode, "sprite");
+          std::string spritePath = reinterpret_cast<char*>(key);
+          xmlFree(key);
+
+          key = getProp(prototypeNode, "width");
+          transformable.origW = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          key = getProp(prototypeNode, "height");
+          transformable.origH = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
+          AnimationSet objectAnim(
+            spritePath.c_str(),
+            transformable.origW,
+            transformable.origH,
+            1);
+
+          objectAnim.emplaceAnimation("static", 0, 1, 1);
+
+          auto& animatable = game_.getEntityManager().
+            emplaceComponent<AnimatableComponent>(
+              mapObject,
+              std::move(objectAnim));
+
+          animatable.origAnimation = "static";
+
+          mappable.objects.push_back(mapObject);
+        } else if (!xmlStrcmp(
+          mapNode->name,
           reinterpret_cast<const xmlChar*>("adjacent")))
         {
           key = getProp(mapNode, "type");
@@ -172,6 +267,7 @@ EntityManager::id_type RealizingSystem::initSingleton(std::string filename)
   }
 
   xmlFreeDoc(doc);
+  xmlFreeDoc(protoXml);
 
   loadMap(realizable.entityByMapId[realizable.startingMapId]);
 

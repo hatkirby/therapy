@@ -1,6 +1,7 @@
 #ifndef REALIZING_H_6853748C
 #define REALIZING_H_6853748C
 
+#include <string>
 #include "system.h"
 
 class RealizingSystem : public System {
@@ -12,9 +13,11 @@ public:
 
   /**
    * Creates the singleton realizable entity and initializes it with the
-   * provided world definition.
+   * provided world definition and map object prototype definition.
    */
-  id_type initSingleton(std::string filename);
+  id_type initSingleton(
+    std::string worldFile,
+    std::string prototypeFile);
 
   /**
    * Helper method that returns the entity ID of the (assumed) singleton entity

@@ -19,6 +19,13 @@ public:
   std::string worldFile;
 
   /**
+   * Path to the XML file containing the map object prototype definitions.
+   *
+   * @managed_by RealizingSystem
+   */
+  std::string prototypeFile;
+
+  /**
    * Starting map and player location for a new game.
    *
    * @managed_by RealizingSystem

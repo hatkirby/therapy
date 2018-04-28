@@ -40,7 +40,10 @@ Game::Game()
   systemManager_.emplaceSystem<MappingSystem>(*this);
   systemManager_.emplaceSystem<AnimatingSystem>(*this);
 
-  systemManager_.getSystem<RealizingSystem>().initSingleton("res/maps.xml");
+  systemManager_.getSystem<RealizingSystem>().initSingleton(
+    "res/maps.xml",
+    "res/entities.xml");
+
   systemManager_.getSystem<PlayingSystem>().initPlayer();
 
   glfwSwapInterval(1);
