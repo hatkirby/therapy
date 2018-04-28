@@ -2,22 +2,30 @@
 #define PLAYABLE_H_DDC566C3
 
 #include "component.h"
-#include <functional>
+#include "entity_manager.h"
 
 class PlayableComponent : public Component {
 public:
 
-  using MapChangeCallback = std::function<void()>;
+  using id_type = EntityManager::id_type;
 
-  bool changingMap = false;
-  int newMapId = -1;
-  double newMapX = 0;
-  double newMapY = 0;
-  MapChangeCallback newMapCallback;
+  /**
+   * The entity ID of the map that the player is on.
+   *
+   * @managed_by PlayingSystem
+   */
+  id_type mapId;
 
-  int checkpointMapId = -1;
-  double checkpointX = 0;
-  double checkpointY = 0;
+  /**
+   * The map ID and coordinates of the location that the player will spawn after
+   * dying. Note that the map ID here is a world description map ID, not an
+   * entity ID.
+   *
+   * @managed_by PlayingSystem
+   */
+  size_t checkpointMapId;
+  double checkpointX;
+  double checkpointY;
 
 };
 

@@ -2,7 +2,6 @@
 #define PLAYING_H_70A54F7D
 
 #include "system.h"
-#include "components/playable.h"
 
 class PlayingSystem : public System {
 public:
@@ -11,17 +10,15 @@ public:
   {
   }
 
-  void tick(double dt);
-
   void initPlayer();
 
   void changeMap(
+    id_type player,
     size_t mapId,
     double x,
-    double y,
-    PlayableComponent::MapChangeCallback callback = nullptr);
+    double y);
 
-  void die();
+  void die(id_type player);
 
 };
 

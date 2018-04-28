@@ -8,88 +8,86 @@
 class AnimatableComponent : public Component {
 public:
 
+  /**
+   * Constructor for initializing the animation set, because it is not default
+   * constructible.
+   */
   AnimatableComponent(
-    AnimationSet animationSet,
-    std::string animation) :
-      animationSet_(std::move(animationSet)),
-      animation_(std::move(animation))
+    AnimationSet animationSet) :
+      animationSet(std::move(animationSet))
   {
   }
 
-  inline size_t getFrame() const
-  {
-    return frame_;
-  }
+  /**
+   * The animation set that this entity will use -- an object describing the
+   * different animations that can be used to render the entity.
+   *
+   * @managed_by RealizingSystem
+   */
+  AnimationSet animationSet;
 
-  inline void setFrame(size_t v)
-  {
-    frame_ = v;
-  }
+  /**
+   * The name of the currently active animation.
+   *
+   * @managed_by AnimatingSystem
+   */
+  std::string animation;
 
-  inline size_t getCountdown() const
-  {
-    return countdown_;
-  }
+  /**
+   * For prototypes, the name of the original animation.
+   *
+   * @managed_by RealizingSystem
+   */
+  std::string origAnimation;
 
-  inline void setCountdown(size_t v)
-  {
-    countdown_ = v;
-  }
-
-  inline const AnimationSet& getAnimationSet() const
-  {
-    return animationSet_;
-  }
-
+  /**
+   * Helper method for accessing the currently active animation.
+   */
   inline const Animation& getAnimation() const
   {
-    return animationSet_.getAnimation(animation_);
+    return animationSet.getAnimation(animation);
   }
 
-  inline void setAnimation(std::string animation)
-  {
-    animation_ = std::move(animation);
-  }
+  /**
+   * The frame of animation that is currently being rendered.
+   *
+   * @managed_by AnimatingSystem
+   */
+  size_t frame = 0;
 
-  inline bool isFlickering() const
-  {
-    return flickering_;
-  }
+  /**
+   * The amount of time (in game frames) before the animation is advanced.
+   *
+   * @managed_by AnimatingSystem
+   */
+  size_t countdown = 0;
 
-  inline void setFlickering(bool v)
-  {
-    flickering_ = v;
-  }
+  /**
+   * This option allows to give the sprite a "flickering" effect (as in, it is
+   * not rendered in some frames).
+   */
+  bool flickering = false;
 
-  inline size_t getFlickerTimer() const
-  {
-    return flickerTimer_;
-  }
+  /**
+   * Used for the flickering effect.
+   *
+   * @managed_by AnimatingSystem
+   */
+  size_t flickerTimer = 0;
 
-  inline void setFlickerTimer(size_t v)
-  {
-    flickerTimer_ = v;
-  }
+  /**
+   * If enabled, this will prevent the sprite's animation from progressing (but
+   * will not affect things such as placement on screen and flickering).
+   */
+  bool frozen = false;
 
-  inline bool isFrozen() const
-  {
-    return frozen_;
-  }
-
-  inline void setFrozen(bool v)
-  {
-    frozen_ = v;
-  }
-
-private:
-
-  AnimationSet animationSet_;
-  std::string animation_;
-  size_t frame_ = 0;
-  size_t countdown_ = 0;
-  bool flickering_ = false;
-  size_t flickerTimer_ = 0;
-  bool frozen_ = false;
+  /**
+   * If this flag is disabled, the entity will be ignored by the animating
+   * system.
+   *
+   * @managed_by RealizingSystem
+   */
+  bool active = false;
 };
 
 #endif /* end of include guard: SPRITE_RENDERABLE_H_D3AACBBF */

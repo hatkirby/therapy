@@ -6,100 +6,73 @@
 class PonderableComponent : public Component {
 public:
 
+  /**
+   * List of different types of physical bodies.
+   *
+   * vacuumed     - Default.
+   * freefalling  - The body will be treated as if there were a downward force
+   *                of gravity being exerted onto it. The body will also exhibit
+   *                terminal velocity (that is, its downward velocity will be
+   *                capped at a constant value).
+   */
   enum class Type {
     vacuumed,
     freefalling
   };
 
-  PonderableComponent(Type type) : type_(type)
+  /**
+   * Constructor for initializing the body type, which is a constant.
+   */
+  PonderableComponent(Type type) : type(type)
   {
   }
 
-  inline Type getType() const
-  {
-    return type_;
-  }
+  /**
+   * The velocity of the body.
+   */
+  double velX = 0.0;
+  double velY = 0.0;
 
-  inline double getVelocityX() const
-  {
-    return velX_;
-  }
+  /**
+   * The acceleration of the body.
+   */
+  double accelX = 0.0;
+  double accelY = 0.0;
 
-  inline void setVelocityX(double v)
-  {
-    velX_ = v;
-  }
+  /**
+   * The type of physical body that the entity is meant to assume. The body will
+   * be acted upon differently based on this. See the enumeration above for more
+   * details.
+   *
+   * @managed_by PonderingSystem
+   */
+  const Type type;
 
-  inline double getVelocityY() const
-  {
-    return velY_;
-  }
+  /**
+   * Whether or not a freefalling body is in contact with the ground.
+   *
+   * @managed_by PonderingSystem
+   */
+  bool grounded = false;
 
-  inline void setVelocityY(double v)
-  {
-    velY_ = v;
-  }
+  /**
+   * If enabled, this will prevent the body from moving.
+   */
+  bool frozen = false;
 
-  inline double getAccelX() const
-  {
-    return accelX_;
-  }
+  /**
+   * If disabled, collision detection for this body will not be performed and
+   * other bodies will ignore it.
+   */
+  bool collidable = true;
 
-  inline void setAccelX(double v)
-  {
-    accelX_ = v;
-  }
-
-  inline double getAccelY() const
-  {
-    return accelY_;
-  }
-
-  inline void setAccelY(double v)
-  {
-    accelY_ = v;
-  }
-
-  inline bool isGrounded() const
-  {
-    return grounded_;
-  }
-
-  inline void setGrounded(bool v)
-  {
-    grounded_ = v;
-  }
-
-  inline bool isFrozen() const
-  {
-    return frozen_;
-  }
-
-  inline void setFrozen(bool v)
-  {
-    frozen_ = v;
-  }
-
-  inline bool isCollidable() const
-  {
-    return collidable_;
-  }
-
-  inline void setCollidable(bool v)
-  {
-    collidable_ = v;
-  }
-
-private:
-
-  double velX_ = 0.0;
-  double velY_ = 0.0;
-  double accelX_ = 0.0;
-  double accelY_ = 0.0;
-  Type type_ = Type::vacuumed;
-  bool grounded_ = false;
-  bool frozen_ = false;
-  bool collidable_ = true;
+  /**
+   * If this flag is disabled, the entity will be ignored by the pondering
+   * system.
+   *
+   * @managed_by RealizingSystem
+   */
+  bool active = false;
 };
 
 #endif /* end of include guard: TANGIBLE_H_746DB3EE */

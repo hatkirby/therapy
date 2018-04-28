@@ -12,7 +12,7 @@ public:
 
   void render(Texture& texture);
 
-  void loadMap(size_t mapId);
+  void generateBoundaries(id_type mapEntity);
 
 };
 

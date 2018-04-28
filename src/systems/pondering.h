@@ -16,6 +16,8 @@ public:
 
   void initializeBody(id_type entity, PonderableComponent::Type type);
 
+  void initPrototype(id_type prototype);
+
 };
 
 #endif /* end of include guard: PONDERING_H_F2530E0E */

@@ -16,6 +16,8 @@ public:
 
   void render(Texture& texture);
 
+  void initPrototype(id_type entity);
+
   void startAnimation(id_type entity, std::string animation);
 
 };

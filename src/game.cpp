@@ -11,6 +11,7 @@
 #include "systems/orienting.h"
 #include "systems/playing.h"
 #include "systems/scheduling.h"
+#include "systems/realizing.h"
 #include "animation.h"
 #include "consts.h"
 
@@ -28,8 +29,9 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
   game.systemManager_.input(key, action);
 }
 
-Game::Game() : world_("res/maps.xml")
+Game::Game()
 {
+  systemManager_.emplaceSystem<RealizingSystem>(*this);
   systemManager_.emplaceSystem<PlayingSystem>(*this);
   systemManager_.emplaceSystem<SchedulingSystem>(*this);
   systemManager_.emplaceSystem<ControllingSystem>(*this);
@@ -38,8 +40,8 @@ Game::Game() : world_("res/maps.xml")
   systemManager_.emplaceSystem<MappingSystem>(*this);
   systemManager_.emplaceSystem<AnimatingSystem>(*this);
 
+  systemManager_.getSystem<RealizingSystem>().initSingleton("res/maps.xml");
   systemManager_.getSystem<PlayingSystem>().initPlayer();
-  systemManager_.getSystem<MappingSystem>().loadMap(world_.getStartingMapId());
 
   glfwSwapInterval(1);
   glfwSetWindowUserPointer(renderer_.getWindow().getHandle(), this);

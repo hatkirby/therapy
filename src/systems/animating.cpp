@@ -13,26 +13,29 @@ void AnimatingSystem::tick(double)
     auto& sprite = game_.getEntityManager().
       getComponent<AnimatableComponent>(entity);
 
-    if (!sprite.isFrozen())
+    if (sprite.active)
     {
-      sprite.setCountdown(sprite.getCountdown() + 1);
-    }
-
-    const Animation& anim = sprite.getAnimation();
-    if (sprite.getCountdown() >= anim.getDelay())
-    {
-      sprite.setFrame(sprite.getFrame() + 1);
-      sprite.setCountdown(0);
-
-      if (sprite.getFrame() >= anim.getFirstFrame() + anim.getNumFrames())
+      if (!sprite.frozen)
       {
-        sprite.setFrame(anim.getFirstFrame());
+        sprite.countdown++;
       }
-    }
 
-    if (sprite.isFlickering())
-    {
-      sprite.setFlickerTimer((sprite.getFlickerTimer() + 1) % 6);
+      const Animation& anim = sprite.getAnimation();
+      if (sprite.countdown >= anim.getDelay())
+      {
+        sprite.frame++;
+        sprite.countdown = 0;
+
+        if (sprite.frame >= anim.getFirstFrame() + anim.getNumFrames())
+        {
+          sprite.frame = anim.getFirstFrame();
+        }
+      }
+
+      if (sprite.flickering)
+      {
+        sprite.flickerTimer = (sprite.flickerTimer + 1) % 6;
+      }
     }
   }
 }
@@ -49,29 +52,45 @@ void AnimatingSystem::render(Texture& texture)
     auto& sprite = game_.getEntityManager().
       getComponent<AnimatableComponent>(entity);
 
-    auto& transform = game_.getEntityManager().
-      getComponent<TransformableComponent>(entity);
-
-    double alpha = 1.0;
-    if (sprite.isFlickering() && (sprite.getFlickerTimer() < 3))
+    if (sprite.active)
     {
-      alpha = 0.0;
+      auto& transform = game_.getEntityManager().
+        getComponent<TransformableComponent>(entity);
+
+      double alpha = 1.0;
+      if (sprite.flickering && (sprite.flickerTimer < 3))
+      {
+        alpha = 0.0;
+      }
+
+      Rectangle dstrect {
+        static_cast<int>(transform.x),
+        static_cast<int>(transform.y),
+        transform.w,
+        transform.h};
+
+      const AnimationSet& aset = sprite.animationSet;
+      game_.getRenderer().blit(
+        aset.getTexture(),
+        texture,
+        aset.getFrameRect(sprite.frame),
+        dstrect,
+        alpha);
     }
-
-    Rectangle dstrect {
-      static_cast<int>(transform.getX()),
-      static_cast<int>(transform.getY()),
-      transform.getW(),
-      transform.getH()};
-
-    const AnimationSet& aset = sprite.getAnimationSet();
-    game_.getRenderer().blit(
-      aset.getTexture(),
-      texture,
-      aset.getFrameRect(sprite.getFrame()),
-      dstrect,
-      alpha);
   }
+}
+
+void AnimatingSystem::initPrototype(id_type entity)
+{
+  auto& sprite = game_.getEntityManager().
+    getComponent<AnimatableComponent>(entity);
+
+  startAnimation(entity, sprite.origAnimation);
+
+  sprite.countdown = 0;
+  sprite.flickering = false;
+  sprite.flickerTimer = 0;
+  sprite.frozen = false;
 }
 
 void AnimatingSystem::startAnimation(id_type entity, std::string animation)
@@ -79,6 +98,6 @@ void AnimatingSystem::startAnimation(id_type entity, std::string animation)
   auto& sprite = game_.getEntityManager().
     getComponent<AnimatableComponent>(entity);
 
-  sprite.setAnimation(animation);
-  sprite.setFrame(sprite.getAnimation().getFirstFrame());
+  sprite.animation = std::move(animation);
+  sprite.frame = sprite.getAnimation().getFirstFrame();
 }

@@ -24,27 +24,27 @@ void OrientingSystem::tick(double)
     {
       case OrientableComponent::WalkState::still:
       {
-        ponderable.setVelocityX(0);
+        ponderable.velX = 0.0;
 
         break;
       }
 
       case OrientableComponent::WalkState::left:
       {
-        ponderable.setVelocityX(-WALK_SPEED);
+        ponderable.velX = -WALK_SPEED;
 
         break;
       }
 
       case OrientableComponent::WalkState::right:
       {
-        ponderable.setVelocityX(WALK_SPEED);
+        ponderable.velX = WALK_SPEED;
 
         break;
       }
     }
 
-    if (orientable.isJumping() && (ponderable.getVelocityY() > 0))
+    if (orientable.isJumping() && (ponderable.velY > 0))
     {
       orientable.setJumping(false);
     }
@@ -63,7 +63,7 @@ void OrientingSystem::moveLeft(id_type entity)
   orientable.setWalkState(OrientableComponent::WalkState::left);
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
-  if (ponderable.isGrounded())
+  if (ponderable.grounded)
   {
     animating.startAnimation(entity, "walkingLeft");
   } else {
@@ -83,7 +83,7 @@ void OrientingSystem::moveRight(id_type entity)
   orientable.setWalkState(OrientableComponent::WalkState::right);
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
-  if (ponderable.isGrounded())
+  if (ponderable.grounded)
   {
     animating.startAnimation(entity, "walkingRight");
   } else {
@@ -113,7 +113,7 @@ void OrientingSystem::jump(id_type entity)
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(entity);
 
-  if (ponderable.isGrounded())
+  if (ponderable.grounded)
   {
     auto& orientable = game_.getEntityManager().
       getComponent<OrientableComponent>(entity);
@@ -122,8 +122,8 @@ void OrientingSystem::jump(id_type entity)
 
     playSound("res/Randomize87.wav", 0.25);
 
-    ponderable.setVelocityY(JUMP_VELOCITY);
-    ponderable.setAccelY(JUMP_GRAVITY);
+    ponderable.velY = JUMP_VELOCITY;
+    ponderable.accelY = JUMP_GRAVITY;
 
     auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
     if (orientable.isFacingRight())
@@ -147,7 +147,7 @@ void OrientingSystem::stopJumping(id_type entity)
     auto& ponderable = game_.getEntityManager().
       getComponent<PonderableComponent>(entity);
 
-    ponderable.setAccelY(NORMAL_GRAVITY);
+    ponderable.accelY = NORMAL_GRAVITY;
   }
 }
 
@@ -211,7 +211,7 @@ void OrientingSystem::drop(id_type entity)
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(entity);
 
-  if (ponderable.isGrounded()
+  if (ponderable.grounded
     && (orientable.getDropState() == OrientableComponent::DropState::none))
   {
     orientable.setDropState(OrientableComponent::DropState::ready);

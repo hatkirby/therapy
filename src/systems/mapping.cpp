@@ -1,5 +1,7 @@
 #include "mapping.h"
 #include "components/mappable.h"
+#include "components/realizable.h"
+#include "systems/realizing.h"
 #include "game.h"
 #include "consts.h"
 
@@ -18,104 +20,95 @@ inline void addBoundary(
 
 void MappingSystem::render(Texture& texture)
 {
-  auto entities = game_.getEntityManager().getEntitiesWithComponents<
-    MappableComponent>();
+  auto& realizable = game_.getEntityManager().
+    getComponent<RealizableComponent>(
+      game_.getSystemManager().getSystem<RealizingSystem>().getSingleton());
 
-  for (id_type entity : entities)
+  id_type map = realizable.activeMap;
+
+  auto& mappable = game_.getEntityManager().
+    getComponent<MappableComponent>(map);
+
+  for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT; i++)
   {
-    auto& mappable = game_.getEntityManager().
-      getComponent<MappableComponent>(entity);
+    int x = i % MAP_WIDTH;
+    int y = i / MAP_WIDTH;
+    int tile = mappable.tiles[i];
 
-    const Map& map = game_.getWorld().getMap(mappable.getMapId());
-
-    for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT; i++)
+    if (tile > 0)
     {
-      int x = i % MAP_WIDTH;
-      int y = i / MAP_WIDTH;
-      int tile = map.getTiles()[i];
-
-      if (tile > 0)
-      {
-        Rectangle dst {
-          x * TILE_WIDTH,
-          y * TILE_HEIGHT,
-          TILE_WIDTH,
-          TILE_HEIGHT};
-
-        Rectangle src {
-          (tile % TILESET_COLS) * TILE_WIDTH,
-          (tile / TILESET_COLS) * TILE_HEIGHT,
-          TILE_WIDTH,
-          TILE_HEIGHT};
-
-        game_.getRenderer().blit(
-          mappable.getTileset(),
-          texture,
-          std::move(src),
-          std::move(dst));
-      }
-    }
-
-    int startX = ((GAME_WIDTH / TILE_WIDTH) / 2) - (map.getTitle().size() / 2);
-    for (size_t i = 0; i < map.getTitle().size(); i++)
-    {
-      Rectangle src {
-        (map.getTitle()[i] % FONT_COLS) * TILE_WIDTH,
-        (map.getTitle()[i] / FONT_COLS) * TILE_HEIGHT,
+      Rectangle dst {
+        x * TILE_WIDTH,
+        y * TILE_HEIGHT,
         TILE_WIDTH,
         TILE_HEIGHT};
 
-      Rectangle dst {
-        (startX + static_cast<int>(i)) * TILE_WIDTH,
-        24 * TILE_HEIGHT,
+      Rectangle src {
+        (tile % TILESET_COLS) * TILE_WIDTH,
+        (tile / TILESET_COLS) * TILE_HEIGHT,
         TILE_WIDTH,
         TILE_HEIGHT};
 
       game_.getRenderer().blit(
-        mappable.getFont(),
+        mappable.tileset,
         texture,
         std::move(src),
         std::move(dst));
     }
   }
+
+  int startX = ((GAME_WIDTH / TILE_WIDTH) / 2) - (mappable.title.size() / 2);
+
+  for (size_t i = 0; i < mappable.title.size(); i++)
+  {
+    Rectangle src {
+      (mappable.title[i] % FONT_COLS) * TILE_WIDTH,
+      (mappable.title[i] / FONT_COLS) * TILE_HEIGHT,
+      TILE_WIDTH,
+      TILE_HEIGHT};
+
+    Rectangle dst {
+      (startX + static_cast<int>(i)) * TILE_WIDTH,
+      24 * TILE_HEIGHT,
+      TILE_WIDTH,
+      TILE_HEIGHT};
+
+    game_.getRenderer().blit(
+      mappable.font,
+      texture,
+      std::move(src),
+      std::move(dst));
+  }
 }
 
-void MappingSystem::loadMap(size_t mapId)
+void MappingSystem::generateBoundaries(id_type mapEntity)
 {
-  id_type mapEntity = game_.getEntityManager().emplaceEntity();
-
   auto& mappable = game_.getEntityManager().
-    emplaceComponent<MappableComponent>(mapEntity,
-      Texture("res/tiles.png"),
-      Texture("res/font.bmp"));
-
-  mappable.setMapId(mapId);
-
-  const Map& map = game_.getWorld().getMap(mappable.getMapId());
+    getComponent<MappableComponent>(mapEntity);
 
   addBoundary(
-    mappable.getLeftBoundaries(),
+    mappable.leftBoundaries,
     -WALL_GAP,
     0,
     MAP_HEIGHT * TILE_HEIGHT,
     MappableComponent::Boundary::Type::adjacency);
 
   addBoundary(
-    mappable.getRightBoundaries(),
+    mappable.rightBoundaries,
     GAME_WIDTH + WALL_GAP,
     0,
     MAP_HEIGHT * TILE_HEIGHT,
     MappableComponent::Boundary::Type::adjacency);
 
   addBoundary(
-    mappable.getUpBoundaries(),
+    mappable.upBoundaries,
     -WALL_GAP,
     0,
     GAME_WIDTH,
     MappableComponent::Boundary::Type::adjacency);
 
   addBoundary(
-    mappable.getDownBoundaries(),
+    mappable.downBoundaries,
     MAP_HEIGHT * TILE_HEIGHT + WALL_GAP,
     0,
     GAME_WIDTH,
@@ -125,12 +118,12 @@ void MappingSystem::loadMap(size_t mapId)
   {
     size_t x = i % MAP_WIDTH;
     size_t y = i / MAP_WIDTH;
-    int tile = map.getTiles()[i];
+    int tile = mappable.tiles[i];
 
     if ((tile >= 5) && (tile <= 7))
     {
       addBoundary(
-        mappable.getDownBoundaries(),
+        mappable.downBoundaries,
         y * TILE_HEIGHT,
         x * TILE_WIDTH,
         (x + 1) * TILE_WIDTH,
@@ -138,28 +131,28 @@ void MappingSystem::loadMap(size_t mapId)
     } else if ((tile > 0) && (tile < 28))
     {
       addBoundary(
-        mappable.getRightBoundaries(),
+        mappable.rightBoundaries,
         x * TILE_WIDTH,
         y * TILE_HEIGHT,
         (y+1) * TILE_HEIGHT,
         MappableComponent::Boundary::Type::wall);
 
       addBoundary(
-        mappable.getLeftBoundaries(),
+        mappable.leftBoundaries,
         (x+1) * TILE_WIDTH,
         y * TILE_HEIGHT,
         (y+1) * TILE_HEIGHT,
         MappableComponent::Boundary::Type::wall);
 
       addBoundary(
-        mappable.getDownBoundaries(),
+        mappable.downBoundaries,
         y * TILE_HEIGHT,
         x * TILE_WIDTH,
         (x+1) * TILE_WIDTH,
         MappableComponent::Boundary::Type::wall);
 
       addBoundary(
-        mappable.getUpBoundaries(),
+        mappable.upBoundaries,
         (y+1) * TILE_HEIGHT,
         x * TILE_WIDTH,
         (x+1) * TILE_WIDTH,
@@ -167,28 +160,28 @@ void MappingSystem::loadMap(size_t mapId)
     } else if (tile == 42)
     {
       addBoundary(
-        mappable.getRightBoundaries(),
+        mappable.rightBoundaries,
         x * TILE_WIDTH,
         y * TILE_HEIGHT,
         (y+1) * TILE_HEIGHT,
         MappableComponent::Boundary::Type::danger);
 
       addBoundary(
-        mappable.getLeftBoundaries(),
+        mappable.leftBoundaries,
         (x+1) * TILE_WIDTH,
         y * TILE_HEIGHT,
         (y+1) * TILE_HEIGHT,
         MappableComponent::Boundary::Type::danger);
 
       addBoundary(
-        mappable.getDownBoundaries(),
+        mappable.downBoundaries,
         y * TILE_HEIGHT,
         x * TILE_WIDTH,
         (x+1) * TILE_WIDTH,
         MappableComponent::Boundary::Type::danger);
 
       addBoundary(
-        mappable.getUpBoundaries(),
+        mappable.upBoundaries,
         (y+1) * TILE_HEIGHT,
         x * TILE_WIDTH,
         (x+1) * TILE_WIDTH,
