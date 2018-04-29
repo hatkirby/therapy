@@ -175,7 +175,7 @@ void MappingSystem::generateBoundaries(id_type mapEntity)
 
       addBoundary(
         mappable.downBoundaries,
-        y * TILE_HEIGHT,
+        y * TILE_HEIGHT + 1,
         x * TILE_WIDTH,
         (x+1) * TILE_WIDTH,
         MappableComponent::Boundary::Type::danger);

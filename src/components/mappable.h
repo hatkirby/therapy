@@ -7,7 +7,7 @@
 #include <list>
 #include "component.h"
 #include "renderer/texture.h"
-#include "collision.h"
+#include "components/ponderable.h"
 #include "entity_manager.h"
 
 class MappableComponent : public Component {
@@ -46,7 +46,7 @@ public:
   class Boundary {
   public:
 
-    using Type = Collision::Type;
+    using Type = PonderableComponent::Collision;
 
     Boundary(
       double axis,

@@ -11,7 +11,6 @@
 #include "systems/playing.h"
 #include "systems/realizing.h"
 #include "consts.h"
-#include "collision.h"
 
 void PonderingSystem::tick(double dt)
 {
@@ -56,304 +55,566 @@ void PonderingSystem::tick(double dt)
     const double oldRight = oldX + transformable.w;
     const double oldBottom = oldY + transformable.h;
 
-    double newX = oldX + ponderable.velX * dt;
-    double newY = oldY + ponderable.velY * dt;
+    CollisionResult result;
+    result.newX = oldX + ponderable.velX * dt;
+    result.newY = oldY + ponderable.velY * dt;
 
     bool oldGrounded = ponderable.grounded;
     ponderable.grounded = false;
 
-    std::priority_queue<Collision> collisions;
-
-    // Find collisions
-    if (newX < oldX)
+    // Find horizontal collisions.
+    if (result.newX < oldX)
     {
-      for (auto it = mappable.leftBoundaries.lower_bound(oldX);
-        (it != std::end(mappable.leftBoundaries)) && (it->first >= newX);
-        it++)
+      bool boundaryCollision = false;
+      auto it = mappable.leftBoundaries.lower_bound(oldX);
+
+      // Find the axis distance of the closest environmental boundary.
+      for (;
+          (it != std::end(mappable.leftBoundaries)) &&
+            (it->first >= result.newX);
+          it++)
       {
-        if ((oldBottom > it->second.lower)
-          && (oldY < it->second.upper))
+        // Check that the boundary is in range for the other axis.
+        if ((oldBottom > it->second.lower) && (oldY < it->second.upper))
         {
           // We have a collision!
-          collisions.emplace(
-            mapEntity,
-            Direction::left,
-            it->second.type,
-            it->first,
-            it->second.lower,
-            it->second.upper);
+          boundaryCollision = true;
+
+          break;
         }
       }
-    } else if (newX > oldX)
-    {
-      for (auto it = mappable.rightBoundaries.lower_bound(oldRight);
-        (it != std::end(mappable.rightBoundaries))
-          && (it->first <= (newX + transformable.w));
-        it++)
+
+      // Find a list of potential colliders, sorted so that the closest is
+      // first.
+      std::vector<id_type> colliders;
+
+      for (id_type collider : entities)
       {
-        if ((oldBottom > it->second.lower)
-          && (oldY < it->second.upper))
+        // Can't collide with self.
+        if (collider == entity)
+        {
+          continue;
+        }
+
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        // Only check objects that are active.
+        if (!colliderPonder.active)
+        {
+          continue;
+        }
+
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would move into the potential collider,
+        if ((colliderTrans.x + colliderTrans.w > result.newX) &&
+            // that it wasn't already colliding,
+            (colliderTrans.x + colliderTrans.w <= oldX) &&
+            // that the position on the other axis is in range,
+            (colliderTrans.y + colliderTrans.h > oldY) &&
+            (colliderTrans.y < oldBottom) &&
+            // and that the collider is not farther away than the environmental
+            // boundary.
+            (!boundaryCollision ||
+              (colliderTrans.x + colliderTrans.w >= it->first)))
+        {
+          colliders.push_back(collider);
+        }
+      }
+
+      std::sort(
+        std::begin(colliders),
+        std::end(colliders),
+        [&] (id_type left, id_type right) {
+          auto& leftTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(left);
+
+          auto& rightTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(right);
+
+          return (rightTrans.x < leftTrans.x);
+        });
+
+      for (id_type collider : colliders)
+      {
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would still move into the potential collider.
+        if (colliderTrans.x + colliderTrans.w <= result.newX)
+        {
+          break;
+        }
+
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        processCollision(
+          entity,
+          collider,
+          Direction::left,
+          colliderPonder.colliderType,
+          colliderTrans.x + colliderTrans.w,
+          colliderTrans.y,
+          colliderTrans.y + colliderTrans.h,
+          result);
+
+        if (result.stopProcessing)
+        {
+          break;
+        }
+      }
+
+      // If movement hasn't been stopped by an intermediary object, and
+      // collision checking hasn't been stopped, process the environmental
+      // boundaries closest to the entity.
+      if (!result.stopProcessing && !result.touchedWall && boundaryCollision)
+      {
+        double boundaryAxis = it->first;
+
+        for (;
+            (it != std::end(mappable.leftBoundaries)) &&
+              (it->first == boundaryAxis);
+            it++)
+        {
+          if ((oldBottom > it->second.lower) && (oldY < it->second.upper))
+          {
+            processCollision(
+              entity,
+              mapEntity,
+              Direction::left,
+              it->second.type,
+              it->first,
+              it->second.lower,
+              it->second.upper,
+              result);
+
+            if (result.stopProcessing)
+            {
+              break;
+            }
+          }
+        }
+      }
+    } else if (result.newX > oldX)
+    {
+      bool boundaryCollision = false;
+      auto it = mappable.rightBoundaries.lower_bound(oldRight);
+
+      // Find the axis distance of the closest environmental boundary.
+      for (;
+          (it != std::end(mappable.rightBoundaries))
+            && (it->first <= (result.newX + transformable.w));
+          it++)
+      {
+        // Check that the boundary is in range for the other axis.
+        if ((oldBottom > it->second.lower) && (oldY < it->second.upper))
         {
           // We have a collision!
-          collisions.emplace(
-            mapEntity,
-            Direction::right,
-            it->second.type,
-            it->first,
-            it->second.lower,
-            it->second.upper);
+          boundaryCollision = true;
+
+          break;
+        }
+      }
+
+      // Find a list of potential colliders, sorted so that the closest is
+      // first.
+      std::vector<id_type> colliders;
+
+      for (id_type collider : entities)
+      {
+        // Can't collide with self.
+        if (collider == entity)
+        {
+          continue;
+        }
+
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        // Only check objects that are active.
+        if (!colliderPonder.active)
+        {
+          continue;
+        }
+
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would move into the potential collider,
+        if ((colliderTrans.x < result.newX + transformable.w) &&
+            // that it wasn't already colliding,
+            (colliderTrans.x >= oldRight) &&
+            // that the position on the other axis is in range,
+            (colliderTrans.y + colliderTrans.h > oldY) &&
+            (colliderTrans.y < oldBottom) &&
+            // and that the collider is not farther away than the environmental
+            // boundary.
+            (!boundaryCollision || (colliderTrans.x <= it->first)))
+        {
+          colliders.push_back(collider);
+        }
+      }
+
+      std::sort(
+        std::begin(colliders),
+        std::end(colliders),
+        [&] (id_type left, id_type right) {
+          auto& leftTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(left);
+
+          auto& rightTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(right);
+
+          return (leftTrans.x < rightTrans.x);
+        });
+
+      for (id_type collider : colliders)
+      {
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would still move into the potential collider.
+        if (colliderTrans.x >= result.newX + transformable.w)
+        {
+          break;
+        }
+
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        processCollision(
+          entity,
+          collider,
+          Direction::right,
+          colliderPonder.colliderType,
+          colliderTrans.x,
+          colliderTrans.y,
+          colliderTrans.y + colliderTrans.h,
+          result);
+
+        if (result.stopProcessing)
+        {
+          break;
+        }
+      }
+
+      // If movement hasn't been stopped by an intermediary object, and
+      // collision checking hasn't been stopped, process the environmental
+      // boundaries closest to the entity.
+      if (!result.stopProcessing && !result.touchedWall && boundaryCollision)
+      {
+        double boundaryAxis = it->first;
+
+        for (;
+            (it != std::end(mappable.rightBoundaries)) &&
+              (it->first == boundaryAxis);
+            it++)
+        {
+          if ((oldBottom > it->second.lower) && (oldY < it->second.upper))
+          {
+            processCollision(
+              entity,
+              mapEntity,
+              Direction::right,
+              it->second.type,
+              it->first,
+              it->second.lower,
+              it->second.upper,
+              result);
+
+            if (result.stopProcessing)
+            {
+              break;
+            }
+          }
         }
       }
     }
 
-    if (newY < oldY)
+    // Find vertical collisions
+    result.touchedWall = false;
+
+    if ((!result.stopProcessing) && (result.newY < oldY))
     {
-      for (auto it = mappable.upBoundaries.lower_bound(oldY);
-        (it != std::end(mappable.upBoundaries)) && (it->first >= newY);
-        it++)
+      bool boundaryCollision = false;
+      auto it = mappable.upBoundaries.lower_bound(oldY);
+
+      // Find the axis distance of the closest environmental boundary.
+      for (;
+          (it != std::end(mappable.upBoundaries)) &&
+            (it->first >= result.newY);
+          it++)
       {
-        if ((oldRight > it->second.lower)
-          && (oldX < it->second.upper))
+        // Check that the boundary is in range for the other axis.
+        if ((result.newX + transformable.h > it->second.lower) &&
+            (result.newX < it->second.upper))
         {
           // We have a collision!
-          collisions.emplace(
-            mapEntity,
-            Direction::up,
-            it->second.type,
-            it->first,
-            it->second.lower,
-            it->second.upper);
+          boundaryCollision = true;
+
+          break;
         }
       }
-    } else if (newY > oldY)
-    {
-      for (auto it = mappable.downBoundaries.lower_bound(oldBottom);
-        (it != std::end(mappable.downBoundaries))
-          && (it->first <= (newY + transformable.h));
-        it++)
+
+      // Find a list of potential colliders, sorted so that the closest is
+      // first.
+      std::vector<id_type> colliders;
+
+      for (id_type collider : entities)
       {
-        if ((oldRight > it->second.lower)
-          && (oldX < it->second.upper))
+        // Can't collide with self.
+        if (collider == entity)
+        {
+          continue;
+        }
+
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        // Only check objects that are active.
+        if (!colliderPonder.active)
+        {
+          continue;
+        }
+
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would move into the potential collider,
+        if ((colliderTrans.y + colliderTrans.h > result.newY) &&
+            // that it wasn't already colliding,
+            (colliderTrans.y + colliderTrans.h <= oldY) &&
+            // that the position on the other axis is in range,
+            (colliderTrans.x + colliderTrans.w > result.newX) &&
+            (colliderTrans.x < result.newX + transformable.w) &&
+            // and that the collider is not farther away than the environmental
+            // boundary.
+            (!boundaryCollision ||
+              (colliderTrans.y + colliderTrans.h >= it->first)))
+        {
+          colliders.push_back(collider);
+        }
+      }
+
+      std::sort(
+        std::begin(colliders),
+        std::end(colliders),
+        [&] (id_type left, id_type right) {
+          auto& leftTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(left);
+
+          auto& rightTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(right);
+
+          return (rightTrans.y < leftTrans.y);
+        });
+
+      for (id_type collider : colliders)
+      {
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would still move into the potential collider.
+        if (colliderTrans.y + colliderTrans.h <= result.newY)
+        {
+          break;
+        }
+
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        processCollision(
+          entity,
+          collider,
+          Direction::up,
+          colliderPonder.colliderType,
+          colliderTrans.y + colliderTrans.h,
+          colliderTrans.x,
+          colliderTrans.x + colliderTrans.w,
+          result);
+
+        if (result.stopProcessing)
+        {
+          break;
+        }
+      }
+
+      // If movement hasn't been stopped by an intermediary object, and
+      // collision checking hasn't been stopped, process the environmental
+      // boundaries closest to the entity.
+      if (!result.stopProcessing && !result.touchedWall && boundaryCollision)
+      {
+        double boundaryAxis = it->first;
+
+        for (;
+            (it != std::end(mappable.upBoundaries)) &&
+              (it->first == boundaryAxis);
+            it++)
+        {
+          if ((result.newX + transformable.w > it->second.lower) &&
+              (result.newX < it->second.upper))
+          {
+            processCollision(
+              entity,
+              mapEntity,
+              Direction::up,
+              it->second.type,
+              it->first,
+              it->second.lower,
+              it->second.upper,
+              result);
+
+            if (result.stopProcessing)
+            {
+              break;
+            }
+          }
+        }
+      }
+    } else if ((!result.stopProcessing) && (result.newY > oldY))
+    {
+      bool boundaryCollision = false;
+      auto it = mappable.downBoundaries.lower_bound(oldBottom);
+
+      // Find the axis distance of the closest environmental boundary.
+      for (;
+          (it != std::end(mappable.downBoundaries))
+            && (it->first <= (result.newY + transformable.h));
+          it++)
+      {
+        // Check that the boundary is in range for the other axis.
+        if ((result.newX + transformable.w > it->second.lower) &&
+            (result.newX < it->second.upper))
         {
           // We have a collision!
-          collisions.emplace(
-            mapEntity,
-            Direction::down,
-            it->second.type,
-            it->first,
-            it->second.lower,
-            it->second.upper);
-        }
-      }
-    }
-
-    // Process collisions in order of priority
-    bool adjacentlyWarping = false;
-    Direction adjWarpDir;
-    size_t adjWarpMapId;
-
-    while (!collisions.empty())
-    {
-      Collision collision = collisions.top();
-      collisions.pop();
-
-      // Make sure that they are still colliding
-      if (!collision.isColliding(
-        newX,
-        newY,
-        transformable.w,
-        transformable.h))
-      {
-        continue;
-      }
-
-      bool touchedWall = false;
-      bool stopProcessing = false;
-
-      switch (collision.getType())
-      {
-        case Collision::Type::wall:
-        {
-          touchedWall = true;
+          boundaryCollision = true;
 
           break;
         }
+      }
 
-        case Collision::Type::platform:
+      // Find a list of potential colliders, sorted so that the closest is
+      // first.
+      std::vector<id_type> colliders;
+
+      for (id_type collider : entities)
+      {
+        // Can't collide with self.
+        if (collider == entity)
         {
-          if (game_.getEntityManager().
-            hasComponent<OrientableComponent>(entity))
-          {
-            auto& orientable = game_.getEntityManager().
-              getComponent<OrientableComponent>(entity);
+          continue;
+        }
 
-            if (orientable.getDropState() !=
-              OrientableComponent::DropState::none)
-            {
-              orientable.setDropState(OrientableComponent::DropState::active);
-            } else {
-              touchedWall = true;
-            }
-          } else {
-            touchedWall = true;
-          }
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
 
+        // Only check objects that are active.
+        if (!colliderPonder.active)
+        {
+          continue;
+        }
+
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would move into the potential collider,
+        if ((colliderTrans.y < result.newY + transformable.h) &&
+            // that it wasn't already colliding,
+            (colliderTrans.y >= oldBottom) &&
+            // that the position on the other axis is in range,
+            (colliderTrans.x + colliderTrans.w > result.newX) &&
+            (colliderTrans.x < result.newX + transformable.w) &&
+            // and that the collider is not farther away than the environmental
+            // boundary.
+            (!boundaryCollision || (colliderTrans.y <= it->first)))
+        {
+          colliders.push_back(collider);
+        }
+      }
+
+      std::sort(
+        std::begin(colliders),
+        std::end(colliders),
+        [&] (id_type left, id_type right) {
+          auto& leftTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(left);
+
+          auto& rightTrans = game_.getEntityManager().
+            getComponent<TransformableComponent>(right);
+
+          return (leftTrans.y < rightTrans.y);
+        });
+
+      for (id_type collider : colliders)
+      {
+        auto& colliderTrans = game_.getEntityManager().
+          getComponent<TransformableComponent>(collider);
+
+        // Check if the entity would still move into the potential collider.
+        if (colliderTrans.y >= result.newY + transformable.h)
+        {
           break;
         }
 
-        case Collision::Type::adjacency:
+        auto& colliderPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(collider);
+
+        processCollision(
+          entity,
+          collider,
+          Direction::down,
+          colliderPonder.colliderType,
+          colliderTrans.y,
+          colliderTrans.x,
+          colliderTrans.x + colliderTrans.w,
+          result);
+
+        if (result.stopProcessing)
         {
-          auto& mappable = game_.getEntityManager().
-            getComponent<MappableComponent>(collision.getCollider());
+          break;
+        }
+      }
 
-          auto& adj = [&] () -> const MappableComponent::Adjacent& {
-              switch (collision.getDirection())
-              {
-                case Direction::left: return mappable.leftAdjacent;
-                case Direction::right: return mappable.rightAdjacent;
-                case Direction::up: return mappable.upAdjacent;
-                case Direction::down: return mappable.downAdjacent;
-              }
-            }();
+      // If movement hasn't been stopped by an intermediary object, and
+      // collision checking hasn't been stopped, process the environmental
+      // boundaries closest to the entity.
+      if (!result.stopProcessing && !result.touchedWall && boundaryCollision)
+      {
+        double boundaryAxis = it->first;
 
-          switch (adj.type)
+        for (;
+            (it != std::end(mappable.downBoundaries)) &&
+              (it->first == boundaryAxis);
+            it++)
+        {
+          if ((result.newX + transformable.w > it->second.lower) &&
+              (result.newX < it->second.upper))
           {
-            case MappableComponent::Adjacent::Type::wall:
-            {
-              touchedWall = true;
+            processCollision(
+              entity,
+              mapEntity,
+              Direction::down,
+              it->second.type,
+              it->first,
+              it->second.lower,
+              it->second.upper,
+              result);
 
+            if (result.stopProcessing)
+            {
               break;
             }
-
-            case MappableComponent::Adjacent::Type::wrap:
-            {
-              switch (collision.getDirection())
-              {
-                case Direction::left:
-                {
-                  newX = GAME_WIDTH + WALL_GAP - transformable.w;
-
-                  break;
-                }
-
-                case Direction::right:
-                {
-                  newX = -WALL_GAP;
-
-                  break;
-                }
-
-                case Direction::up:
-                {
-                  newY = MAP_HEIGHT * TILE_HEIGHT + WALL_GAP - transformable.h;
-
-                  break;
-                }
-
-                case Direction::down:
-                {
-                  newY = -WALL_GAP;
-
-                  break;
-                }
-              }
-            }
-
-            case MappableComponent::Adjacent::Type::warp:
-            {
-              if (game_.getEntityManager().
-                hasComponent<PlayableComponent>(entity))
-              {
-                adjacentlyWarping = true;
-                adjWarpDir = collision.getDirection();
-                adjWarpMapId = adj.mapId;
-              }
-
-              break;
-            }
-
-            case MappableComponent::Adjacent::Type::reverse:
-            {
-              // TODO: not yet implemented.
-
-              break;
-            }
-          }
-
-          break;
-        }
-
-        case Collision::Type::danger:
-        {
-          if (game_.getEntityManager().
-            hasComponent<PlayableComponent>(entity))
-          {
-            game_.getSystemManager().getSystem<PlayingSystem>().die(entity);
-
-            adjacentlyWarping = false;
-          }
-
-          stopProcessing = true;
-
-          break;
-        }
-
-        default:
-        {
-          // Not yet implemented.
-
-          break;
-        }
-      }
-
-      if (stopProcessing)
-      {
-        break;
-      }
-
-      if (touchedWall)
-      {
-        switch (collision.getDirection())
-        {
-          case Direction::left:
-          {
-            newX = collision.getAxis();
-            ponderable.velX = 0.0;
-
-            break;
-          }
-
-          case Direction::right:
-          {
-            newX = collision.getAxis() - transformable.w;
-            ponderable.velX = 0.0;
-
-            break;
-          }
-
-          case Direction::up:
-          {
-            newY = collision.getAxis();
-            ponderable.velY = 0.0;
-
-            break;
-          }
-
-          case Direction::down:
-          {
-            newY = collision.getAxis() - transformable.h;
-            ponderable.velY = 0.0;
-            ponderable.grounded = true;
-
-            break;
           }
         }
       }
     }
 
     // Move
-    transformable.x = newX;
-    transformable.y = newY;
+    transformable.x = result.newX;
+    transformable.y = result.newY;
 
     // Perform cleanup for orientable entites
     if (game_.getEntityManager().hasComponent<OrientableComponent>(entity))
@@ -381,12 +642,12 @@ void PonderingSystem::tick(double dt)
     }
 
     // Move to an adjacent map, if necessary
-    if (adjacentlyWarping)
+    if (result.adjacentlyWarping)
     {
-      double warpX = newX;
-      double warpY = newY;
+      double warpX = result.newX;
+      double warpY = result.newY;
 
-      switch (adjWarpDir)
+      switch (result.adjWarpDir)
       {
         case Direction::left:
         {
@@ -420,7 +681,7 @@ void PonderingSystem::tick(double dt)
       game_.getSystemManager().getSystem<PlayingSystem>().
         changeMap(
           entity,
-          adjWarpMapId,
+          result.adjWarpMapId,
           warpX,
           warpY);
     }
@@ -452,4 +713,197 @@ void PonderingSystem::initPrototype(id_type prototype)
   ponderable.grounded = false;
   ponderable.frozen = false;
   ponderable.collidable = true;
+}
+
+void PonderingSystem::processCollision(
+  id_type entity,
+  id_type collider,
+  Direction dir,
+  PonderableComponent::Collision type,
+  double axis,
+  double lower,
+  double upper,
+  CollisionResult& result)
+{
+  auto& ponderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(entity);
+
+  auto& transformable = game_.getEntityManager().
+    getComponent<TransformableComponent>(entity);
+
+  switch (type)
+  {
+    case PonderableComponent::Collision::wall:
+    {
+      result.touchedWall = true;
+
+      break;
+    }
+
+    case PonderableComponent::Collision::platform:
+    {
+      if (game_.getEntityManager().
+        hasComponent<OrientableComponent>(entity))
+      {
+        auto& orientable = game_.getEntityManager().
+          getComponent<OrientableComponent>(entity);
+
+        if (orientable.getDropState() !=
+          OrientableComponent::DropState::none)
+        {
+          orientable.setDropState(OrientableComponent::DropState::active);
+        } else {
+          result.touchedWall = true;
+        }
+      } else {
+        result.touchedWall = true;
+      }
+
+      break;
+    }
+
+    case PonderableComponent::Collision::adjacency:
+    {
+      auto& mappable = game_.getEntityManager().
+        getComponent<MappableComponent>(collider);
+
+      auto& adj = [&] () -> const MappableComponent::Adjacent& {
+          switch (dir)
+          {
+            case Direction::left: return mappable.leftAdjacent;
+            case Direction::right: return mappable.rightAdjacent;
+            case Direction::up: return mappable.upAdjacent;
+            case Direction::down: return mappable.downAdjacent;
+          }
+        }();
+
+      switch (adj.type)
+      {
+        case MappableComponent::Adjacent::Type::wall:
+        {
+          result.touchedWall = true;
+
+          break;
+        }
+
+        case MappableComponent::Adjacent::Type::wrap:
+        {
+          switch (dir)
+          {
+            case Direction::left:
+            {
+              result.newX = GAME_WIDTH + WALL_GAP - transformable.w;
+
+              break;
+            }
+
+            case Direction::right:
+            {
+              result.newX = -WALL_GAP;
+
+              break;
+            }
+
+            case Direction::up:
+            {
+              result.newY =
+                MAP_HEIGHT * TILE_HEIGHT + WALL_GAP - transformable.h;
+
+              break;
+            }
+
+            case Direction::down:
+            {
+              result.newY = -WALL_GAP;
+
+              break;
+            }
+          }
+        }
+
+        case MappableComponent::Adjacent::Type::warp:
+        {
+          if (game_.getEntityManager().
+            hasComponent<PlayableComponent>(entity))
+          {
+            result.adjacentlyWarping = true;
+            result.adjWarpDir = dir;
+            result.adjWarpMapId = adj.mapId;
+          }
+
+          break;
+        }
+
+        case MappableComponent::Adjacent::Type::reverse:
+        {
+          // TODO: not yet implemented.
+
+          break;
+        }
+      }
+
+      break;
+    }
+
+    case PonderableComponent::Collision::danger:
+    {
+      if (game_.getEntityManager().
+        hasComponent<PlayableComponent>(entity))
+      {
+        game_.getSystemManager().getSystem<PlayingSystem>().die(entity);
+
+        result.adjacentlyWarping = false;
+      }
+
+      result.stopProcessing = true;
+
+      break;
+    }
+
+    default:
+    {
+      // Not yet implemented.
+
+      break;
+    }
+  }
+
+  if (!result.stopProcessing && result.touchedWall)
+  {
+    switch (dir)
+    {
+      case Direction::left:
+      {
+        result.newX = axis;
+        ponderable.velX = 0.0;
+
+        break;
+      }
+
+      case Direction::right:
+      {
+        result.newX = axis - transformable.w;
+        ponderable.velX = 0.0;
+
+        break;
+      }
+
+      case Direction::up:
+      {
+        result.newY = axis;
+        ponderable.velY = 0.0;
+
+        break;
+      }
+
+      case Direction::down:
+      {
+        result.newY = axis - transformable.h;
+        ponderable.velY = 0.0;
+        ponderable.grounded = true;
+
+        break;
+      }
+    }
+  }
 }

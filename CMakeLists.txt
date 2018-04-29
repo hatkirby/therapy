@@ -55,7 +55,6 @@ add_executable(Aromatherapy
   src/game.cpp
   src/animation.cpp
   src/util.cpp
-  src/collision.cpp
   src/renderer/renderer.cpp
   src/renderer/mesh.cpp
   src/renderer/shader.cpp

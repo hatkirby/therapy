@@ -207,6 +207,10 @@ EntityManager::id_type RealizingSystem::initSingleton(
 
           animatable.origAnimation = "static";
 
+          // Create a physics body.
+          game_.getSystemManager().getSystem<PonderingSystem>().
+            initializeBody(mapObject, PonderableComponent::Type::vacuumed);
+
           mappable.objects.push_back(mapObject);
         } else if (!xmlStrcmp(
           mapNode->name,

@@ -18,6 +18,29 @@ public:
 
   void initPrototype(id_type prototype);
 
+private:
+
+  struct CollisionResult
+  {
+    double newX;
+    double newY;
+    bool stopProcessing = false;
+    bool touchedWall = false;
+    bool adjacentlyWarping = false;
+    Direction adjWarpDir;
+    size_t adjWarpMapId;
+  };
+
+  void processCollision(
+    id_type entity,
+    id_type collider,
+    Direction dir,
+    PonderableComponent::Collision type,
+    double axis,
+    double lower,
+    double upper,
+    CollisionResult& result);
+
 };
 
 #endif /* end of include guard: PONDERING_H_F2530E0E */

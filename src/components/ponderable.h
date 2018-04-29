@@ -21,6 +21,17 @@ public:
   };
 
   /**
+   * List of different types of collidable surfaces.
+   */
+  enum class Collision {
+    wall,
+    platform,
+    adjacency,
+    warp,
+    danger
+  };
+
+  /**
    * Constructor for initializing the body type, which is a constant.
    */
   PonderableComponent(Type type) : type(type)
@@ -65,6 +76,11 @@ public:
    * other bodies will ignore it.
    */
   bool collidable = true;
+
+  /**
+   * The effect that colliding with this body has.
+   */
+  Collision colliderType = Collision::wall;
 
   /**
    * If this flag is disabled, the entity will be ignored by the pondering
