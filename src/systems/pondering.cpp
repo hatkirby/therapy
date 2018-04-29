@@ -1,5 +1,6 @@
 #include "pondering.h"
 #include <queue>
+#include <algorithm>
 #include "game.h"
 #include "components/ponderable.h"
 #include "components/transformable.h"
