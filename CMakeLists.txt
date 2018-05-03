@@ -67,6 +67,7 @@ add_executable(Aromatherapy
   src/systems/playing.cpp
   src/systems/scheduling.cpp
   src/systems/realizing.cpp
+  src/systems/automating.cpp
   vendor/stb_image.cpp
 )
 

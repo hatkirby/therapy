@@ -1,6 +1,7 @@
 #ifndef GAME_H_1014DDC9
 #define GAME_H_1014DDC9
 
+#include <random>
 #include "entity_manager.h"
 #include "system_manager.h"
 #include "renderer/renderer.h"
@@ -8,9 +9,14 @@
 class Game {
 public:
 
-  Game();
+  Game(std::mt19937& rng);
 
   void execute();
+
+  inline std::mt19937& getRng()
+  {
+    return rng_;
+  }
 
   inline Renderer& getRenderer()
   {
@@ -36,6 +42,7 @@ public:
 
 private:
 
+  std::mt19937 rng_;
   Renderer renderer_;
   EntityManager entityManager_;
   SystemManager systemManager_;

@@ -12,9 +12,11 @@
 #include "components/playable.h"
 #include "components/ponderable.h"
 #include "components/transformable.h"
+#include "components/automatable.h"
 #include "systems/mapping.h"
 #include "systems/animating.h"
 #include "systems/pondering.h"
+#include "systems/automating.h"
 
 inline xmlChar* getProp(xmlNodePtr node, const char* attr)
 {
@@ -25,6 +27,92 @@ inline xmlChar* getProp(xmlNodePtr node, const char* attr)
   }
 
   return key;
+}
+
+void parseAI(
+  xmlNodePtr node,
+  std::vector<AutomatableComponent::Action>& behavior,
+  const std::map<std::string, int>& items)
+{
+  xmlChar* key = nullptr;
+
+  if (!xmlStrcmp(
+    node->name,
+    reinterpret_cast<const xmlChar*>("switch")))
+  {
+    key = getProp(node, "item");
+    std::string switchItem = reinterpret_cast<char*>(key);
+    xmlFree(key);
+
+    for (xmlNodePtr switchNode = node->xmlChildrenNode;
+         switchNode != nullptr;
+         switchNode = switchNode->next)
+    {
+      if (!xmlStrcmp(
+        switchNode->name,
+        reinterpret_cast<const xmlChar*>("case")))
+      {
+        key = getProp(switchNode, "value");
+        int caseValue = atoi(reinterpret_cast<char*>(key));
+        xmlFree(key);
+
+        if (items.at(switchItem) == caseValue)
+        {
+          for (xmlNodePtr caseNode = switchNode->xmlChildrenNode;
+               caseNode != nullptr;
+               caseNode = caseNode->next)
+          {
+            parseAI(
+              caseNode,
+              behavior,
+              items);
+          }
+        }
+      }
+    }
+  } else if (!xmlStrcmp(
+    node->name,
+    reinterpret_cast<const xmlChar*>("move")))
+  {
+    key = getProp(node, "direction");
+    std::string direction = reinterpret_cast<char*>(key);
+    xmlFree(key);
+
+    key = getProp(node, "length-var");
+    std::string lengthVar = reinterpret_cast<char*>(key);
+    xmlFree(key);
+
+    key = getProp(node, "speed-var");
+    std::string speedVar = reinterpret_cast<char*>(key);
+    xmlFree(key);
+
+    double length = items.at(lengthVar);
+    double speed = items.at(speedVar);
+
+    AutomatableComponent::Action action;
+
+    if (direction == "left")
+    {
+      action.speedX = -speed;
+      action.speedY = 0;
+    } else if (direction == "right")
+    {
+      action.speedX = speed;
+      action.speedY = 0;
+    } else if (direction == "up")
+    {
+      action.speedX = 0;
+      action.speedY = -speed;
+    } else if (direction == "down")
+    {
+      action.speedX = 0;
+      action.speedY = speed;
+    }
+
+    action.dur = length / speed;
+
+    behavior.push_back(std::move(action));
+  }
 }
 
 // TODO: neither the XML doc nor any of the emplaced entities are properly
@@ -211,6 +299,70 @@ EntityManager::id_type RealizingSystem::initSingleton(
           game_.getSystemManager().getSystem<PonderingSystem>().
             initializeBody(mapObject, PonderableComponent::Type::vacuumed);
 
+          // Look for any object configuration.
+          std::map<std::string, int> items;
+
+          for (xmlNodePtr objectNode = mapNode->xmlChildrenNode;
+            objectNode != nullptr;
+            objectNode = objectNode->next)
+          {
+            if (!xmlStrcmp(
+              objectNode->name,
+              reinterpret_cast<const xmlChar*>("item")))
+            {
+              key = getProp(objectNode, "id");
+              std::string itemName = reinterpret_cast<char*>(key);
+              xmlFree(key);
+
+              key = xmlNodeGetContent(objectNode);
+              int itemVal = atoi(reinterpret_cast<char*>(key));
+              xmlFree(key);
+
+              items[itemName] = itemVal;
+            }
+          }
+
+          // Add any AI behaviors.
+          std::vector<double> behaviorWeights;
+
+          for (xmlNodePtr protoSubNode = prototypeNode->xmlChildrenNode;
+            protoSubNode != nullptr;
+            protoSubNode = protoSubNode->next)
+          {
+            if (!xmlStrcmp(
+              protoSubNode->name,
+              reinterpret_cast<const xmlChar*>("ai")))
+            {
+              if (!game_.getEntityManager().
+                hasComponent<AutomatableComponent>(mapObject))
+              {
+                game_.getEntityManager().
+                  emplaceComponent<AutomatableComponent>(mapObject);
+              }
+
+              auto& automatable = game_.getEntityManager().
+                getComponent<AutomatableComponent>(mapObject);
+
+              key = getProp(protoSubNode, "chance");
+              behaviorWeights.push_back(atof(reinterpret_cast<char*>(key)));
+              xmlFree(key);
+
+              std::vector<AutomatableComponent::Action> behavior;
+
+              for (xmlNodePtr aiNode = protoSubNode->xmlChildrenNode;
+                aiNode != nullptr;
+                aiNode = aiNode->next)
+              {
+                parseAI(
+                  aiNode,
+                  behavior,
+                  items);
+              }
+
+              automatable.behaviors.push_back(std::move(behavior));
+            }
+          }
+
           mappable.objects.push_back(mapObject);
         } else if (!xmlStrcmp(
           mapNode->name,
@@ -304,6 +456,7 @@ void RealizingSystem::loadMap(id_type mapEntity)
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
   auto& pondering = game_.getSystemManager().getSystem<PonderingSystem>();
+  auto& automating = game_.getSystemManager().getSystem<AutomatingSystem>();
 
   std::set<id_type> players =
     game_.getEntityManager().getEntitiesWithComponents<
@@ -366,6 +519,11 @@ void RealizingSystem::loadMap(id_type mapEntity)
       pondering.initPrototype(prototype);
     }
 
+    if (game_.getEntityManager().hasComponent<AutomatableComponent>(prototype))
+    {
+      automating.initPrototype(prototype);
+    }
+
     enterActiveMap(prototype);
   }
 
@@ -399,6 +557,14 @@ void RealizingSystem::enterActiveMap(id_type entity)
 
     ponderable.active = true;
   }
+
+  if (game_.getEntityManager().hasComponent<AutomatableComponent>(entity))
+  {
+    auto& automatable = game_.getEntityManager().
+      getComponent<AutomatableComponent>(entity);
+
+    automatable.active = true;
+  }
 }
 
 void RealizingSystem::leaveActiveMap(id_type entity)
@@ -417,5 +583,13 @@ void RealizingSystem::leaveActiveMap(id_type entity)
       getComponent<PonderableComponent>(entity);
 
     ponderable.active = false;
+  }
+
+  if (game_.getEntityManager().hasComponent<AutomatableComponent>(entity))
+  {
+    auto& automatable = game_.getEntityManager().
+      getComponent<AutomatableComponent>(entity);
+
+    automatable.active = false;
   }
 }

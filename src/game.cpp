@@ -12,6 +12,7 @@
 #include "systems/playing.h"
 #include "systems/scheduling.h"
 #include "systems/realizing.h"
+#include "systems/automating.h"
 #include "animation.h"
 #include "consts.h"
 
@@ -29,12 +30,13 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
   game.systemManager_.input(key, action);
 }
 
-Game::Game()
+Game::Game(std::mt19937& rng) : rng_(rng)
 {
   systemManager_.emplaceSystem<RealizingSystem>(*this);
   systemManager_.emplaceSystem<PlayingSystem>(*this);
   systemManager_.emplaceSystem<SchedulingSystem>(*this);
   systemManager_.emplaceSystem<ControllingSystem>(*this);
+  systemManager_.emplaceSystem<AutomatingSystem>(*this);
   systemManager_.emplaceSystem<OrientingSystem>(*this);
   systemManager_.emplaceSystem<PonderingSystem>(*this);
   systemManager_.emplaceSystem<MappingSystem>(*this);
