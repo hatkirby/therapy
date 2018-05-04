@@ -1,10 +1,14 @@
 #ifndef TANGIBLE_H_746DB3EE
 #define TANGIBLE_H_746DB3EE
 
+#include <set>
 #include "component.h"
+#include "entity_manager.h"
 
 class PonderableComponent : public Component {
 public:
+
+  using id_type = EntityManager::id_type;
 
   /**
    * List of different types of physical bodies.
@@ -65,6 +69,35 @@ public:
    * @managed_by PonderingSystem
    */
   bool grounded = false;
+
+  /**
+   * Whether or not a freefalling body is being ferried by another body.
+   *
+   * @managed_by PonderingSystem
+   */
+  bool ferried = false;
+
+  /**
+   * The entity that is ferrying this body, if there is one.
+   *
+   * @managed_by PonderingSystem
+   */
+  id_type ferry;
+
+  /**
+   * The location of the body relative to the location of its ferry.
+   *
+   * @managed_by PonderingSystem
+   */
+  double relX;
+  double relY;
+
+  /**
+   * The bodies that are being ferried by this body.
+   *
+   * @managed_by PonderingSystem
+   */
+  std::set<id_type> passengers;
 
   /**
    * If enabled, this will prevent the body from moving.

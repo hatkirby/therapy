@@ -57,8 +57,21 @@ void PonderingSystem::tick(double dt)
     const double oldBottom = oldY + transformable.h;
 
     CollisionResult result;
-    result.newX = oldX + ponderable.velX * dt;
-    result.newY = oldY + ponderable.velY * dt;
+
+    if (ponderable.ferried)
+    {
+      auto& ferryTrans = game_.getEntityManager().
+        getComponent<TransformableComponent>(ponderable.ferry);
+
+      result.newX = ferryTrans.x + ponderable.relX;
+      result.newY = ferryTrans.y + ponderable.relY;
+    } else {
+      result.newX = transformable.x;
+      result.newY = transformable.y;
+    }
+
+    result.newX += ponderable.velX * dt;
+    result.newY += ponderable.velY * dt;
 
     bool oldGrounded = ponderable.grounded;
     ponderable.grounded = false;
@@ -642,6 +655,43 @@ void PonderingSystem::tick(double dt)
       }
     }
 
+    // Handle ferry passengers
+    if ((ponderable.type == PonderableComponent::Type::freefalling) &&
+        (ponderable.grounded != oldGrounded))
+    {
+      if (ponderable.grounded &&
+          game_.getEntityManager().
+            hasComponent<PonderableComponent>(result.groundEntity))
+      {
+        // The body is now being ferried
+        auto& ferryPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(result.groundEntity);
+
+        ponderable.ferried = true;
+        ponderable.ferry = result.groundEntity;
+
+        ferryPonder.passengers.insert(entity);
+      } else if (ponderable.ferried)
+      {
+        // The body is no longer being ferried
+        ponderable.ferried = false;
+
+        auto& ferryPonder = game_.getEntityManager().
+          getComponent<PonderableComponent>(ponderable.ferry);
+
+        ferryPonder.passengers.erase(entity);
+      }
+    }
+
+    if (ponderable.ferried)
+    {
+      auto& ferryTrans = game_.getEntityManager().
+        getComponent<TransformableComponent>(ponderable.ferry);
+
+      ponderable.relX = transformable.x - ferryTrans.x;
+      ponderable.relY = transformable.y - ferryTrans.y;
+    }
+
     // Move to an adjacent map, if necessary
     if (result.adjacentlyWarping)
     {
@@ -714,6 +764,8 @@ void PonderingSystem::initPrototype(id_type prototype)
   ponderable.grounded = false;
   ponderable.frozen = false;
   ponderable.collidable = true;
+  ponderable.ferried = false;
+  ponderable.passengers.clear();
 }
 
 void PonderingSystem::processCollision(
@@ -900,6 +952,7 @@ void PonderingSystem::processCollision(
       case Direction::down:
       {
         result.newY = axis - transformable.h;
+        result.groundEntity = collider;
         ponderable.velY = 0.0;
         ponderable.grounded = true;
 

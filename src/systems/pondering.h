@@ -29,6 +29,7 @@ private:
     bool adjacentlyWarping = false;
     Direction adjWarpDir;
     size_t adjWarpMapId;
+    id_type groundEntity;
   };
 
   void processCollision(
