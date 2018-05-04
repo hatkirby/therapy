@@ -91,9 +91,9 @@ void PonderingSystem::tickBody(
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(entity);
 
-  if (!ponderable.active || ponderable.frozen)
+  if (!ponderable.active)
   {
-    continue;
+    return;
   }
 
   auto& realizable = game_.getEntityManager().
@@ -109,13 +109,16 @@ void PonderingSystem::tickBody(
     getComponent<TransformableComponent>(entity);
 
   // Accelerate
-  ponderable.velX += ponderable.accelX * dt;
-  ponderable.velY += ponderable.accelY * dt;
-
-  if ((ponderable.type == PonderableComponent::Type::freefalling)
-    && (ponderable.velY > TERMINAL_VELOCITY))
+  if (!ponderable.frozen)
   {
-    ponderable.velY = TERMINAL_VELOCITY;
+    ponderable.velX += ponderable.accelX * dt;
+    ponderable.velY += ponderable.accelY * dt;
+
+    if ((ponderable.type == PonderableComponent::Type::freefalling)
+      && (ponderable.velY > TERMINAL_VELOCITY))
+    {
+      ponderable.velY = TERMINAL_VELOCITY;
+    }
   }
 
   const double oldX = transformable.x;
@@ -124,21 +127,23 @@ void PonderingSystem::tickBody(
   const double oldBottom = oldY + transformable.h;
 
   CollisionResult result;
+  result.newX = transformable.x;
+  result.newY = transformable.y;
 
-  if (ponderable.ferried)
+  if (!ponderable.frozen)
   {
-    auto& ferryTrans = game_.getEntityManager().
-      getComponent<TransformableComponent>(ponderable.ferry);
+    if (ponderable.ferried)
+    {
+      auto& ferryTrans = game_.getEntityManager().
+        getComponent<TransformableComponent>(ponderable.ferry);
 
-    result.newX = ferryTrans.x + ponderable.relX;
-    result.newY = ferryTrans.y + ponderable.relY;
-  } else {
-    result.newX = transformable.x;
-    result.newY = transformable.y;
+      result.newX = ferryTrans.x + ponderable.relX;
+      result.newY = ferryTrans.y + ponderable.relY;
+    }
+
+    result.newX += ponderable.velX * dt;
+    result.newY += ponderable.velY * dt;
   }
-
-  result.newX += ponderable.velX * dt;
-  result.newY += ponderable.velY * dt;
 
   bool oldGrounded = ponderable.grounded;
   ponderable.grounded = false;
@@ -694,8 +699,11 @@ void PonderingSystem::tickBody(
   }
 
   // Move
-  transformable.x = result.newX;
-  transformable.y = result.newY;
+  if (!ponderable.frozen)
+  {
+    transformable.x = result.newX;
+    transformable.y = result.newY;
+  }
 
   // Perform cleanup for orientable entites
   if (game_.getEntityManager().hasComponent<OrientableComponent>(entity))
