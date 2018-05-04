@@ -440,7 +440,7 @@ void PonderingSystem::tickBody(
           it++)
       {
         // Check that the boundary is in range for the other axis.
-        if ((result.newX + transformable.h > it->second.lower) &&
+        if ((result.newX + transformable.w > it->second.lower) &&
             (result.newX < it->second.upper))
         {
           // We have a collision!
