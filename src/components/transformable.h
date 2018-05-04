@@ -8,6 +8,12 @@ public:
 
   /**
    * The coordinates of the entity.
+   *
+   * Note that ponderable entities sometimes have special behavior related to
+   * their coordinates, specifically that ferried bodies will behave oddly if
+   * their coordinates are changed outside of the PonderingSystem. Before doing
+   * so, use PonderingSystem::unferry on the body to ensure that it is not
+   * ferried.
    */
   double x;
   double y;
