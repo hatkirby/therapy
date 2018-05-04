@@ -46,6 +46,11 @@ private:
     id_type groundEntity;
   };
 
+  void tickBody(
+    id_type entity,
+    double dt,
+    const std::set<id_type>& entities);
+
   void processCollision(
     id_type entity,
     id_type collider,
