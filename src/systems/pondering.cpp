@@ -655,7 +655,7 @@ void PonderingSystem::tick(double dt)
       }
     }
 
-    // Handle ferry passengers
+    // Ferry or unferry as necessary
     if ((ponderable.type == PonderableComponent::Type::freefalling) &&
         (ponderable.grounded != oldGrounded))
     {
@@ -674,15 +674,11 @@ void PonderingSystem::tick(double dt)
       } else if (ponderable.ferried)
       {
         // The body is no longer being ferried
-        ponderable.ferried = false;
-
-        auto& ferryPonder = game_.getEntityManager().
-          getComponent<PonderableComponent>(ponderable.ferry);
-
-        ferryPonder.passengers.erase(entity);
+        unferry(entity);
       }
     }
 
+    // Update a ferry passenger's relative position
     if (ponderable.ferried)
     {
       auto& ferryTrans = game_.getEntityManager().
@@ -766,6 +762,22 @@ void PonderingSystem::initPrototype(id_type prototype)
   ponderable.collidable = true;
   ponderable.ferried = false;
   ponderable.passengers.clear();
+}
+
+void PonderingSystem::unferry(id_type entity)
+{
+  auto& ponderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(entity);
+
+  if (ponderable.ferried)
+  {
+    ponderable.ferried = false;
+
+    auto& ferryPonder = game_.getEntityManager().
+      getComponent<PonderableComponent>(ponderable.ferry);
+
+    ferryPonder.passengers.erase(entity);
+  }
 }
 
 void PonderingSystem::processCollision(

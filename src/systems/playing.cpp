@@ -79,11 +79,7 @@ void PlayingSystem::changeMap(
   auto& transformable = game_.getEntityManager().
     getComponent<TransformableComponent>(player);
 
-  auto& animatable = game_.getEntityManager().
-    getComponent<AnimatableComponent>(player);
-
-  auto& ponderable = game_.getEntityManager().
-    getComponent<PonderableComponent>(player);
+  auto& pondering = game_.getSystemManager().getSystem<PonderingSystem>();
 
   auto& realizing = game_.getSystemManager().getSystem<RealizingSystem>();
 
@@ -104,6 +100,8 @@ void PlayingSystem::changeMap(
 
     playable.mapId = newMapEntity;
   }
+
+  pondering.unferry(player);
 
   transformable.x = x;
   transformable.y = y;

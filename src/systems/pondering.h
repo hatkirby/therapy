@@ -16,7 +16,21 @@ public:
 
   void initializeBody(id_type entity, PonderableComponent::Type type);
 
+  /**
+   * Initializes a ponderable map object from its prototype data.
+   *
+   * @requires entity is ponderable
+   * @requires entity is a map object
+   */
   void initPrototype(id_type prototype);
+
+  /**
+   * Unferries an entity if it is a passenger of another entity. Use before
+   * moving a ponderable entity outside the PonderingSystem.
+   *
+   * @requires entity is ponderable
+   */
+  void unferry(id_type entity);
 
 private:
 
