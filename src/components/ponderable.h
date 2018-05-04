@@ -100,7 +100,10 @@ public:
   std::set<id_type> passengers;
 
   /**
-   * If enabled, this will prevent the body from moving.
+   * If enabled, this will prevent the body from moving and accelerating. The
+   * velocity and position of the body can still be affected by sources external
+   * to the PonderingSystem. Enabling this will cause applicable bodies to
+   * become ungrounded and unferried.
    */
   bool frozen = false;
 
