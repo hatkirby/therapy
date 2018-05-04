@@ -109,7 +109,8 @@ public:
 
   /**
    * If disabled, collision detection for this body will not be performed and
-   * other bodies will ignore it.
+   * other bodies will ignore it. Disabling this will cause applicable bodies to
+   * become ungrounded and unferried.
    */
   bool collidable = true;
 
