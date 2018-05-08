@@ -5,6 +5,19 @@
 #include "components/ponderable.h"
 #include "direction.h"
 
+struct CollisionResult
+{
+  double newX;
+  double newY;
+  bool stopProcessing = false;
+  bool touchedWall = false;
+  bool adjacentlyWarping = false;
+  Direction adjWarpDir;
+  size_t adjWarpMapId;
+  bool grounded = false;
+  EntityManager::id_type groundEntity;
+};
+
 class PonderingSystem : public System {
 public:
 
@@ -34,22 +47,27 @@ public:
 
 private:
 
-  struct CollisionResult
-  {
-    double newX;
-    double newY;
-    bool stopProcessing = false;
-    bool touchedWall = false;
-    bool adjacentlyWarping = false;
-    Direction adjWarpDir;
-    size_t adjWarpMapId;
-    id_type groundEntity;
-  };
+
 
   void tickBody(
     id_type entity,
     double dt,
     const std::set<id_type>& entities);
+
+  CollisionResult moveBody(
+    id_type entity,
+    double x,
+    double y);
+
+  CollisionResult detectCollisions(
+    id_type entity,
+    double x,
+    double y);
+
+  template <typename Param>
+  void detectCollisionsInDirection(
+    id_type entity,
+    CollisionResult& result);
 
   void processCollision(
     id_type entity,
