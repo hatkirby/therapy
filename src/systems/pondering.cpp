@@ -31,10 +31,7 @@ void PonderingSystem::tick(double dt)
       continue;
     }
 
-    tickBody(
-      entity,
-      dt,
-      entities);
+    tickBody(entity, dt);
   }
 }
 
@@ -85,8 +82,7 @@ void PonderingSystem::unferry(id_type entity)
 
 void PonderingSystem::tickBody(
   id_type entity,
-  double dt,
-  const std::set<id_type>& entities)
+  double dt)
 {
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(entity);
@@ -116,14 +112,6 @@ void PonderingSystem::tickBody(
 
   if (!ponderable.frozen)
   {
-    if (ponderable.ferried)
-    {
-      auto& ferryTrans = game_.getEntityManager().
-        getComponent<TransformableComponent>(ponderable.ferry);
-
-      newPos = ferryTrans.pos + ponderable.rel;
-    }
-
     newPos += ponderable.vel * dt;
   }
 
@@ -171,6 +159,7 @@ void PonderingSystem::tickBody(
 
       ponderable.ferried = true;
       ponderable.ferry = result.groundEntity;
+      ponderable.ferrySide = Direction::up;
 
       ferryPonder.passengers.insert(entity);
     } else if (ponderable.ferried)
@@ -180,67 +169,12 @@ void PonderingSystem::tickBody(
     }
   }
 
-  // Update a ferry passenger's relative position
-  if (ponderable.ferried)
-  {
-    auto& ferryTrans = game_.getEntityManager().
-      getComponent<TransformableComponent>(ponderable.ferry);
-
-    ponderable.rel = transformable.pos - ferryTrans.pos;
-  }
-
   // Handle ferry passengers
   std::set<id_type> passengers = ponderable.passengers;
 
   for (id_type passenger : passengers)
   {
-    tickBody(
-      passenger,
-      dt,
-      entities);
-  }
-
-  // Move to an adjacent map, if necessary
-  if (result.adjacentlyWarping)
-  {
-    vec2d warpPos = result.pos;
-
-    switch (result.adjWarpDir)
-    {
-      case Direction::left:
-      {
-        warpPos.x() = GAME_WIDTH + WALL_GAP - transformable.size.w();
-
-        break;
-      }
-
-      case Direction::right:
-      {
-        warpPos.x() = -WALL_GAP;
-
-        break;
-      }
-
-      case Direction::up:
-      {
-        warpPos.y() = MAP_HEIGHT * TILE_HEIGHT - transformable.size.h();
-
-        break;
-      }
-
-      case Direction::down:
-      {
-        warpPos.y() = -WALL_GAP;
-
-        break;
-      }
-    }
-
-    game_.getSystemManager().getSystem<PlayingSystem>().
-      changeMap(
-        entity,
-        result.adjWarpMapId,
-        warpPos);
+    tickBody(passenger, dt);
   }
 }
 
@@ -251,9 +185,6 @@ PonderingSystem::CollisionResult PonderingSystem::moveBody(
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(entity);
 
-  auto& transformable = game_.getEntityManager().
-    getComponent<TransformableComponent>(entity);
-
   CollisionResult result;
 
   if (ponderable.collidable)
@@ -263,11 +194,17 @@ PonderingSystem::CollisionResult PonderingSystem::moveBody(
     result.pos = newPos;
   }
 
-  // Move
   if (!ponderable.frozen)
   {
+    auto& transformable = game_.getEntityManager().
+      getComponent<TransformableComponent>(entity);
+
+    vec2d delta = result.pos - transformable.pos;
+
+    // Move.
     transformable.pos = result.pos;
 
+    // Stop if the entity hit a wall.
     if (result.blockedHoriz)
     {
       ponderable.vel.x() = 0.0;
@@ -276,6 +213,60 @@ PonderingSystem::CollisionResult PonderingSystem::moveBody(
     if (result.blockedVert)
     {
       ponderable.vel.y() = 0.0;
+    }
+
+    // Move ferry passengers by the appropriate amount.
+    auto passengers = ponderable.passengers;
+
+    for (id_type passenger : passengers)
+    {
+      auto& passTrans = game_.getEntityManager().
+        getComponent<TransformableComponent>(passenger);
+
+      moveBody(passenger, passTrans.pos + delta);
+    }
+
+    // Move to an adjacent map, if necessary
+    if (result.adjacentlyWarping)
+    {
+      vec2d warpPos = result.pos;
+
+      switch (result.adjWarpDir)
+      {
+        case Direction::left:
+        {
+          warpPos.x() = GAME_WIDTH + WALL_GAP - transformable.size.w();
+
+          break;
+        }
+
+        case Direction::right:
+        {
+          warpPos.x() = -WALL_GAP;
+
+          break;
+        }
+
+        case Direction::up:
+        {
+          warpPos.y() = MAP_HEIGHT * TILE_HEIGHT - transformable.size.h();
+
+          break;
+        }
+
+        case Direction::down:
+        {
+          warpPos.y() = -WALL_GAP;
+
+          break;
+        }
+      }
+
+      game_.getSystemManager().getSystem<PlayingSystem>().
+        changeMap(
+          entity,
+          result.adjWarpMapId,
+          warpPos);
     }
   }
 
@@ -506,6 +497,9 @@ void PonderingSystem::detectCollisionsInDirection(
   auto& transform = game_.getEntityManager().
     getComponent<TransformableComponent>(entity);
 
+  auto& ponderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(entity);
+
   bool boundaryCollision = false;
 
   auto boundaries = Param::MapBoundaries(mappable);
@@ -527,6 +521,26 @@ void PonderingSystem::detectCollisionsInDirection(
       boundaryCollision = true;
 
       break;
+    }
+  }
+
+  // Find the results of pretending to move the entity's passengers, if there
+  // are any.
+  vec2d delta = result.pos - transform.pos;
+  std::map<id_type, CollisionResult> passResults;
+
+  for (id_type passenger : ponderable.passengers)
+  {
+    auto& passPonder = game_.getEntityManager().
+      getComponent<PonderableComponent>(passenger);
+
+    if (passPonder.ferrySide == Param::Dir)
+    {
+      auto& passTrans = game_.getEntityManager().
+        getComponent<TransformableComponent>(passenger);
+
+      passResults[passenger] =
+        detectCollisions(passenger, passTrans.pos + delta);
     }
   }
 
@@ -555,33 +569,46 @@ void PonderingSystem::detectCollisionsInDirection(
       continue;
     }
 
+    // If the collider is a passenger of the entity, pretend that it has already
+    // moved.
     auto& colliderTrans = game_.getEntityManager().
       getComponent<TransformableComponent>(collider);
 
+    vec2d colliderPos = colliderTrans.pos;
+    vec2i colliderSize = colliderTrans.size;
+
+    if (passResults.count(collider))
+    {
+      colliderPos = passResults[collider].pos;
+    }
+
     // Check if the entity would move into the potential collider,
     if (Param::IsPastAxis(
-          Param::ObjectAxis(colliderTrans),
+          Param::ObjectAxis(colliderPos, colliderSize),
           Param::EntityAxis(result.pos, transform.size)) &&
         // that it wasn't already colliding,
         !Param::IsPastAxis(
-          Param::ObjectAxis(colliderTrans),
+          Param::ObjectAxis(colliderPos, colliderSize),
           Param::EntityAxis(transform)) &&
         // that the position on the non-axis is in range,
-        (Param::NonAxisUpper(colliderTrans.pos, colliderTrans.size) >
+        (Param::NonAxisUpper(colliderPos, colliderSize) >
           Param::NonAxisLower(result.pos)) &&
-        (Param::NonAxisLower(colliderTrans.pos) <
+        (Param::NonAxisLower(colliderPos) <
           Param::NonAxisUpper(result.pos, transform.size)) &&
         // and that the collider is not farther away than the environmental
         // boundary.
         (!boundaryCollision ||
           Param::AtLeastInAxisSweep(
-            Param::ObjectAxis(colliderTrans),
+            Param::ObjectAxis(colliderPos, colliderSize),
             it->first)))
     {
       colliders.push_back(collider);
     }
   }
 
+  // Sort the potential colliders such that the closest to the axis of movement
+  // is first. When sorting, treat passengers of the entity as having already
+  // moved.
   std::sort(
     std::begin(colliders),
     std::end(colliders),
@@ -589,12 +616,26 @@ void PonderingSystem::detectCollisionsInDirection(
       auto& leftTrans = game_.getEntityManager().
         getComponent<TransformableComponent>(left);
 
+      vec2d leftPos = leftTrans.pos;
+
+      if (passResults.count(left))
+      {
+        leftPos = passResults[left].pos;
+      }
+
       auto& rightTrans = game_.getEntityManager().
         getComponent<TransformableComponent>(right);
 
+      vec2d rightPos = rightTrans.pos;
+
+      if (passResults.count(right))
+      {
+        rightPos = passResults[right].pos;
+      }
+
       return Param::Closer(
-        Param::ObjectAxis(leftTrans),
-        Param::ObjectAxis(rightTrans));
+        Param::ObjectAxis(leftPos, leftTrans.size),
+        Param::ObjectAxis(rightPos, rightTrans.size));
     });
 
   for (id_type collider : colliders)
@@ -602,14 +643,25 @@ void PonderingSystem::detectCollisionsInDirection(
     auto& colliderTrans = game_.getEntityManager().
       getComponent<TransformableComponent>(collider);
 
+    // If the collider is a passenger of the entity, pretend that it has already
+    // moved.
+    vec2d colliderPos = colliderTrans.pos;
+    vec2i colliderSize = colliderTrans.size;
+
+    if (passResults.count(collider))
+    {
+      colliderPos = passResults[collider].pos;
+    }
+
     // Check if the entity would still move into the potential collider.
     if (!Param::IsPastAxis(
-          Param::ObjectAxis(colliderTrans),
+          Param::ObjectAxis(colliderPos, colliderSize),
           Param::EntityAxis(result.pos, transform.size)))
     {
       break;
     }
 
+    // TODO: Check if the entity is moving into one of its passengers.
     auto& colliderPonder = game_.getEntityManager().
       getComponent<PonderableComponent>(collider);
 
@@ -618,9 +670,9 @@ void PonderingSystem::detectCollisionsInDirection(
       collider,
       Param::Dir,
       colliderPonder.colliderType,
-      Param::ObjectAxis(colliderTrans),
-      Param::NonAxisLower(colliderTrans.pos),
-      Param::NonAxisUpper(colliderTrans.pos, colliderTrans.size),
+      Param::ObjectAxis(colliderPos, colliderSize),
+      Param::NonAxisLower(colliderPos),
+      Param::NonAxisUpper(colliderPos, colliderSize),
       result);
 
     if (result.stopProcessing)
