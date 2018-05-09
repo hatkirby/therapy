@@ -4,6 +4,7 @@
 #include "component.h"
 #include <vector>
 #include <random>
+#include "vector.h"
 
 class AutomatableComponent : public Component {
 public:
@@ -18,8 +19,7 @@ public:
      * The horizontal and vertical speed, in pixels/sec, that the entity should
      * move at.
      */
-    double speedX;
-    double speedY;
+    vec2d speed;
 
     /**
      * The duration of the action in seconds.

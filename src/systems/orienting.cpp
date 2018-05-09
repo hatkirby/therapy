@@ -24,27 +24,27 @@ void OrientingSystem::tick(double)
     {
       case OrientableComponent::WalkState::still:
       {
-        ponderable.velX = 0.0;
+        ponderable.vel.x() = 0.0;
 
         break;
       }
 
       case OrientableComponent::WalkState::left:
       {
-        ponderable.velX = -WALK_SPEED;
+        ponderable.vel.x() = -WALK_SPEED;
 
         break;
       }
 
       case OrientableComponent::WalkState::right:
       {
-        ponderable.velX = WALK_SPEED;
+        ponderable.vel.x() = WALK_SPEED;
 
         break;
       }
     }
 
-    if (orientable.isJumping() && (ponderable.velY > 0))
+    if (orientable.isJumping() && (ponderable.vel.y() > 0))
     {
       orientable.setJumping(false);
     }
@@ -122,8 +122,8 @@ void OrientingSystem::jump(id_type entity)
 
     playSound("res/Randomize87.wav", 0.25);
 
-    ponderable.velY = JUMP_VELOCITY;
-    ponderable.accelY = JUMP_GRAVITY;
+    ponderable.vel.y() = JUMP_VELOCITY;
+    ponderable.accel.y() = JUMP_GRAVITY;
 
     auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
     if (orientable.isFacingRight())
@@ -147,7 +147,7 @@ void OrientingSystem::stopJumping(id_type entity)
     auto& ponderable = game_.getEntityManager().
       getComponent<PonderableComponent>(entity);
 
-    ponderable.accelY = NORMAL_GRAVITY;
+    ponderable.accel.y() = NORMAL_GRAVITY;
   }
 }
 
