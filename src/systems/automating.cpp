@@ -54,8 +54,7 @@ void AutomatingSystem::tick(double dt)
     auto& ponderable = game_.getEntityManager().
       getComponent<PonderableComponent>(entity);
 
-    ponderable.velX = curAction.speedX;
-    ponderable.velY = curAction.speedY;
+    ponderable.vel = curAction.speed;
 
     automatable.remaining -= dt;
   }

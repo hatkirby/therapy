@@ -5,6 +5,7 @@
 #include <set>
 #include <map>
 #include "entity_manager.h"
+#include "vector.h"
 
 class RealizableComponent : public Component {
 public:
@@ -31,8 +32,7 @@ public:
    * @managed_by RealizingSystem
    */
   int startingMapId;
-  int startingX;
-  int startingY;
+  vec2i startingPos;
 
   /**
    * The set of map entities loaded by this entity. It is only intended for

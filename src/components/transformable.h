@@ -2,6 +2,7 @@
 #define LOCATABLE_H_39E526CA
 
 #include "component.h"
+#include "vector.h"
 
 class TransformableComponent : public Component {
 public:
@@ -15,24 +16,20 @@ public:
    * so, use PonderingSystem::unferry on the body to ensure that it is not
    * ferried.
    */
-  double x;
-  double y;
+  vec2d pos;
 
   /**
    * The size of the entity.
    */
-  int w;
-  int h;
+  vec2i size;
 
   /**
    * For prototypes, the original coordinates and size of the entity.
    *
    * @managed_by RealizingSystem
    */
-  double origX;
-  double origY;
-  int origW;
-  int origH;
+  vec2d origPos;
+  vec2i origSize;
 };
 
 #endif /* end of include guard: LOCATABLE_H_39E526CA */

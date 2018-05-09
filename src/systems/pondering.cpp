@@ -47,7 +47,7 @@ void PonderingSystem::initializeBody(
 
   if (type == PonderableComponent::Type::freefalling)
   {
-    ponderable.accelY = NORMAL_GRAVITY;
+    ponderable.accel.y() = NORMAL_GRAVITY;
   }
 }
 
@@ -56,10 +56,10 @@ void PonderingSystem::initPrototype(id_type prototype)
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(prototype);
 
-  ponderable.velX = 0.0;
-  ponderable.velY = 0.0;
-  ponderable.accelX = 0.0;
-  ponderable.accelY = 0.0;
+  ponderable.vel.x() = 0.0;
+  ponderable.vel.y() = 0.0;
+  ponderable.accel.x() = 0.0;
+  ponderable.accel.y() = 0.0;
   ponderable.grounded = false;
   ponderable.frozen = false;
   ponderable.collidable = true;
@@ -102,19 +102,17 @@ void PonderingSystem::tickBody(
   // Accelerate
   if (!ponderable.frozen)
   {
-    ponderable.velX += ponderable.accelX * dt;
-    ponderable.velY += ponderable.accelY * dt;
+    ponderable.vel += ponderable.accel * dt;
 
     if ((ponderable.type == PonderableComponent::Type::freefalling)
-      && (ponderable.velY > TERMINAL_VELOCITY))
+      && (ponderable.vel.y() > TERMINAL_VELOCITY))
     {
-      ponderable.velY = TERMINAL_VELOCITY;
+      ponderable.vel.y() = TERMINAL_VELOCITY;
     }
   }
 
   // Move
-  double newX = transformable.x;
-  double newY = transformable.y;
+  vec2d newPos = transformable.pos;
 
   if (!ponderable.frozen)
   {
@@ -123,19 +121,13 @@ void PonderingSystem::tickBody(
       auto& ferryTrans = game_.getEntityManager().
         getComponent<TransformableComponent>(ponderable.ferry);
 
-      newX = ferryTrans.x + ponderable.relX;
-      newY = ferryTrans.y + ponderable.relY;
+      newPos = ferryTrans.pos + ponderable.rel;
     }
 
-    newX += ponderable.velX * dt;
-    newY += ponderable.velY * dt;
+    newPos += ponderable.vel * dt;
   }
 
-  CollisionResult result =
-    moveBody(
-      entity,
-      newX,
-      newY);
+  CollisionResult result = moveBody(entity, newPos);
 
   // Perform cleanup for orientable entites
   bool groundedChanged = (ponderable.grounded != result.grounded);
@@ -194,8 +186,7 @@ void PonderingSystem::tickBody(
     auto& ferryTrans = game_.getEntityManager().
       getComponent<TransformableComponent>(ponderable.ferry);
 
-    ponderable.relX = transformable.x - ferryTrans.x;
-    ponderable.relY = transformable.y - ferryTrans.y;
+    ponderable.rel = transformable.pos - ferryTrans.pos;
   }
 
   // Handle ferry passengers
@@ -212,35 +203,34 @@ void PonderingSystem::tickBody(
   // Move to an adjacent map, if necessary
   if (result.adjacentlyWarping)
   {
-    double warpX = result.newX;
-    double warpY = result.newY;
+    vec2d warpPos = result.pos;
 
     switch (result.adjWarpDir)
     {
       case Direction::left:
       {
-        warpX = GAME_WIDTH + WALL_GAP - transformable.w;
+        warpPos.x() = GAME_WIDTH + WALL_GAP - transformable.size.w();
 
         break;
       }
 
       case Direction::right:
       {
-        warpX = -WALL_GAP;
+        warpPos.x() = -WALL_GAP;
 
         break;
       }
 
       case Direction::up:
       {
-        warpY = MAP_HEIGHT * TILE_HEIGHT - transformable.h;
+        warpPos.y() = MAP_HEIGHT * TILE_HEIGHT - transformable.size.h();
 
         break;
       }
 
       case Direction::down:
       {
-        warpY = -WALL_GAP;
+        warpPos.y() = -WALL_GAP;
 
         break;
       }
@@ -250,15 +240,13 @@ void PonderingSystem::tickBody(
       changeMap(
         entity,
         result.adjWarpMapId,
-        warpX,
-        warpY);
+        warpPos);
   }
 }
 
-CollisionResult PonderingSystem::moveBody(
+PonderingSystem::CollisionResult PonderingSystem::moveBody(
   id_type entity,
-  double x,
-  double y)
+  vec2d newPos)
 {
   auto& ponderable = game_.getEntityManager().
     getComponent<PonderableComponent>(entity);
@@ -266,26 +254,29 @@ CollisionResult PonderingSystem::moveBody(
   auto& transformable = game_.getEntityManager().
     getComponent<TransformableComponent>(entity);
 
-  const double oldX = transformable.x;
-  const double oldY = transformable.y;
-  const double oldRight = oldX + transformable.w;
-  const double oldBottom = oldY + transformable.h;
-
   CollisionResult result;
 
   if (ponderable.collidable)
   {
-    result = detectCollisions(entity, x, y);
+    result = detectCollisions(entity, newPos);
   } else {
-    result.newX = x;
-    result.newY = y;
+    result.pos = newPos;
   }
 
   // Move
   if (!ponderable.frozen)
   {
-    transformable.x = result.newX;
-    transformable.y = result.newY;
+    transformable.pos = result.pos;
+
+    if (result.blockedHoriz)
+    {
+      ponderable.vel.x() = 0.0;
+    }
+
+    if (result.blockedVert)
+    {
+      ponderable.vel.y() = 0.0;
+    }
   }
 
   return result;
@@ -311,21 +302,14 @@ namespace CollisionParams {
       return (colliderAxis > entityAxis);
     }
 
-    inline static double OldAxis(const TransformableComponent& transformable)
+    inline static double EntityAxis(const vec2d& pos, const vec2i& size)
     {
-      return HorizVert::AxisOldLower(transformable);
+      return HorizVert::AxisLower(pos);
     }
 
-    inline static double NewAxis(
-      const CollisionResult& result,
-      const TransformableComponent&)
+    inline static double ObjectAxis(const vec2d& pos, const vec2i& size)
     {
-      return HorizVert::AxisNewLower(result);
-    }
-
-    inline static double ObjectAxis(const TransformableComponent& transformable)
-    {
-      return HorizVert::AxisOldUpper(transformable);
+      return HorizVert::AxisUpper(pos, size);
     }
 
     inline static bool Closer(double left, double right)
@@ -352,21 +336,14 @@ namespace CollisionParams {
       return (colliderAxis < entityAxis);
     }
 
-    inline static double OldAxis(const TransformableComponent& transformable)
+    inline static double EntityAxis(const vec2d& pos, const vec2i& size)
     {
-      return HorizVert::AxisOldUpper(transformable);
+      return HorizVert::AxisUpper(pos, size);
     }
 
-    inline static double NewAxis(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
+    inline static double ObjectAxis(const vec2d& pos, const vec2i& size)
     {
-      return HorizVert::AxisNewUpper(result, transformable);
-    }
-
-    inline static double ObjectAxis(const TransformableComponent& transformable)
-    {
-      return HorizVert::AxisOldLower(transformable);
+      return HorizVert::AxisLower(pos);
     }
 
     inline static bool Closer(double left, double right)
@@ -375,119 +352,60 @@ namespace CollisionParams {
     }
   };
 
-  class Horizontal {
+  template <size_t Axis, size_t NonAxis>
+  class HorizVert {
   public:
 
-    inline static double AxisOldLower(
-      const TransformableComponent& transformable)
+    inline static double AxisLower(const vec2d& pos)
     {
-      return transformable.x;
+      return pos.coords[Axis];
     }
 
-    inline static double AxisOldUpper(
-      const TransformableComponent& transformable)
+    inline static double AxisUpper(const vec2d& pos, const vec2i& size)
     {
-      return transformable.x + transformable.w;
+      return pos.coords[Axis] + size.coords[Axis];
     }
 
-    inline static double AxisNewLower(const CollisionResult& result)
+    inline static double NonAxisLower(const vec2d& pos)
     {
-      return result.newX;
+      return pos.coords[NonAxis];
     }
 
-    inline static double AxisNewUpper(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
+    inline static double NonAxisUpper(const vec2d& pos, const vec2i& size)
     {
-      return result.newX + transformable.w;
+      return pos.coords[NonAxis] + size.coords[NonAxis];
     }
 
-    inline static double NonAxisOldLower(
-      const TransformableComponent& transformable)
-    {
-      return transformable.y;
-    }
-
-    inline static double NonAxisOldUpper(
-      const TransformableComponent& transformable)
-    {
-      return transformable.y + transformable.h;
-    }
-
-    inline static double NonAxisNewLower(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
-    {
-      return result.newY;
-    }
-
-    inline static double NonAxisNewUpper(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
-    {
-      return result.newY + transformable.h;
-    }
   };
 
-  class Vertical {
-  public:
-
-    inline static double AxisOldLower(
-      const TransformableComponent& transformable)
-    {
-      return transformable.y;
-    }
-
-    inline static double AxisOldUpper(
-      const TransformableComponent& transformable)
-    {
-      return transformable.y + transformable.h;
-    }
-
-    inline static double AxisNewLower(const CollisionResult& result)
-    {
-      return result.newY;
-    }
-
-    inline static double AxisNewUpper(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
-    {
-      return result.newY + transformable.h;
-    }
-
-    inline static double NonAxisOldLower(
-      const TransformableComponent& transformable)
-    {
-      return transformable.x;
-    }
-
-    inline static double NonAxisOldUpper(
-      const TransformableComponent& transformable)
-    {
-      return transformable.x + transformable.w;
-    }
-
-    inline static double NonAxisNewLower(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
-    {
-      return result.newX;
-    }
-
-    inline static double NonAxisNewUpper(
-      const CollisionResult& result,
-      const TransformableComponent& transformable)
-    {
-      return result.newX + transformable.w;
-    }
-  };
+  using Horizontal = HorizVert<0, 1>;
+  using Vertical = HorizVert<1, 0>;
 
   template <Direction dir, typename AscDesc>
   class DetectCollisions : public AscDesc {
   public:
 
     static const Direction Dir = dir;
+
+    inline static double EntityAxis(const vec2d& pos, const vec2i& size)
+    {
+      return AscDesc::EntityAxis(pos, size);
+    }
+
+    inline static double ObjectAxis(const vec2d& pos, const vec2i& size)
+    {
+      return AscDesc::ObjectAxis(pos, size);
+    }
+
+    inline static double EntityAxis(const TransformableComponent& transformable)
+    {
+      return AscDesc::EntityAxis(transformable.pos, transformable.size);
+    }
+
+    inline static double ObjectAxis(const TransformableComponent& transformable)
+    {
+      return AscDesc::ObjectAxis(transformable.pos, transformable.size);
+    }
   };
 
   class Left : public DetectCollisions<Direction::left, Desc<Horizontal>> {
@@ -531,23 +449,22 @@ namespace CollisionParams {
   };
 };
 
-CollisionResult PonderingSystem::detectCollisions(
+PonderingSystem::CollisionResult PonderingSystem::detectCollisions(
   id_type entity,
-  double x,
-  double y)
+  vec2d newPos)
 {
   auto& transformable = game_.getEntityManager().
     getComponent<TransformableComponent>(entity);
 
   CollisionResult result;
-  result.newX = x;
-  result.newY = transformable.y;
+  result.pos.x() = newPos.x();
+  result.pos.y() = transformable.pos.y();
 
   // Find horizontal collisions.
-  if (result.newX < transformable.x)
+  if (result.pos.x() < transformable.pos.x())
   {
     detectCollisionsInDirection<CollisionParams::Left>(entity, result);
-  } else if (result.newX > transformable.x)
+  } else if (result.pos.x() > transformable.pos.x())
   {
     detectCollisionsInDirection<CollisionParams::Right>(entity, result);
   }
@@ -555,13 +472,13 @@ CollisionResult PonderingSystem::detectCollisions(
   // Find vertical collisions
   if (!result.stopProcessing)
   {
-    result.newY = y;
+    result.pos.y() = newPos.y();
     result.touchedWall = false;
 
-    if (result.newY < transformable.y)
+    if (result.pos.y() < transformable.pos.y())
     {
       detectCollisionsInDirection<CollisionParams::Up>(entity, result);
-    } else if (result.newY > transformable.y)
+    } else if (result.pos.y() > transformable.pos.y())
     {
       detectCollisionsInDirection<CollisionParams::Down>(entity, result);
     }
@@ -586,25 +503,25 @@ void PonderingSystem::detectCollisionsInDirection(
     getComponent<MappableComponent>(mapEntity);
 
   // Get old location.
-  auto& transformable = game_.getEntityManager().
+  auto& transform = game_.getEntityManager().
     getComponent<TransformableComponent>(entity);
 
   bool boundaryCollision = false;
 
   auto boundaries = Param::MapBoundaries(mappable);
-  auto it = boundaries.lower_bound(Param::OldAxis(transformable));
+  auto it = boundaries.lower_bound(Param::EntityAxis(transform));
 
   // Find the axis distance of the closest environmental boundary.
   for (;
       (it != std::end(boundaries)) &&
         Param::AtLeastInAxisSweep(
           it->first,
-          Param::NewAxis(result, transformable));
+          Param::EntityAxis(result.pos, transform.size));
       it++)
   {
     // Check that the boundary is in range for the other axis.
-    if ((Param::NonAxisNewUpper(result, transformable) > it->second.lower) &&
-        (Param::NonAxisNewLower(result, transformable) < it->second.upper))
+    if ((Param::NonAxisUpper(result.pos, transform.size) > it->second.lower) &&
+        (Param::NonAxisLower(result.pos) < it->second.upper))
     {
       // We have a collision!
       boundaryCollision = true;
@@ -644,16 +561,16 @@ void PonderingSystem::detectCollisionsInDirection(
     // Check if the entity would move into the potential collider,
     if (Param::IsPastAxis(
           Param::ObjectAxis(colliderTrans),
-          Param::NewAxis(result, transformable)) &&
+          Param::EntityAxis(result.pos, transform.size)) &&
         // that it wasn't already colliding,
         !Param::IsPastAxis(
           Param::ObjectAxis(colliderTrans),
-          Param::OldAxis(transformable)) &&
+          Param::EntityAxis(transform)) &&
         // that the position on the non-axis is in range,
-        (Param::NonAxisOldUpper(colliderTrans) >
-          Param::NonAxisNewLower(result, transformable)) &&
-        (Param::NonAxisOldLower(colliderTrans) <
-          Param::NonAxisNewUpper(result, transformable)) &&
+        (Param::NonAxisUpper(colliderTrans.pos, colliderTrans.size) >
+          Param::NonAxisLower(result.pos)) &&
+        (Param::NonAxisLower(colliderTrans.pos) <
+          Param::NonAxisUpper(result.pos, transform.size)) &&
         // and that the collider is not farther away than the environmental
         // boundary.
         (!boundaryCollision ||
@@ -688,7 +605,7 @@ void PonderingSystem::detectCollisionsInDirection(
     // Check if the entity would still move into the potential collider.
     if (!Param::IsPastAxis(
           Param::ObjectAxis(colliderTrans),
-          Param::NewAxis(result, transformable)))
+          Param::EntityAxis(result.pos, transform.size)))
     {
       break;
     }
@@ -702,8 +619,8 @@ void PonderingSystem::detectCollisionsInDirection(
       Param::Dir,
       colliderPonder.colliderType,
       Param::ObjectAxis(colliderTrans),
-      Param::NonAxisOldLower(colliderTrans),
-      Param::NonAxisOldUpper(colliderTrans),
+      Param::NonAxisLower(colliderTrans.pos),
+      Param::NonAxisUpper(colliderTrans.pos, colliderTrans.size),
       result);
 
     if (result.stopProcessing)
@@ -724,8 +641,8 @@ void PonderingSystem::detectCollisionsInDirection(
           (it->first == boundaryAxis);
         it++)
     {
-      if ((Param::NonAxisNewUpper(result, transformable) > it->second.lower) &&
-          (Param::NonAxisNewLower(result, transformable) < it->second.upper))
+      if ((Param::NonAxisLower(result.pos) < it->second.upper) &&
+          (Param::NonAxisUpper(result.pos, transform.size) > it->second.lower))
       {
         processCollision(
           entity,
@@ -756,9 +673,6 @@ void PonderingSystem::processCollision(
   double upper,
   CollisionResult& result)
 {
-  auto& ponderable = game_.getEntityManager().
-    getComponent<PonderableComponent>(entity);
-
   auto& transformable = game_.getEntityManager().
     getComponent<TransformableComponent>(entity);
 
@@ -823,29 +737,29 @@ void PonderingSystem::processCollision(
           {
             case Direction::left:
             {
-              result.newX = GAME_WIDTH + WALL_GAP - transformable.w;
+              result.pos.x() = GAME_WIDTH + WALL_GAP - transformable.size.w();
 
               break;
             }
 
             case Direction::right:
             {
-              result.newX = -WALL_GAP;
+              result.pos.x() = -WALL_GAP;
 
               break;
             }
 
             case Direction::up:
             {
-              result.newY =
-                MAP_HEIGHT * TILE_HEIGHT + WALL_GAP - transformable.h;
+              result.pos.y() =
+                MAP_HEIGHT * TILE_HEIGHT + WALL_GAP - transformable.pos.h();
 
               break;
             }
 
             case Direction::down:
             {
-              result.newY = -WALL_GAP;
+              result.pos.y() = -WALL_GAP;
 
               break;
             }
@@ -905,33 +819,33 @@ void PonderingSystem::processCollision(
     {
       case Direction::left:
       {
-        result.newX = axis;
-        ponderable.velX = 0.0;
+        result.pos.x() = axis;
+        result.blockedHoriz = true;
 
         break;
       }
 
       case Direction::right:
       {
-        result.newX = axis - transformable.w;
-        ponderable.velX = 0.0;
+        result.pos.x() = axis - transformable.size.w();
+        result.blockedHoriz = true;
 
         break;
       }
 
       case Direction::up:
       {
-        result.newY = axis;
-        ponderable.velY = 0.0;
+        result.pos.y() = axis;
+        result.blockedVert = true;
 
         break;
       }
 
       case Direction::down:
       {
-        result.newY = axis - transformable.h;
+        result.pos.y() = axis - transformable.size.h();
+        result.blockedVert = true;
         result.groundEntity = collider;
-        ponderable.velY = 0.0;
         result.grounded = true;
 
         break;

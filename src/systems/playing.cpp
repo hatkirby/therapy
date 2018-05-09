@@ -42,10 +42,9 @@ void PlayingSystem::initPlayer()
   auto& transformable = game_.getEntityManager().
     emplaceComponent<TransformableComponent>(player);
 
-  transformable.x = realizable.startingX;
-  transformable.y = realizable.startingY;
-  transformable.w = 10;
-  transformable.h = 12;
+  transformable.pos = realizable.startingPos;
+  transformable.size.w() = 10;
+  transformable.size.h() = 12;
 
   game_.getSystemManager().getSystem<PonderingSystem>().initializeBody(
     player,
@@ -59,8 +58,7 @@ void PlayingSystem::initPlayer()
 
   playable.mapId = realizable.activeMap;
   playable.checkpointMapId = realizable.startingMapId;
-  playable.checkpointX = realizable.startingX;
-  playable.checkpointY = realizable.startingY;
+  playable.checkpointPos = realizable.startingPos;
 
   realizing.enterActiveMap(player);
 
@@ -70,8 +68,7 @@ void PlayingSystem::initPlayer()
 void PlayingSystem::changeMap(
   id_type player,
   size_t mapId,
-  double x,
-  double y)
+  vec2d warpPos)
 {
   auto& playable = game_.getEntityManager().
     getComponent<PlayableComponent>(player);
@@ -103,8 +100,7 @@ void PlayingSystem::changeMap(
 
   pondering.unferry(player);
 
-  transformable.x = x;
-  transformable.y = y;
+  transformable.pos = warpPos;
 
   if (realizable.activePlayer == player)
   {
@@ -139,8 +135,7 @@ void PlayingSystem::die(id_type player)
     changeMap(
       player,
       playable.checkpointMapId,
-      playable.checkpointX,
-      playable.checkpointY);
+      playable.checkpointPos);
 
     animatable.frozen = false;
     animatable.flickering = false;
