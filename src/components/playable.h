@@ -3,6 +3,7 @@
 
 #include "component.h"
 #include "entity_manager.h"
+#include "vector.h"
 
 class PlayableComponent : public Component {
 public:
@@ -24,8 +25,7 @@ public:
    * @managed_by PlayingSystem
    */
   size_t checkpointMapId;
-  double checkpointX;
-  double checkpointY;
+  vec2d checkpointPos;
 
 };
 

@@ -93,20 +93,20 @@ void parseAI(
 
     if (direction == "left")
     {
-      action.speedX = -speed;
-      action.speedY = 0;
+      action.speed.x() = -speed;
+      action.speed.y() = 0;
     } else if (direction == "right")
     {
-      action.speedX = speed;
-      action.speedY = 0;
+      action.speed.x() = speed;
+      action.speed.y() = 0;
     } else if (direction == "up")
     {
-      action.speedX = 0;
-      action.speedY = -speed;
+      action.speed.x() = 0;
+      action.speed.y() = -speed;
     } else if (direction == "down")
     {
-      action.speedX = 0;
-      action.speedY = speed;
+      action.speed.x() = 0;
+      action.speed.y() = speed;
     }
 
     action.dur = length / speed;
@@ -186,11 +186,11 @@ EntityManager::id_type RealizingSystem::initSingleton(
   }
 
   key = getProp(top, "startx");
-  realizable.startingX = atoi(reinterpret_cast<char*>(key));
+  realizable.startingPos.x() = atoi(reinterpret_cast<char*>(key));
   xmlFree(key);
 
   key = getProp(top, "starty");
-  realizable.startingY = atoi(reinterpret_cast<char*>(key));
+  realizable.startingPos.y() = atoi(reinterpret_cast<char*>(key));
   xmlFree(key);
 
   key = getProp(top, "startmap");
@@ -260,11 +260,11 @@ EntityManager::id_type RealizingSystem::initSingleton(
             emplaceComponent<TransformableComponent>(mapObject);
 
           key = getProp(mapNode, "x");
-          transformable.origX = atoi(reinterpret_cast<char*>(key));
+          transformable.origPos.x() = atoi(reinterpret_cast<char*>(key));
           xmlFree(key);
 
           key = getProp(mapNode, "y");
-          transformable.origY = atoi(reinterpret_cast<char*>(key));
+          transformable.origPos.y() = atoi(reinterpret_cast<char*>(key));
           xmlFree(key);
 
           // Set the sprite and size using the prototype definition.
@@ -273,17 +273,17 @@ EntityManager::id_type RealizingSystem::initSingleton(
           xmlFree(key);
 
           key = getProp(prototypeNode, "width");
-          transformable.origW = atoi(reinterpret_cast<char*>(key));
+          transformable.origSize.w() = atoi(reinterpret_cast<char*>(key));
           xmlFree(key);
 
           key = getProp(prototypeNode, "height");
-          transformable.origH = atoi(reinterpret_cast<char*>(key));
+          transformable.origSize.h() = atoi(reinterpret_cast<char*>(key));
           xmlFree(key);
 
           AnimationSet objectAnim(
             spritePath.c_str(),
-            transformable.origW,
-            transformable.origH,
+            transformable.origSize.w(),
+            transformable.origSize.h(),
             1);
 
           objectAnim.emplaceAnimation("static", 0, 1, 1);
@@ -503,10 +503,8 @@ void RealizingSystem::loadMap(id_type mapEntity)
       auto& transformable = game_.getEntityManager().
         getComponent<TransformableComponent>(prototype);
 
-      transformable.x = transformable.origX;
-      transformable.y = transformable.origY;
-      transformable.w = transformable.origW;
-      transformable.h = transformable.origH;
+      transformable.pos = transformable.origPos;
+      transformable.size = transformable.origSize;
     }
 
     if (game_.getEntityManager().hasComponent<AnimatableComponent>(prototype))

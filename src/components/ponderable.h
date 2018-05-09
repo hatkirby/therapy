@@ -4,6 +4,7 @@
 #include <set>
 #include "component.h"
 #include "entity_manager.h"
+#include "vector.h"
 
 class PonderableComponent : public Component {
 public:
@@ -45,14 +46,12 @@ public:
   /**
    * The velocity of the body.
    */
-  double velX = 0.0;
-  double velY = 0.0;
+  vec2d vel = { 0.0, 0.0 };
 
   /**
    * The acceleration of the body.
    */
-  double accelX = 0.0;
-  double accelY = 0.0;
+  vec2d accel = { 0.0, 0.0 };
 
   /**
    * The type of physical body that the entity is meant to assume. The body will
@@ -89,8 +88,7 @@ public:
    *
    * @managed_by PonderingSystem
    */
-  double relX;
-  double relY;
+  vec2d rel = { 0.0, 0.0 };
 
   /**
    * The bodies that are being ferried by this body.

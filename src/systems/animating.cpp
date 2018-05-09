@@ -64,10 +64,10 @@ void AnimatingSystem::render(Texture& texture)
       }
 
       Rectangle dstrect {
-        static_cast<int>(transform.x),
-        static_cast<int>(transform.y),
-        transform.w,
-        transform.h};
+        static_cast<int>(transform.pos.x()),
+        static_cast<int>(transform.pos.y()),
+        transform.size.w(),
+        transform.size.h()};
 
       const AnimationSet& aset = sprite.animationSet;
       game_.getRenderer().blit(
