@@ -5,6 +5,7 @@
 #include "component.h"
 #include "entity_manager.h"
 #include "vector.h"
+#include "direction.h"
 
 class PonderableComponent : public Component {
 public:
@@ -84,11 +85,11 @@ public:
   id_type ferry;
 
   /**
-   * The location of the body relative to the location of its ferry.
+   * The side of the ferry that the body is resting on, if there is one.
    *
    * @managed_by PonderingSystem
    */
-  vec2d rel = { 0.0, 0.0 };
+  Direction ferrySide;
 
   /**
    * The bodies that are being ferried by this body.

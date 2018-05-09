@@ -51,8 +51,7 @@ private:
 
   void tickBody(
     id_type entity,
-    double dt,
-    const std::set<id_type>& entities);
+    double dt);
 
   CollisionResult moveBody(
     id_type entity,
