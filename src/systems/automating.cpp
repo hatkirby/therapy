@@ -31,7 +31,12 @@ void AutomatingSystem::tick(double dt)
       continue;
     }
 
-    (*automatable.behavior)(dt);
+    auto result = (*automatable.behavior)(dt);
+    if (!result.valid())
+    {
+      sol::error e = result;
+      throw std::runtime_error(e.what());
+    }
   }
 }
 
@@ -46,7 +51,13 @@ void AutomatingSystem::initPrototype(id_type prototype)
   automatable.behavior.reset();
   automatable.runner = std::unique_ptr<sol::thread>(new sol::thread(sol::thread::create(realizable.scriptEngine.lua_state())));
   automatable.behavior = std::unique_ptr<sol::coroutine>(new sol::coroutine(automatable.runner->state()["run"]));
-  (*automatable.behavior)(script_entity(prototype));
+
+  auto result = (*automatable.behavior)(script_entity(prototype));
+  if (!result.valid())
+  {
+    sol::error e = result;
+    throw std::runtime_error(e.what());
+  }
 }
 
 void AutomatingSystem::initScriptEngine(sol::state& scriptEngine)
