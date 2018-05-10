@@ -7,9 +7,11 @@ public:
 
   T coords[2];
 
-  vec2() = default;
+  vec2() : coords{0, 0}
+  {
+  }
 
-  vec2(double x, double y) : coords{x, y}
+  vec2(T x, T y) : coords{x, y}
   {
   }
 
@@ -90,12 +92,12 @@ public:
     return vec2(-x(), -y());
   }
 
-  vec2 operator*(double s) const
+  vec2 operator*(T s) const
   {
     return vec2(x() * s, y() * s);
   }
 
-  vec2& operator*=(double s)
+  vec2& operator*=(T s)
   {
     x() *= s;
     y() *= s;
