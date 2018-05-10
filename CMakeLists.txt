@@ -16,6 +16,7 @@ find_package(GLEW REQUIRED)
 find_package(portaudio REQUIRED)
 find_package(libsndfile REQUIRED)
 find_package(libxml2 REQUIRED)
+find_package(lua REQUIRED)
 
 IF(APPLE)
    FIND_LIBRARY(COCOA_LIBRARY Cocoa)
@@ -32,6 +33,7 @@ set(ALL_LIBS
   ${PORTAUDIO_LIBRARIES}
   ${LIBSNDFILE_LIBRARY}
   ${LIBXML2_LIBRARIES}
+  ${LUA_LIBRARIES}
   ${EXTRA_LIBS}
 )
 
@@ -40,6 +42,7 @@ include_directories(
   ${GLFW_INCLUDE_DIRS}
   ${OPENGL_INCLUDE_DIRS}
   ${GLEW_INCLUDE_DIRS}
+  ${LUA_INCLUDE_DIRS}
   src
   vendor
 )
@@ -71,6 +74,6 @@ add_executable(Aromatherapy
   vendor/stb_image.cpp
 )
 
-set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 11)
+set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 17)
 set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(Aromatherapy ${ALL_LIBS})

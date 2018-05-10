@@ -2,6 +2,7 @@
 #define AUTOMATING_H_E6E5D76E
 
 #include "system.h"
+#include <sol.hpp>
 
 class AutomatingSystem : public System {
 public:
@@ -13,6 +14,8 @@ public:
   void tick(double dt);
 
   void initPrototype(id_type prototype);
+
+  void initScriptEngine(sol::state& scriptEngine);
 
 };
 
