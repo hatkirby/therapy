@@ -3,6 +3,7 @@
 #include "components/automatable.h"
 #include "components/ponderable.h"
 #include "components/realizable.h"
+#include "components/transformable.h"
 #include "systems/realizing.h"
 #include "vector.h"
 
@@ -83,11 +84,20 @@ void AutomatingSystem::initScriptEngine(sol::state& scriptEngine)
     "entity",
     sol::constructors<script_entity(id_type)>(),
     "id", &script_entity::id,
+    "transformable",
+      [&] (script_entity& entity) -> TransformableComponent& {
+        return game_.getEntityManager().
+          getComponent<TransformableComponent>(entity.id);
+      },
     "ponderable",
       [&] (script_entity& entity) -> PonderableComponent& {
         return game_.getEntityManager().
           getComponent<PonderableComponent>(entity.id);
       });
+
+  scriptEngine.new_usertype<TransformableComponent>(
+    "transformable",
+    "pos", &TransformableComponent::pos);
 
   scriptEngine.new_usertype<PonderableComponent>(
     "ponderable",
