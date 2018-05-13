@@ -6,7 +6,6 @@
 #include "components/transformable.h"
 #include "components/orientable.h"
 #include "components/mappable.h"
-#include "components/realizable.h"
 #include "components/playable.h"
 #include "systems/orienting.h"
 #include "systems/playing.h"
@@ -485,11 +484,8 @@ void PonderingSystem::detectCollisionsInDirection(
   CollisionResult& result)
 {
   // Get map data.
-  auto& realizable = game_.getEntityManager().
-    getComponent<RealizableComponent>(
-      game_.getSystemManager().getSystem<RealizingSystem>().getSingleton());
-
-  id_type mapEntity = realizable.activeMap;
+  id_type mapEntity =
+    game_.getSystemManager().getSystem<RealizingSystem>().getActiveMap();
 
   auto& mappable = game_.getEntityManager().
     getComponent<MappableComponent>(mapEntity);

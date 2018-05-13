@@ -1,7 +1,7 @@
 checkpoint = {}
 
 function checkpoint.OnTouch(id, player)
-  curMap = entity.new(realizing():singleton():realizable().activeMap)
+  curMap = entity.new(realizing().activeMap)
 
   if not player:playable().checkpointMapObject or
       not curMap:mappable().mapId == player:playable().checkpointMapId or

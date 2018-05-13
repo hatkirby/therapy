@@ -2,7 +2,6 @@
 #include "game.h"
 #include "components/runnable.h"
 #include "components/ponderable.h"
-#include "components/realizable.h"
 #include "components/transformable.h"
 #include "components/playable.h"
 #include "components/mappable.h"
@@ -24,9 +23,9 @@ ScriptingSystem::ScriptingSystem(Game& game) : System(game)
 {
   id_type entity = game_.getEntityManager().emplaceEntity();
 
-  engine.open_libraries(sol::lib::base, sol::lib::coroutine);
+  engine_.open_libraries(sol::lib::base, sol::lib::coroutine);
 
-  engine.new_usertype<vec2d>(
+  engine_.new_usertype<vec2d>(
     "vec2d",
     sol::constructors<vec2d(), vec2d(double, double)>(),
     "x", sol::property(
@@ -36,13 +35,13 @@ ScriptingSystem::ScriptingSystem(Game& game) : System(game)
       [] (vec2d& v) -> double { return v.y(); },
       [] (vec2d& v, double y) { v.y() = y; }));
 
-  engine.new_usertype<vec2i>(
+  engine_.new_usertype<vec2i>(
     "vec2i",
     sol::constructors<vec2i(), vec2i(int, int)>(),
     "x", [] (vec2i& v) -> int& { return v.x(); },
     "y", [] (vec2i& v) -> int& { return v.y(); });
 
-  engine.new_usertype<script_entity>(
+  engine_.new_usertype<script_entity>(
     "entity",
     sol::constructors<script_entity(id_type)>(),
     "id", &script_entity::id,
@@ -66,62 +65,50 @@ ScriptingSystem::ScriptingSystem(Game& game) : System(game)
         return game_.getEntityManager().
           getComponent<PlayableComponent>(entity.id);
       },
-    "realizable",
-      [&] (script_entity& entity) -> RealizableComponent& {
-        return game_.getEntityManager().
-          getComponent<RealizableComponent>(entity.id);
-      },
     "prototypable",
       [&] (script_entity& entity) -> PrototypableComponent& {
         return game_.getEntityManager().
           getComponent<PrototypableComponent>(entity.id);
       });
 
-  engine.new_usertype<TransformableComponent>(
+  engine_.new_usertype<TransformableComponent>(
     "transformable",
     "pos", &TransformableComponent::pos);
 
-  engine.new_usertype<PonderableComponent>(
+  engine_.new_usertype<PonderableComponent>(
     "ponderable",
     "vel", &PonderableComponent::vel,
     "accel", &PonderableComponent::accel);
 
-  engine.new_usertype<MappableComponent>(
+  engine_.new_usertype<MappableComponent>(
     "mappable",
     "mapId", &MappableComponent::mapId);
 
-  engine.new_usertype<PlayableComponent>(
+  engine_.new_usertype<PlayableComponent>(
     "playable",
     "checkpointPos", &PlayableComponent::checkpointPos,
     "checkpointMapId", &PlayableComponent::checkpointMapId,
     "checkpointMapObject", &PlayableComponent::checkpointMapObject,
     "checkpointMapObjectIndex", &PlayableComponent::checkpointMapObjectIndex);
 
-  engine.new_usertype<RealizableComponent>(
-    "realizable",
-    "activeMap", &RealizableComponent::activeMap);
-
-  engine.new_usertype<PrototypableComponent>(
+  engine_.new_usertype<PrototypableComponent>(
     "prototypable",
     "mapObjectIndex", &PrototypableComponent::mapObjectIndex,
     "prototypeId", &PrototypableComponent::prototypeId);
 
-  engine.new_usertype<RealizingSystem>(
+  engine_.new_usertype<RealizingSystem>(
     "realizing",
-    "singleton",
-      [&] (RealizingSystem& realizing) -> script_entity {
-        return realizing.getSingleton();
-      });
+    "activeMap", sol::property(&RealizingSystem::getActiveMap));
 
-  engine.set_function(
+  engine_.set_function(
     "realizing",
     [&] () {
       return game_.getSystemManager().getSystem<RealizingSystem>();
     });
 
-  engine.script_file("scripts/common.lua");
-  engine.script_file("scripts/movplat.lua");
-  engine.script_file("scripts/checkpoint.lua");
+  engine_.script_file("scripts/common.lua");
+  engine_.script_file("scripts/movplat.lua");
+  engine_.script_file("scripts/checkpoint.lua");
 }
 
 void ScriptingSystem::tick(double dt)
@@ -177,7 +164,7 @@ EntityManager::id_type ScriptingSystem::runScript(
     std::unique_ptr<sol::thread>(
       new sol::thread(
         sol::thread::create(
-          engine.lua_state())));
+          engine_.lua_state())));
 
   runnable.callable =
     std::unique_ptr<sol::coroutine>(

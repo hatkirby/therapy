@@ -22,7 +22,7 @@ private:
   template <typename... Args>
   id_type runScript(std::string event, id_type entity, Args&&... args);
 
-  sol::state engine;
+  sol::state engine_;
 };
 
 #endif /* end of include guard: AUTOMATING_H_E6E5D76E */

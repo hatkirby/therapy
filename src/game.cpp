@@ -32,7 +32,6 @@ void key_callback(GLFWwindow* window, int key, int, int action, int)
 
 Game::Game(std::mt19937& rng) : rng_(rng)
 {
-  systemManager_.emplaceSystem<RealizingSystem>(*this);
   systemManager_.emplaceSystem<PlayingSystem>(*this);
   systemManager_.emplaceSystem<SchedulingSystem>(*this);
   systemManager_.emplaceSystem<ControllingSystem>(*this);
@@ -42,7 +41,7 @@ Game::Game(std::mt19937& rng) : rng_(rng)
   systemManager_.emplaceSystem<MappingSystem>(*this);
   systemManager_.emplaceSystem<AnimatingSystem>(*this);
 
-  systemManager_.getSystem<RealizingSystem>().initSingleton(
+  systemManager_.emplaceSystem<RealizingSystem>(*this,
     "res/maps.xml",
     "res/entities.xml");
 

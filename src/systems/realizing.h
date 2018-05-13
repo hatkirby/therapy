@@ -2,29 +2,56 @@
 #define REALIZING_H_6853748C
 
 #include <string>
+#include <map>
 #include "system.h"
+#include "vector.h"
 
 class RealizingSystem : public System {
 public:
 
-  RealizingSystem(Game& game) : System(game)
-  {
-  }
-
   /**
-   * Creates the singleton realizable entity and initializes it with the
-   * provided world definition and map object prototype definition.
+   * Constructs the realizing system.
+   *
+   * Note that this must be constructed after the following system:
+   * - Mapping
+   * - Animating
+   * - Pondering
+   * - Scripting
    */
-  id_type initSingleton(
+  RealizingSystem(
+    Game& game,
     std::string worldFile,
     std::string prototypeFile);
 
-  /**
-   * Helper method that returns the entity ID of the (assumed) singleton entity
-   * with a RealizableComponent. Throws an exception if the number of realizable
-   * entities is not exactly one.
-   */
-  id_type getSingleton() const;
+  id_type getActiveMap() const
+  {
+    return activeMap_;
+  }
+
+  int getStartingMapId() const
+  {
+    return startingMapId_;
+  }
+
+  vec2i getStartingPos() const
+  {
+    return startingPos_;
+  }
+
+  id_type getEntityByMapId(size_t mapId) const
+  {
+    return entityByMapId_.at(mapId);
+  }
+
+  id_type getActivePlayer() const
+  {
+    return activePlayer_;
+  }
+
+  void setActivePlayer(id_type entity)
+  {
+    activePlayer_ = entity;
+  }
 
   /**
    * Loads the given map.
@@ -41,6 +68,19 @@ public:
    */
   void leaveActiveMap(id_type entity);
 
+private:
+
+  void deactivateMap();
+
+  void activateMap(id_type mapEntity);
+
+  std::string worldFile_;
+  std::string prototypeFile_;
+  int startingMapId_;
+  vec2i startingPos_;
+  std::map<size_t, id_type> entityByMapId_;
+  id_type activeMap_;
+  id_type activePlayer_;
 };
 
 #endif /* end of include guard: REALIZING_H_6853748C */
