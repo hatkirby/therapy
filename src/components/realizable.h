@@ -4,7 +4,6 @@
 #include "component.h"
 #include <set>
 #include <map>
-#include <sol.hpp>
 #include "entity_manager.h"
 #include "vector.h"
 
@@ -70,8 +69,6 @@ public:
    * The entity ID of the currently active player.
    */
   id_type activePlayer;
-
-  sol::state scriptEngine;
 };
 
 #endif /* end of include guard: REALIZABLE_H_36D8D71E */

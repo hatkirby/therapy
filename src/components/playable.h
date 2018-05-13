@@ -27,6 +27,9 @@ public:
   size_t checkpointMapId;
   vec2d checkpointPos;
 
+  bool checkpointMapObject = false;
+  size_t checkpointMapObjectIndex;
+
 };
 
 #endif /* end of include guard: PLAYABLE_H_DDC566C3 */

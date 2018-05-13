@@ -12,11 +12,11 @@
 #include "components/playable.h"
 #include "components/ponderable.h"
 #include "components/transformable.h"
-#include "components/automatable.h"
+#include "components/prototypable.h"
 #include "systems/mapping.h"
 #include "systems/animating.h"
 #include "systems/pondering.h"
-#include "systems/automating.h"
+#include "systems/scripting.h"
 
 inline xmlChar* getProp(xmlNodePtr node, const char* attr)
 {
@@ -39,9 +39,6 @@ EntityManager::id_type RealizingSystem::initSingleton(
 
   auto& realizable = game_.getEntityManager().
     emplaceComponent<RealizableComponent>(world);
-
-  game_.getSystemManager().getSystem<AutomatingSystem>().
-    initScriptEngine(realizable.scriptEngine);
 
   realizable.worldFile = worldFile;
   realizable.prototypeFile = prototypeFile;
@@ -216,14 +213,28 @@ EntityManager::id_type RealizingSystem::initSingleton(
           game_.getSystemManager().getSystem<PonderingSystem>().
             initializeBody(mapObject, PonderableComponent::Type::vacuumed);
 
+
+
+
+
+          auto& prototypable = game_.getEntityManager().
+            emplaceComponent<PrototypableComponent>(mapObject);
+
+          prototypable.prototypeId = prototypeId;
+
+          key = getProp(mapNode, "index");
+          prototypable.mapObjectIndex = atoi(reinterpret_cast<char*>(key));
+          xmlFree(key);
+
           if (prototypeId == "movplat")
           {
-            auto& automatable = game_.getEntityManager().
-              emplaceComponent<AutomatableComponent>(mapObject);
+            prototypable.hasBehavior = true;
+          } else if (prototypeId == "checkpoint")
+          {
+            auto& ponderable = game_.getEntityManager().
+              getComponent<PonderableComponent>(mapObject);
 
-
-            realizable.scriptEngine.script_file(
-              "res/platform.lua");//,
+            ponderable.colliderType = PonderableComponent::Collision::event;
           }
 
           mappable.objects.push_back(mapObject);
@@ -319,7 +330,6 @@ void RealizingSystem::loadMap(id_type mapEntity)
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
   auto& pondering = game_.getSystemManager().getSystem<PonderingSystem>();
-  auto& automating = game_.getSystemManager().getSystem<AutomatingSystem>();
 
   std::set<id_type> players =
     game_.getEntityManager().getEntitiesWithComponents<
@@ -380,11 +390,6 @@ void RealizingSystem::loadMap(id_type mapEntity)
       pondering.initPrototype(prototype);
     }
 
-    if (game_.getEntityManager().hasComponent<AutomatableComponent>(prototype))
-    {
-      automating.initPrototype(prototype);
-    }
-
     enterActiveMap(prototype);
   }
 
@@ -419,12 +424,19 @@ void RealizingSystem::enterActiveMap(id_type entity)
     ponderable.active = true;
   }
 
-  if (game_.getEntityManager().hasComponent<AutomatableComponent>(entity))
+  if (game_.getEntityManager().hasComponent<PrototypableComponent>(entity))
   {
-    auto& automatable = game_.getEntityManager().
-      getComponent<AutomatableComponent>(entity);
+    auto& prototypable = game_.getEntityManager().
+      getComponent<PrototypableComponent>(entity);
 
-    automatable.active = true;
+    if (prototypable.hasBehavior)
+    {
+      auto& scripting = game_.getSystemManager().getSystem<ScriptingSystem>();
+
+      prototypable.hasBehavior = true;
+      prototypable.runningBehavior = true;
+      prototypable.behaviorScript = scripting.runBehaviorScript(entity);
+    }
   }
 }
 
@@ -446,11 +458,17 @@ void RealizingSystem::leaveActiveMap(id_type entity)
     ponderable.active = false;
   }
 
-  if (game_.getEntityManager().hasComponent<AutomatableComponent>(entity))
+  if (game_.getEntityManager().hasComponent<PrototypableComponent>(entity))
   {
-    auto& automatable = game_.getEntityManager().
-      getComponent<AutomatableComponent>(entity);
+    auto& prototypable = game_.getEntityManager().
+      getComponent<PrototypableComponent>(entity);
 
-    automatable.active = false;
+    if (prototypable.runningBehavior)
+    {
+      auto& scripting = game_.getSystemManager().getSystem<ScriptingSystem>();
+      scripting.killScript(prototypable.behaviorScript);
+
+      prototypable.runningBehavior = false;
+    }
   }
 }
