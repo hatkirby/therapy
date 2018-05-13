@@ -34,7 +34,8 @@ public:
     platform,
     adjacency,
     warp,
-    danger
+    danger,
+    event
   };
 
   /**

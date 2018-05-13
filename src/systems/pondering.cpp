@@ -11,6 +11,7 @@
 #include "systems/orienting.h"
 #include "systems/playing.h"
 #include "systems/realizing.h"
+#include "systems/scripting.h"
 #include "consts.h"
 
 void PonderingSystem::tick(double dt)
@@ -853,6 +854,18 @@ void PonderingSystem::processCollision(
       }
 
       result.stopProcessing = true;
+
+      break;
+    }
+
+    case PonderableComponent::Collision::event:
+    {
+      if (game_.getEntityManager().
+        hasComponent<PlayableComponent>(entity))
+      {
+        game_.getSystemManager().getSystem<ScriptingSystem>().
+          onTouch(collider, entity);
+      }
 
       break;
     }

@@ -12,7 +12,7 @@
 #include "systems/playing.h"
 #include "systems/scheduling.h"
 #include "systems/realizing.h"
-#include "systems/automating.h"
+#include "systems/scripting.h"
 #include "animation.h"
 #include "consts.h"
 
@@ -36,7 +36,7 @@ Game::Game(std::mt19937& rng) : rng_(rng)
   systemManager_.emplaceSystem<PlayingSystem>(*this);
   systemManager_.emplaceSystem<SchedulingSystem>(*this);
   systemManager_.emplaceSystem<ControllingSystem>(*this);
-  systemManager_.emplaceSystem<AutomatingSystem>(*this);
+  systemManager_.emplaceSystem<ScriptingSystem>(*this);
   systemManager_.emplaceSystem<OrientingSystem>(*this);
   systemManager_.emplaceSystem<PonderingSystem>(*this);
   systemManager_.emplaceSystem<MappingSystem>(*this);
