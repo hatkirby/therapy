@@ -6,7 +6,6 @@
 #include "game.h"
 #include "consts.h"
 #include "animation.h"
-#include "components/realizable.h"
 #include "components/mappable.h"
 #include "components/animatable.h"
 #include "components/playable.h"
@@ -30,25 +29,21 @@ inline xmlChar* getProp(xmlNodePtr node, const char* attr)
 }
 
 // TODO: neither the XML doc nor any of the emplaced entities are properly
-// destroyed if this method throws an exception.
-EntityManager::id_type RealizingSystem::initSingleton(
+// destroyed if this constructor throws an exception.
+RealizingSystem::RealizingSystem(
+  Game& game,
   std::string worldFile,
-  std::string prototypeFile)
+  std::string prototypeFile) :
+    System(game),
+    worldFile_(std::move(worldFile)),
+    prototypeFile_(std::move(prototypeFile))
 {
-  id_type world = game_.getEntityManager().emplaceEntity();
-
-  auto& realizable = game_.getEntityManager().
-    emplaceComponent<RealizableComponent>(world);
-
-  realizable.worldFile = worldFile;
-  realizable.prototypeFile = prototypeFile;
-
   auto& mapping = game_.getSystemManager().getSystem<MappingSystem>();
 
   xmlChar* key = nullptr;
 
   // Create a mapping between prototype names and the XML trees defining them.
-  xmlDocPtr protoXml = xmlParseFile(prototypeFile.c_str());
+  xmlDocPtr protoXml = xmlParseFile(prototypeFile_.c_str());
   if (protoXml == nullptr)
   {
     throw std::invalid_argument("Cannot find prototypes file");
@@ -82,7 +77,7 @@ EntityManager::id_type RealizingSystem::initSingleton(
   }
 
   // Create entities from the world definition.
-  xmlDocPtr doc = xmlParseFile(worldFile.c_str());
+  xmlDocPtr doc = xmlParseFile(worldFile_.c_str());
   if (doc == nullptr)
   {
     throw std::invalid_argument("Cannot find world file");
@@ -100,15 +95,15 @@ EntityManager::id_type RealizingSystem::initSingleton(
   }
 
   key = getProp(top, "startx");
-  realizable.startingPos.x() = atoi(reinterpret_cast<char*>(key));
+  startingPos_.x() = atoi(reinterpret_cast<char*>(key));
   xmlFree(key);
 
   key = getProp(top, "starty");
-  realizable.startingPos.y() = atoi(reinterpret_cast<char*>(key));
+  startingPos_.y() = atoi(reinterpret_cast<char*>(key));
   xmlFree(key);
 
   key = getProp(top, "startmap");
-  realizable.startingMapId = atoi(reinterpret_cast<char*>(key));
+  startingMapId_ = atoi(reinterpret_cast<char*>(key));
   xmlFree(key);
 
   for (xmlNodePtr node = top->xmlChildrenNode;
@@ -291,43 +286,54 @@ EntityManager::id_type RealizingSystem::initSingleton(
 
       mapping.generateBoundaries(map);
 
-      realizable.maps.insert(map);
-      realizable.entityByMapId[mappable.mapId] = map;
+      entityByMapId_[mappable.mapId] = map;
     }
   }
 
   xmlFreeDoc(doc);
   xmlFreeDoc(protoXml);
 
-  loadMap(realizable.entityByMapId[realizable.startingMapId]);
-
-  return world;
-}
-
-EntityManager::id_type RealizingSystem::getSingleton() const
-{
-  std::set<id_type> result =
-    game_.getEntityManager().getEntitiesWithComponents<
-      RealizableComponent>();
-
-  if (result.empty())
-  {
-    throw std::logic_error("No realizable entity found");
-  } else if (result.size() > 1)
-  {
-    throw std::logic_error("Multiple realizable entities found");
-  }
-
-  return *std::begin(result);
+  activateMap(entityByMapId_[startingMapId_]);
 }
 
 void RealizingSystem::loadMap(id_type mapEntity)
 {
-  id_type world = getSingleton();
+  deactivateMap();
+  activateMap(mapEntity);
+}
 
-  auto& realizable = game_.getEntityManager().
-    getComponent<RealizableComponent>(world);
+void RealizingSystem::deactivateMap()
+{
+  id_type oldMap = activeMap_;
 
+  auto& oldMappable = game_.getEntityManager().
+    getComponent<MappableComponent>(oldMap);
+
+  // Deactivate any map objects from the old map.
+  for (id_type prototype : oldMappable.objects)
+  {
+    leaveActiveMap(prototype);
+  }
+
+  // Deactivate players that were on the old map.
+  std::set<id_type> players =
+    game_.getEntityManager().getEntitiesWithComponents<
+      PlayableComponent>();
+
+  for (id_type player : players)
+  {
+    auto& playable = game_.getEntityManager().
+      getComponent<PlayableComponent>(player);
+
+    if (playable.mapId == oldMap)
+    {
+      leaveActiveMap(player);
+    }
+  }
+}
+
+void RealizingSystem::activateMap(id_type mapEntity)
+{
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
   auto& pondering = game_.getSystemManager().getSystem<PonderingSystem>();
 
@@ -335,34 +341,7 @@ void RealizingSystem::loadMap(id_type mapEntity)
     game_.getEntityManager().getEntitiesWithComponents<
       PlayableComponent>();
 
-  if (realizable.hasActiveMap)
-  {
-    id_type oldMap = realizable.activeMap;
-
-    auto& oldMappable = game_.getEntityManager().
-      getComponent<MappableComponent>(oldMap);
-
-    // Deactivate any map objects from the old map.
-    for (id_type prototype : oldMappable.objects)
-    {
-      leaveActiveMap(prototype);
-    }
-
-    // Deactivate players that were on the old map.
-    for (id_type player : players)
-    {
-      auto& playable = game_.getEntityManager().
-        getComponent<PlayableComponent>(player);
-
-      if (playable.mapId == oldMap)
-      {
-        leaveActiveMap(player);
-      }
-    }
-  }
-
-  realizable.hasActiveMap = true;
-  realizable.activeMap = mapEntity;
+  activeMap_ = mapEntity;
 
   auto& mappable = game_.getEntityManager().
     getComponent<MappableComponent>(mapEntity);

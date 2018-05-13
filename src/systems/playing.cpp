@@ -5,7 +5,6 @@
 #include "components/playable.h"
 #include "components/controllable.h"
 #include "components/orientable.h"
-#include "components/realizable.h"
 #include "systems/mapping.h"
 #include "systems/pondering.h"
 #include "systems/orienting.h"
@@ -36,13 +35,10 @@ void PlayingSystem::initPlayer()
 
   auto& realizing = game_.getSystemManager().getSystem<RealizingSystem>();
 
-  auto& realizable = game_.getEntityManager().
-    getComponent<RealizableComponent>(realizing.getSingleton());
-
   auto& transformable = game_.getEntityManager().
     emplaceComponent<TransformableComponent>(player);
 
-  transformable.pos = realizable.startingPos;
+  transformable.pos = realizing.getStartingPos();
   transformable.size.w() = 10;
   transformable.size.h() = 12;
 
@@ -56,13 +52,13 @@ void PlayingSystem::initPlayer()
   auto& playable = game_.getEntityManager().
     emplaceComponent<PlayableComponent>(player);
 
-  playable.mapId = realizable.activeMap;
-  playable.checkpointMapId = realizable.startingMapId;
-  playable.checkpointPos = realizable.startingPos;
+  playable.mapId = realizing.getActiveMap();
+  playable.checkpointMapId = realizing.getStartingMapId();
+  playable.checkpointPos = realizing.getStartingPos();
 
   realizing.enterActiveMap(player);
 
-  realizable.activePlayer = player;
+  realizing.setActivePlayer(player);
 }
 
 void PlayingSystem::changeMap(
@@ -77,20 +73,16 @@ void PlayingSystem::changeMap(
     getComponent<TransformableComponent>(player);
 
   auto& pondering = game_.getSystemManager().getSystem<PonderingSystem>();
-
   auto& realizing = game_.getSystemManager().getSystem<RealizingSystem>();
 
-  auto& realizable = game_.getEntityManager().
-    getComponent<RealizableComponent>(realizing.getSingleton());
-
-  id_type newMapEntity = realizable.entityByMapId[mapId];
+  id_type newMapEntity = realizing.getEntityByMapId(mapId);
 
   if (playable.mapId != newMapEntity)
   {
-    if (playable.mapId == realizable.activeMap)
+    if (playable.mapId == realizing.getActiveMap())
     {
       realizing.leaveActiveMap(player);
-    } else if (newMapEntity == realizable.activeMap)
+    } else if (newMapEntity == realizing.getActiveMap())
     {
       realizing.enterActiveMap(player);
     }
@@ -102,7 +94,7 @@ void PlayingSystem::changeMap(
 
   transformable.pos = warpPos;
 
-  if (realizable.activePlayer == player)
+  if (realizing.getActivePlayer() == player)
   {
     realizing.loadMap(newMapEntity);
   }

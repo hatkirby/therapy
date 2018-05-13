@@ -1,6 +1,5 @@
 #include "mapping.h"
 #include "components/mappable.h"
-#include "components/realizable.h"
 #include "systems/realizing.h"
 #include "game.h"
 #include "consts.h"
@@ -20,11 +19,8 @@ inline void addBoundary(
 
 void MappingSystem::render(Texture& texture)
 {
-  auto& realizable = game_.getEntityManager().
-    getComponent<RealizableComponent>(
-      game_.getSystemManager().getSystem<RealizingSystem>().getSingleton());
-
-  id_type map = realizable.activeMap;
+  id_type map =
+    game_.getSystemManager().getSystem<RealizingSystem>().getActiveMap();
 
   auto& mappable = game_.getEntityManager().
     getComponent<MappableComponent>(map);
