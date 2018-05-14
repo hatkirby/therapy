@@ -13,14 +13,20 @@ public:
 
   void killScript(id_type entity);
 
-  id_type runBehaviorScript(id_type entity);
+  void startBehavior(id_type entity);
+
+  void stopBehavior(id_type entity);
 
   void onTouch(id_type entity, id_type player);
 
 private:
 
   template <typename... Args>
-  id_type runScript(std::string event, id_type entity, Args&&... args);
+  sol::optional<id_type> runScript(
+    std::string table,
+    std::string event,
+    id_type entity,
+    Args&&... args);
 
   sol::state engine_;
 };

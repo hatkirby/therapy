@@ -9,14 +9,15 @@ public:
 
   using id_type = EntityManager::id_type;
 
+  /**
+   * The index of the object in the map definition.
+   */
   size_t mapObjectIndex;
 
+  /**
+   * The name of the prototype that the object was spawned from.
+   */
   std::string prototypeId;
-
-  bool hasBehavior = false;
-  bool runningBehavior = false;
-
-  id_type behaviorScript;
 };
 
 #endif /* end of include guard: PROTOTYPABLE_H_817F2205 */

@@ -44,8 +44,8 @@ private:
 
   std::mt19937 rng_;
   Renderer renderer_;
-  EntityManager entityManager_;
   SystemManager systemManager_;
+  EntityManager entityManager_;
   bool shouldQuit_ = false;
 };
 
