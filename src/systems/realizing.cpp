@@ -12,6 +12,7 @@
 #include "components/ponderable.h"
 #include "components/transformable.h"
 #include "components/prototypable.h"
+#include "components/automatable.h"
 #include "systems/mapping.h"
 #include "systems/animating.h"
 #include "systems/pondering.h"
@@ -223,7 +224,10 @@ RealizingSystem::RealizingSystem(
 
           if (prototypeId == "movplat")
           {
-            prototypable.hasBehavior = true;
+            auto& automatable = game_.getEntityManager().
+              emplaceComponent<AutomatableComponent>(mapObject);
+
+            automatable.table = prototypeId;
           } else if (prototypeId == "checkpoint")
           {
             auto& ponderable = game_.getEntityManager().
@@ -403,19 +407,9 @@ void RealizingSystem::enterActiveMap(id_type entity)
     ponderable.active = true;
   }
 
-  if (game_.getEntityManager().hasComponent<PrototypableComponent>(entity))
+  if (game_.getEntityManager().hasComponent<AutomatableComponent>(entity))
   {
-    auto& prototypable = game_.getEntityManager().
-      getComponent<PrototypableComponent>(entity);
-
-    if (prototypable.hasBehavior)
-    {
-      auto& scripting = game_.getSystemManager().getSystem<ScriptingSystem>();
-
-      prototypable.hasBehavior = true;
-      prototypable.runningBehavior = true;
-      prototypable.behaviorScript = scripting.runBehaviorScript(entity);
-    }
+    game_.getSystemManager().getSystem<ScriptingSystem>().startBehavior(entity);
   }
 }
 
@@ -437,17 +431,8 @@ void RealizingSystem::leaveActiveMap(id_type entity)
     ponderable.active = false;
   }
 
-  if (game_.getEntityManager().hasComponent<PrototypableComponent>(entity))
+  if (game_.getEntityManager().hasComponent<AutomatableComponent>(entity))
   {
-    auto& prototypable = game_.getEntityManager().
-      getComponent<PrototypableComponent>(entity);
-
-    if (prototypable.runningBehavior)
-    {
-      auto& scripting = game_.getSystemManager().getSystem<ScriptingSystem>();
-      scripting.killScript(prototypable.behaviorScript);
-
-      prototypable.runningBehavior = false;
-    }
+    game_.getSystemManager().getSystem<ScriptingSystem>().stopBehavior(entity);
   }
 }

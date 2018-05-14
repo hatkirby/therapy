@@ -6,6 +6,7 @@
 #include "components/playable.h"
 #include "components/mappable.h"
 #include "components/prototypable.h"
+#include "components/automatable.h"
 #include "systems/realizing.h"
 #include "vector.h"
 
@@ -133,28 +134,34 @@ void ScriptingSystem::tick(double dt)
 
     if (!*runnable.callable)
     {
-      game_.getEntityManager().deleteEntity(entity);
+      killScript(entity);
     }
   }
 }
 
 void ScriptingSystem::killScript(id_type entity)
 {
-  if (game_.getEntityManager().hasComponent<RunnableComponent>(entity))
+  auto& runnable = game_.getEntityManager().
+    getComponent<RunnableComponent>(entity);
+
+  if (runnable.behavior)
   {
-    game_.getEntityManager().deleteEntity(entity);
+    auto& automatable = game_.getEntityManager().
+      getComponent<AutomatableComponent>(runnable.actor);
+
+    automatable.running = false;
   }
+
+  game_.getEntityManager().deleteEntity(entity);
 }
 
 template <typename... Args>
-EntityManager::id_type ScriptingSystem::runScript(
+sol::optional<EntityManager::id_type> ScriptingSystem::runScript(
+  std::string table,
   std::string event,
   id_type entity,
   Args&&... args)
 {
-  auto& prototypable = game_.getEntityManager().
-    getComponent<PrototypableComponent>(entity);
-
   id_type script = game_.getEntityManager().emplaceEntity();
 
   auto& runnable = game_.getEntityManager().
@@ -171,7 +178,7 @@ EntityManager::id_type ScriptingSystem::runScript(
       new sol::coroutine(
         runnable.runner->state().
           traverse_get<sol::function>(
-            prototypable.prototypeId,
+            table,
             event)));
 
   if (!*runnable.callable)
@@ -189,17 +196,58 @@ EntityManager::id_type ScriptingSystem::runScript(
     throw std::runtime_error(e.what());
   }
 
-  return script;
+  if (*runnable.callable)
+  {
+    return { script };
+  } else {
+    killScript(script);
+
+    return {};
+  }
 }
 
-EntityManager::id_type ScriptingSystem::runBehaviorScript(id_type entity)
+void ScriptingSystem::startBehavior(id_type entity)
 {
-  return runScript("Behavior", entity);
+  auto& automatable = game_.getEntityManager().
+    getComponent<AutomatableComponent>(entity);
+
+  sol::optional<id_type> script =
+    runScript(
+      automatable.table,
+      "Behavior",
+      entity);
+
+  if (script)
+  {
+    automatable.script = *script;
+    automatable.running = true;
+
+    auto& runnable = game_.getEntityManager().
+      getComponent<RunnableComponent>(automatable.script);
+
+    runnable.behavior = true;
+    runnable.actor = entity;
+  }
+}
+
+void ScriptingSystem::stopBehavior(id_type entity)
+{
+  auto& automatable = game_.getEntityManager().
+    getComponent<AutomatableComponent>(entity);
+
+  if (automatable.running)
+  {
+    killScript(automatable.script);
+  }
 }
 
 void ScriptingSystem::onTouch(id_type entity, id_type player)
 {
+  auto& prototypable = game_.getEntityManager().
+    getComponent<PrototypableComponent>(entity);
+
   runScript(
+    prototypable.prototypeId,
     "OnTouch",
     entity,
     script_entity(player));
