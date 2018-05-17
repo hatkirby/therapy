@@ -256,7 +256,12 @@ void MapeditWidget::OnClick(wxMouseEvent& event)
       int x = (event.GetPosition().x + vX - EDITOR_SPACING_X*scale) / scale - (addingEntity->getWidth() / 2);
       int y = (event.GetPosition().y + vY - EDITOR_SPACING_Y*scale) / scale - (addingEntity->getHeight() / 2);
       
-      auto data = std::make_shared<MapObjectEntry>(*addingEntity, x, y);
+      auto data = std::make_shared<MapObjectEntry>(
+        *addingEntity,
+        x,
+        y,
+        map->getAndIncrementNextObjectIndex());
+        
       frame->commitAction(std::make_shared<Undoable>("Add " + addingEntity->getName(), [=] () {
         map->addObject(data);
         

@@ -89,6 +89,7 @@ class Map {
     bool getHidden() const;
     const std::map<MoveDir, Adjacent>& getAdjacents() const;
     const Adjacent& getAdjacent(MoveDir direction) const;
+    size_t getNextObjectIndex() const;
     
     void setTitle(std::string title, bool dirty = true);
     void setTileAt(int x, int y, int tile, bool dirty = true);
@@ -100,6 +101,8 @@ class Map {
     void setExpanded(bool exp);
     void setHidden(bool hid);
     void setAdjacent(MoveDir direction, MoveType type, int map = -1, bool dirty = true);
+    size_t getAndIncrementNextObjectIndex();
+    void setNextObjectIndex(size_t v);
     
   private:
     int id;
@@ -113,6 +116,7 @@ class Map {
     bool hidden = false;
     std::map<MoveDir, Adjacent> adjacents;
     const Adjacent defaultAdjacent {};
+    size_t nextObjectIndex = 0;
 };
 
 class MapPtrCtr : public wxTreeItemData {

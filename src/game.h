@@ -1,45 +1,52 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef GAME_H_1014DDC9
+#define GAME_H_1014DDC9
 
-#include <memory>
-#include <functional>
-#include <list>
-#include <map>
-#include "map.h"
-#include "world.h"
-
-class Entity;
-struct GLFWwindow;
-
-struct Savefile {
-  const Map* map;
-  std::pair<double, double> position;
-};
+#include <random>
+#include "entity_manager.h"
+#include "system_manager.h"
+#include "renderer/renderer.h"
 
 class Game {
-  public:
-    Game(const char* maps);
-    void execute(GLFWwindow* window);
-    void loadMap(const Map& map, std::pair<double, double> position);
-    void detectCollision(Entity& collider, std::pair<double, double> old_position);
-    void saveGame();
-    void schedule(double time, std::function<void ()> callback);
-    void playerDie();
-    const World& getWorld() const;
-    
-  private:
-    friend void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+public:
 
-    std::list<std::shared_ptr<Entity>> entities;
-    std::list<std::shared_ptr<Entity>> nextEntities;
-    std::pair<double, double> nextPosition;
-    bool newWorld;
-    std::shared_ptr<Entity> player;
-    const Map* currentMap;
-    Savefile save;
-    std::list<std::pair<double, std::function<void ()>>> scheduled;
-    bool shouldQuit = false;
-    World world;
+  Game(std::mt19937& rng);
+
+  void execute();
+
+  inline std::mt19937& getRng()
+  {
+    return rng_;
+  }
+
+  inline Renderer& getRenderer()
+  {
+    return renderer_;
+  }
+
+  inline EntityManager& getEntityManager()
+  {
+    return entityManager_;
+  }
+
+  inline SystemManager& getSystemManager()
+  {
+    return systemManager_;
+  }
+
+  friend void key_callback(
+    GLFWwindow* window,
+    int key,
+    int scancode,
+    int action,
+    int mods);
+
+private:
+
+  std::mt19937 rng_;
+  Renderer renderer_;
+  SystemManager systemManager_;
+  EntityManager entityManager_;
+  bool shouldQuit_ = false;
 };
 
-#endif
+#endif /* end of include guard: GAME_H_1014DDC9 */

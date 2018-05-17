@@ -2,7 +2,7 @@
 <entities>
   <entity id="checkpoint" name="Checkpoint" sprite="res/keyring.png" width="8" height="11" action="save" />
   
-  <entity id="movplat" name="Moving Platform" sprite="res/platform4.png" width="30" height="8" action="carry">
+  <entity id="movplat" name="Moving Platform" sprite="res/platform4.png" width="32" height="8" action="carry">
     <input id="dir" name="Direction" type="choice">
       <value id="0">Left</value>
       <value id="1">Right</value>

@@ -1,25 +1,18 @@
-#include <ctime>
-#include <list>
-#include "renderer.h"
-#include <cstdlib>
-#include "game.h"
+#include <random>
 #include "muxer.h"
+#include "game.h"
 
 int main()
 {
-  srand(time(NULL));
-  
-  GLFWwindow* window = initRenderer();
+  std::random_device randomDevice;
+  std::mt19937 rng(randomDevice());
+
   initMuxer();
-  
-  // Put this in a block so game goes out of scope before we destroy the renderer
-  {
-    Game game {"res/maps.xml"};
-    game.execute(window);
-  }
-  
+
+  Game game(rng);
+  game.execute();
+
   destroyMuxer();
-  destroyRenderer();
-  
+
   return 0;
 }

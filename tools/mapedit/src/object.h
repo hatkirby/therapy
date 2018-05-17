@@ -67,7 +67,11 @@ class MapObject {
 
 class MapObjectEntry {
   public:
-    MapObjectEntry(const MapObject& object, int posx, int posy);
+    MapObjectEntry(
+      const MapObject& object,
+      int posx,
+      int posy,
+      size_t index);
     
     struct Item {
       MapObject::Input::Type type;
@@ -78,6 +82,7 @@ class MapObjectEntry {
     std::pair<int, int> getPosition() const;
     Item& getItem(std::string str);
     const std::map<std::string, Item>& getItems() const;
+    size_t getIndex() const;
     
     void setPosition(int x, int y);
     void addItem(std::string id, Item& item);
@@ -89,6 +94,7 @@ class MapObjectEntry {
     const MapObject& object;
     std::pair<int, int> position;
     std::map<std::string, Item> items; 
+    size_t index;
 };
 
 class VariableChoiceValidator : public wxValidator {

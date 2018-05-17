@@ -16,14 +16,25 @@ find_package(GLEW REQUIRED)
 find_package(portaudio REQUIRED)
 find_package(libsndfile REQUIRED)
 find_package(libxml2 REQUIRED)
+find_package(lua REQUIRED)
+
+IF(APPLE)
+   FIND_LIBRARY(COCOA_LIBRARY Cocoa)
+   FIND_LIBRARY(CV_LIBRARY CoreVideo)
+   FIND_LIBRARY(IO_LIBRARY IOKit)
+   MARK_AS_ADVANCED (COCOA_LIBRARY CV_LIBRARY IO_LIBRARY)
+   SET(EXTRA_LIBS ${COCOA_LIBRARY} ${CV_LIBRARY} ${IO_LIBRARY})
+ENDIF (APPLE)
 
 set(ALL_LIBS
-  ${OPENGL_LIBRARIES}
+  ${OPENGL_gl_LIBRARY}
   ${GLEW_LIBRARIES}
   ${GLFW_LIBRARIES}
   ${PORTAUDIO_LIBRARIES}
   ${LIBSNDFILE_LIBRARY}
   ${LIBXML2_LIBRARIES}
+  ${LUA_LIBRARIES}
+  ${EXTRA_LIBS}
 )
 
 include_directories(
@@ -31,7 +42,9 @@ include_directories(
   ${GLFW_INCLUDE_DIRS}
   ${OPENGL_INCLUDE_DIRS}
   ${GLEW_INCLUDE_DIRS}
+  ${LUA_INCLUDE_DIRS}
   src
+  vendor
 )
 
 link_directories(
@@ -40,25 +53,27 @@ link_directories(
 
 add_executable(Aromatherapy
   src/main.cpp
-  src/map.cpp
-  src/renderer.cpp
-  src/entity.cpp
-  src/game.cpp
   src/muxer.cpp
-  src/entityfactory.cpp
-  src/world.cpp
-  src/components/ai.cpp
-  src/components/map_collision.cpp
-  src/components/map_render.cpp
-  src/components/physics_body.cpp
-  src/components/player_physics.cpp
-  src/components/player_sprite.cpp
-  src/components/pondering.cpp
-  src/components/simple_collider.cpp
-  src/components/static_image.cpp
-  src/components/user_movement.cpp
+  src/entity_manager.cpp
+  src/game.cpp
+  src/animation.cpp
+  src/util.cpp
+  src/renderer/renderer.cpp
+  src/renderer/mesh.cpp
+  src/renderer/shader.cpp
+  src/renderer/texture.cpp
+  src/systems/controlling.cpp
+  src/systems/pondering.cpp
+  src/systems/animating.cpp
+  src/systems/mapping.cpp
+  src/systems/orienting.cpp
+  src/systems/playing.cpp
+  src/systems/scheduling.cpp
+  src/systems/realizing.cpp
+  src/systems/scripting.cpp
+  vendor/stb_image.cpp
 )
 
-set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 11)
+set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD 17)
 set_property(TARGET Aromatherapy PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(Aromatherapy ${ALL_LIBS})

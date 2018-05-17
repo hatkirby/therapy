@@ -2,15 +2,16 @@
 
 in vec2 UV;
 
-out vec3 color;
+out vec4 color;
 
 uniform vec2 offset;
 uniform sampler2D inTex;
 
 void main()
 {
-  color = vec3(0.0);
-  color += (5.0/16.0) * texture(inTex, UV - offset).rgb;
-  color += (6.0/16.0) * texture(inTex, UV).rgb;
-  color += (5.0/16.0) * texture(inTex, UV + offset).rgb;
+  vec3 mval = vec3(0.0);
+  mval += (5.0/16.0) * texture(inTex, UV - offset).rgb;
+  mval += (6.0/16.0) * texture(inTex, UV).rgb;
+  mval += (5.0/16.0) * texture(inTex, UV + offset).rgb;
+  color = vec4(mval, 1.0);
 }
