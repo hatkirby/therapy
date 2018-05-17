@@ -13,5 +13,7 @@ function checkpoint.OnTouch(id, player)
     player:playable().checkpointMapObjectIndex =
       id:prototypable().mapObjectIndex
     player:playable().checkpointPos = player:transformable().pos
+
+    playSound("res/Pickup_Coin23.wav", 0.25)
   end
 end
