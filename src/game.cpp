@@ -1,9 +1,4 @@
 #include "game.h"
-#include "components/animatable.h"
-#include "components/transformable.h"
-#include "components/controllable.h"
-#include "components/ponderable.h"
-#include "components/orientable.h"
 #include "systems/controlling.h"
 #include "systems/pondering.h"
 #include "systems/animating.h"
@@ -13,7 +8,6 @@
 #include "systems/scheduling.h"
 #include "systems/realizing.h"
 #include "systems/scripting.h"
-#include "animation.h"
 #include "consts.h"
 
 void key_callback(GLFWwindow* window, int key, int, int action, int)

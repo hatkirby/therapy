@@ -9,6 +9,7 @@
 #include "components/automatable.h"
 #include "systems/realizing.h"
 #include "vector.h"
+#include "muxer.h"
 
 struct script_entity {
   using id_type = EntityManager::id_type;
@@ -103,9 +104,11 @@ ScriptingSystem::ScriptingSystem(Game& game) : System(game)
 
   engine_.set_function(
     "realizing",
-    [&] () {
+    [&] () -> RealizingSystem& {
       return game_.getSystemManager().getSystem<RealizingSystem>();
     });
+
+  engine_.set_function("playSound", playSound);
 
   engine_.script_file("scripts/common.lua");
   engine_.script_file("scripts/movplat.lua");
