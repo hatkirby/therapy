@@ -20,30 +20,6 @@ void OrientingSystem::tick(double)
     auto& ponderable = game_.getEntityManager().
       getComponent<PonderableComponent>(entity);
 
-    switch (orientable.getWalkState())
-    {
-      case OrientableComponent::WalkState::still:
-      {
-        ponderable.vel.x() = 0.0;
-
-        break;
-      }
-
-      case OrientableComponent::WalkState::left:
-      {
-        ponderable.vel.x() = -WALK_SPEED;
-
-        break;
-      }
-
-      case OrientableComponent::WalkState::right:
-      {
-        ponderable.vel.x() = WALK_SPEED;
-
-        break;
-      }
-    }
-
     if (orientable.isJumping() && (ponderable.vel.y() > 0))
     {
       orientable.setJumping(false);
@@ -61,6 +37,8 @@ void OrientingSystem::moveLeft(id_type entity)
 
   orientable.setFacingRight(false);
   orientable.setWalkState(OrientableComponent::WalkState::left);
+
+  ponderable.targetVel.x() = -WALK_SPEED;
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
   if (ponderable.grounded)
@@ -82,6 +60,8 @@ void OrientingSystem::moveRight(id_type entity)
   orientable.setFacingRight(true);
   orientable.setWalkState(OrientableComponent::WalkState::right);
 
+  ponderable.targetVel.x() = WALK_SPEED;
+
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
   if (ponderable.grounded)
   {
@@ -93,10 +73,14 @@ void OrientingSystem::moveRight(id_type entity)
 
 void OrientingSystem::stopWalking(id_type entity)
 {
+  auto& ponderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(entity);
+
   auto& orientable = game_.getEntityManager().
     getComponent<OrientableComponent>(entity);
 
   orientable.setWalkState(OrientableComponent::WalkState::still);
+  ponderable.targetVel.x() = 0;
 
   auto& animating = game_.getSystemManager().getSystem<AnimatingSystem>();
 

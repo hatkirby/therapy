@@ -44,6 +44,7 @@ void PonderingSystem::initializeBody(
 
   if (type == PonderableComponent::Type::freefalling)
   {
+    ponderable.targetVel.y() = TERMINAL_VELOCITY;
     ponderable.accel.y() = NORMAL_GRAVITY;
   }
 }
@@ -57,6 +58,8 @@ void PonderingSystem::initPrototype(id_type prototype)
   ponderable.vel.y() = 0.0;
   ponderable.accel.x() = 0.0;
   ponderable.accel.y() = 0.0;
+  ponderable.targetVel.x() = 0.0;
+  ponderable.targetVel.y() = 0.0;
   ponderable.grounded = false;
   ponderable.frozen = false;
   ponderable.collidable = true;
@@ -98,12 +101,48 @@ void PonderingSystem::tickBody(
   // Accelerate
   if (!ponderable.frozen)
   {
-    ponderable.vel += ponderable.accel * dt;
+    // Determine the effective acceleration, which should be in the direction of
+    // the target velocity.
+    vec2d effAcc = ponderable.accel;
 
-    if ((ponderable.type == PonderableComponent::Type::freefalling)
-      && (ponderable.vel.y() > TERMINAL_VELOCITY))
+    if (ponderable.vel.x() == ponderable.targetVel.x())
     {
-      ponderable.vel.y() = TERMINAL_VELOCITY;
+      effAcc.x() = 0.0;
+    }
+    else if ((ponderable.accel.x() > 0 &&
+              ponderable.targetVel.x() < ponderable.vel.x()) ||
+             (ponderable.accel.x() < 0 &&
+              ponderable.targetVel.x() > ponderable.vel.x()))
+    {
+      effAcc.x() = -effAcc.x();
+    }
+
+    if (ponderable.vel.y() == ponderable.targetVel.y())
+    {
+      effAcc.y() = 0.0;
+    }
+    else if ((ponderable.accel.y() > 0 &&
+              ponderable.targetVel.y() < ponderable.vel.y()) ||
+             (ponderable.accel.y() < 0 &&
+              ponderable.targetVel.y() > ponderable.vel.y()))
+    {
+      effAcc.y() = -effAcc.y();
+    }
+
+    // Accelerate
+    ponderable.vel += effAcc * dt;
+
+    // If the velocity crossed the target velocity, set it to the target
+    if ((effAcc.x() > 0 && ponderable.vel.x() > ponderable.targetVel.x()) ||
+        (effAcc.x() < 0 && ponderable.vel.x() < ponderable.targetVel.x()))
+    {
+      ponderable.vel.x() = ponderable.targetVel.x();
+    }
+
+    if ((effAcc.y() > 0 && ponderable.vel.y() > ponderable.targetVel.y()) ||
+        (effAcc.y() < 0 && ponderable.vel.y() < ponderable.targetVel.y()))
+    {
+      ponderable.vel.y() = ponderable.targetVel.y();
     }
   }
 

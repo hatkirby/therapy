@@ -5,6 +5,7 @@
 #include "components/playable.h"
 #include "components/controllable.h"
 #include "components/orientable.h"
+#include "components/ponderable.h"
 #include "systems/mapping.h"
 #include "systems/pondering.h"
 #include "systems/orienting.h"
@@ -45,6 +46,10 @@ void PlayingSystem::initPlayer()
   game_.getSystemManager().getSystem<PonderingSystem>().initializeBody(
     player,
     PonderableComponent::Type::freefalling);
+
+  auto& ponderable = game_.getEntityManager().
+    getComponent<PonderableComponent>(player);
+  ponderable.accel.x() = 720;
 
   game_.getEntityManager().emplaceComponent<ControllableComponent>(player);
   game_.getEntityManager().emplaceComponent<OrientableComponent>(player);

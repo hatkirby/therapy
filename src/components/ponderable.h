@@ -56,6 +56,11 @@ public:
   vec2d accel = { 0.0, 0.0 };
 
   /**
+   * The target velocity of the body.
+   */
+  vec2d targetVel = { 0.0, 0.0 };
+
+  /**
    * The type of physical body that the entity is meant to assume. The body will
    * be acted upon differently based on this. See the enumeration above for more
    * details.
